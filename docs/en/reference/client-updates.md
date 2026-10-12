@@ -67,6 +67,7 @@ About separates client updates from backend upgrades and displays immutable shel
 - Metadata bypasses business HttpClient and never sends Songloft tokens, Authorization, or Cookie. Native system TLS permits at most eight HTTPS-validated redirects, a twelve-second overall network deadline, and bounded streaming: API 512 KiB, manifest 128 KiB, signature 8 KiB. Web uses browser TLS and bounded credential-free fetch.
 - The existing HTTPS GitHub proxy prefix wraps API and download addresses separately, without credentials/query parameters. Proxy transport failures retry only the same direct URL. Native signature/hash checks remain mandatory.
 - Android/HarmonyOS offer APK/HAP; iOS explains IPA signing. Web offers the matching standalone/embedded deployment archive and refresh guidance; native bundles cannot update the Web host scripts.
+- Release notes render GitHub Flavored Markdown headings, paragraphs, lists (including task lists), quotes, separators, bold/italic/strikethrough, code and tables. Tables scroll horizontally. HTTP/HTTPS links open through the host; other links retain their text. Images show alt text and HTML stays literal. The 16000-character limit remains, with plain-text fallback on parser errors. Parsing runs only on the background thread to keep Markdown regex rules out of Lynx main-thread bytecode compilation.
 
 ## Automatic checks and downloads
 

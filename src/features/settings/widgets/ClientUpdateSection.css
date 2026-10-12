@@ -9,3 +9,7 @@
 .client-update__error {
   color: var(--system-red);
 }
+
+.client-update__release-notes {
+  padding: var(--space-3) var(--space-4);
+}

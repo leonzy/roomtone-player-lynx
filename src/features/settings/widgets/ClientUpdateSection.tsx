@@ -9,6 +9,7 @@ import { automaticUpdatePolicy } from '../../../core/updater/automatic-update-po
 import { getPlatformTarget } from '../../../native/platform-target.js'
 import { openURL } from '../../../native/native-platform.js'
 import { isWebPlatform } from '../../../native/web-platform.js'
+import { Markdown } from '../../../shared/ui/Markdown.js'
 import { SettingsRow } from './SettingsRow.js'
 import { SettingsSection } from './SettingsSection.js'
 import { SwitchRow } from './SwitchRow.js'
@@ -102,7 +103,7 @@ export function ClientUpdateSection() {
           <SettingsRow title={check.comparison === 'newer' ? t('clientUpdate.available') : check.comparison === 'current'
             ? t('clientUpdate.current') : t('clientUpdate.unknown')}
             subtitle={`${check.candidate.manifest.version} · ${check.candidate.manifest.git_commit} · ${check.candidate.release.published_at}`} />
-          {check.candidate.release.body ? <text className='client-update__note'>{check.candidate.release.body.slice(0, 16000)}</text> : null}
+          {check.candidate.release.body ? <Markdown className='client-update__release-notes' content={check.candidate.release.body.slice(0, 16000)} /> : null}
           {check.comparison === 'newer' && check.bundleURL && !pending && !session.restored ? <SettingsRow icon='download'
             title={t('clientUpdate.downloadBundle')} subtitle={t('clientUpdate.coldStart')} disabled={busy}
             onTap={() => { void downloadClientBundle(check) }} testId='client-update-download' /> : null}

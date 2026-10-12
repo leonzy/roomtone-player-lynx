@@ -46,6 +46,35 @@ afterEach(async () => {
     checking: false, check: null, checkError: null, downloadSource: null
   })
 })
+test('renders release Markdown after checking and opens its links through the host', async () => {
+  const value = result()
+  value.candidate.release.body = '## 更新记录\n\n- **修复**显示\n\n[详情](https://example.com/notes)'
+  mocks.check.mockResolvedValue(value)
+  render(<ClientUpdateSection />); await settle()
+  const queries = getQueriesForElement(elementTree.root!)
+  await act(async () => { fireEvent.tap(queries.getByTestId('client-update-check')) }); await settle()
+  expect(queries.getByText('更新记录').closest('.markdown__heading--2')).toBeInTheDocument()
+  expect(queries.getByText('修复').closest('.markdown__strong')).toBeInTheDocument()
+  await act(async () => { fireEvent.tap(queries.getByText('详情')) })
+  expect(mocks.open).toHaveBeenCalledExactlyOnceWith('https://example.com/notes')
+  expect(queries.getByTestId('client-update-download')).toBeInTheDocument()
+})
+
+test('keeps empty notes hidden and bounds oversized notes before Markdown parsing', async () => {
+  const value = result()
+  value.candidate.release.body = ''
+  mocks.check.mockResolvedValue(value)
+  render(<ClientUpdateSection />); await settle()
+  const queries = getQueriesForElement(elementTree.root!)
+  await act(async () => { fireEvent.tap(queries.getByTestId('client-update-check')) }); await settle()
+  expect(elementTree.root!.querySelector('.client-update__release-notes')).toBeNull()
+  value.candidate.release.body = 'a'.repeat(16000) + '\n\n## Beyond limit'
+  mocks.check.mockResolvedValue(value)
+  await act(async () => { fireEvent.tap(queries.getByTestId('client-update-check')) }); await settle()
+  expect(elementTree.root!.querySelector('.client-update__release-notes')?.textContent).toBe('a'.repeat(16000))
+  expect(queries.queryByText('Beyond limit')).not.toBeInTheDocument()
+})
+
 test('checks only after a tap, shows shell and bundle separately, and marks pending only after native durable completion', async () => {
   render(<ClientUpdateSection />); await settle()
   const queries = getQueriesForElement(elementTree.root!)

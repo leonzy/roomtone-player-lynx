@@ -21,6 +21,8 @@ const LICENSES: LicenseEntry[] = [
   { name: '@tanstack/react-query', license: 'MIT', url: 'https://github.com/TanStack/query' },
   { name: '@tanstack/react-router', license: 'MIT', url: 'https://github.com/TanStack/router' },
   { name: 'i18next', license: 'MIT', url: 'https://github.com/i18next/i18next' },
+  { name: 'marked', license: 'MIT', url: 'https://github.com/markedjs/marked' },
+  { name: 'entities', license: 'BSD-2-Clause', url: 'https://github.com/fb55/entities' },
   { name: 'react-i18next', license: 'MIT', url: 'https://github.com/i18next/react-i18next' },
   { name: 'zod', license: 'MIT', url: 'https://github.com/colinhacks/zod' },
   { name: 'zustand', license: 'MIT', url: 'https://github.com/pmndrs/zustand' },
