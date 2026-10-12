@@ -12,23 +12,30 @@ import { installBackRouter } from '../../../__tests__/_render-mocks.js'
 const h = vi.hoisted(() => ({
   plugins: [] as GithubPlugin[], installed: [] as unknown[], host: '2.10.0', install: vi.fn(), openURL: vi.fn(),
   error: null as unknown, pending: false, more: false, fetchMore: vi.fn(), failures: {} as Record<string, number>,
+  token: '', tokenInput: 'ghp_new', revision: 0, saveToken: vi.fn(), tokenError: false, tokenRetry: vi.fn(),
+  discoveryInput: null as null | { token: string; enabled: boolean },
 }))
 vi.mock('react-i18next', async () => (await import('../../../__tests__/_render-mocks.js')).mockReactI18next())
-vi.mock('@lynx-js/lynx-ui-input', () => ({ Input: () => <view /> }))
+vi.mock('@lynx-js/lynx-ui-input', () => ({ Input: ({ id, value, type, onInput }: { id?: string; value?: string; type?: string; onInput?: (v: string) => void }) =>
+  <view data-testid={id} data-value={value} data-type={type} bindtap={() => onInput?.(h.tokenInput)} /> }))
 vi.mock('../../../native/native-platform.js', () => ({ openURL: h.openURL }))
 vi.mock('../data/jsplugin-query.js', () => ({
   useGithubProxyQuery: () => ({ data: '', isPending: false }),
   usePluginsQuery: () => ({ data: { plugins: h.installed }, isSuccess: true, refetch: vi.fn() }),
 }))
 vi.mock('../data/jsplugin-mutations.js', () => ({ useInstallFromRegistryMutation: () => ({ mutate: h.install, isPending: false }) }))
+vi.mock('../data/github-discovery-token-query.js', () => ({ useGithubDiscoveryTokenQuery: () => ({
+  data: h.token, isSuccess: !h.tokenError, isFetching: false, isError: h.tokenError, credentialRevision: h.revision,
+  refetch: h.tokenRetry, save: { mutateAsync: h.saveToken },
+}) }))
 vi.mock('../data/github-discovery-query.js', () => ({
   useDiscoveryHostVersion: () => ({ data: h.host, refetch: vi.fn() }),
   discoveryErrorKey: () => 'githubDiscovery.loadFailed',
-  useGithubDiscoveryQuery: () => ({
+  useGithubDiscoveryQuery: (input: { token: string; enabled: boolean }) => { h.discoveryInput = input; return ({
     data: { pages: [{ plugins: h.plugins, checked: 3, failures: h.failures }] },
     isPending: h.pending, isFetching: h.pending, isFetchingNextPage: false,
     isError: h.error != null, error: h.error, hasNextPage: h.more, fetchNextPage: h.fetchMore,
-  }),
+  }) },
 }))
 vi.mock('@lynx-js/lynx-ui-dialog', () => ({
   DialogRoot: ({ children, show }: { children: ReactNode; show: boolean }) => <view data-dialoghidden={show ? 'false' : 'true'}>{children}</view>,
@@ -47,6 +54,8 @@ const plugin: GithubPlugin = {
 beforeEach(() => {
   vi.clearAllMocks()
   h.plugins = [plugin]; h.installed = []; h.host = '2.10.0'; h.error = null; h.pending = false; h.more = false; h.failures = {}
+  h.token = ''; h.revision = 0; h.tokenError = false; h.discoveryInput = null
+  h.saveToken.mockImplementation(async (token: string) => { h.token = token; h.revision++ })
 })
 async function page(props: { onBack?: () => void } = {}) {
   render(<GithubDiscoveryPage {...props} />)
@@ -56,6 +65,46 @@ async function page(props: { onBack?: () => void } = {}) {
 async function tap(id: string) {
   await act(async () => { fireEvent.tap(getQueriesForElement(elementTree.root!).getByTestId(id)) })
 }
+
+test('token entry hides input, saves to the server, and refreshes client discovery', async () => {
+  await page()
+  await tap('github-discovery-token')
+  const q = getQueriesForElement(elementTree.root!)
+  expect(q.getByTestId('github-token-input')).toHaveAttribute('data-type', 'password')
+  await tap('github-token-input')
+  await tap('github-token-save')
+  expect(h.saveToken).toHaveBeenCalledWith('ghp_new')
+  expect(h.discoveryInput?.token).toBe('ghp_new')
+  await tap('github-discovery-token')
+  expect(q.getByTestId('github-token-input')).toHaveAttribute('data-value', '')
+  await tap('github-token-clear')
+  expect(h.saveToken).toHaveBeenLastCalledWith('')
+  expect(h.discoveryInput?.token).toBe('')
+})
+
+test('cancel and failed token saves preserve the existing server token', async () => {
+  h.token = 'ghp_existing'
+  await page()
+  await tap('github-discovery-token')
+  await tap('github-token-input')
+  await tap('github-token-cancel')
+  expect(h.saveToken).not.toHaveBeenCalled()
+  await tap('github-discovery-token')
+  await tap('github-token-input')
+  h.saveToken.mockRejectedValueOnce(new Error('failed'))
+  await tap('github-token-save')
+  expect(h.token).toBe('ghp_existing')
+  expect(getQueriesForElement(elementTree.root!).getByTestId('github-token-dialog').textContent).toContain(en.githubDiscovery.tokenSaveFailed)
+})
+
+test('server token read failure blocks GitHub requests and offers retry', async () => {
+  h.tokenError = true
+  await page()
+  expect(h.discoveryInput?.enabled).toBe(false)
+  expect(getQueriesForElement(elementTree.root!).getByTestId('github-token-load-error')).toBeInTheDocument()
+  await tap('github-token-load-error')
+  expect(h.tokenRetry).toHaveBeenCalled()
+})
 
 test('opens details and requires explicit unreviewed/permissions confirmation before installation', async () => {
   await page()

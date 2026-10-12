@@ -1,5 +1,22 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-13 · GitHub Token 共用服务器配置与商店客户端渐进加载
+
+- 用户确认：服务器只保存 GitHub Token，Flutter/Lynx 客户端读取后自行发现；GitHub 加速代理不能收到 Token。用户要求同步相关文档，继续按 dev-flow，暂不提交。
+- 发现页增加隐藏输入的 Token 弹窗，支持保存、更换、清除和创建 Token 链接。通过 SettingsApi 读取后端业务配置；凭据仅保留在会话内存，不加入查询键或本地持久化。配置读取失败阻止发现请求，并提供重试；保存失败保留现有设置。
+- 有 Token 的搜索/Release API 直连 `https://api.github.com`，加速代理与公开清单请求不携带它。无 Token 延续匿名代理/直连回退。认证失败显示专门提示；Token 更换/清除会切换缓存代次，旧查询取消，保存后刷新结果。服务器切换期间的读写固定原目标并检查当前身份，迟到响应不会覆盖新服务器配置。
+- `createFetchTransport` 可传浏览器 `redirect: 'error'`；普通请求不改变。未修改 Kotlin/Swift/ArkTS；原生宿主重定向行为和真机尚未实测。
+- 用户“继续”确认商店客户端方案，后补充源 Token 优先。两端独立公共网络读取注册表、includes 与清单，逐个显示，最多并发 8 个请求；完整清单缓存 5 分钟，搜索和分页复用，安装状态仍读服务器。安装提交 source_url 由服务器解析当前源 Token。Web 跨域/连接失败保留服务器兼容回退；原生错误只记警告并保留成功条目。源 Token 优先，共享 Token 仅用于无源凭据的官方 API 请求，不用于 raw 清单、第三方源、服务器回退和安装。后端兼容读取与私有 Release 下载也绕过 GitHub 前缀代理。
+- 商店加载移到 effect，切源、搜索、切服务器与卸载均保护迟到进度；主动刷新同步最新源配置，避免后续翻页复用旧 Token。外部 SVG 文本跳过 Songloft 认证拦截器。新增并发上限、渐进展示、缓存/分页/实时安装、身份合并、私有源优先、配置读取失败不阻塞源认证和 Web 回退回归。
+- 验证：完整 **313 文件 / 3421 项**回归通过；最后加载生命周期与源配置同步修正后 **4 文件 / 41 项**定向验证及类型检查通过，完整结果不包括最后一条源同步用例。最终生产 Lynx/Web 双 bundle 和 Web 部署构建、**72 项**发布检查通过；四文件 ReactLynx 扫描无诊断。此前隔离 `/tmp/songloft-token-negative` 副本撤掉认证请求绕过代理的保护后，凭据回归按预期失败；仓库源码未做该负向修改，副本已恢复。日志 `/tmp/songloft-client-registry-lynx-{full-tests,final-focused,typecheck-final,build-final,web-final,release}.log`。
+- Docker Chrome 运行生产 Web，中文 390px 首条已显示时慢请求仍 pending；释放后第二条出现。实际网络只请求根清单和两个插件，共 3 次，全部使用源 Token、不携带 Songloft JWT，页面异常为空。截图已目测，证据 `/tmp/songloft-registry-{browser-result.json,progress-zh.png,complete-zh.png}`。浏览器驱动首次误用不存在的测试 selector，改为实际按钮后通过；不是产品加载失败。
+- Token 弹窗实测 password 输入、保存与清除，后端真实 GET 核对值，源 Token 保持不变，页面异常为空；截图已目测。证据 `/tmp/songloft-token-browser-result.json`、`/tmp/songloft-github-token-dialog-zh.png`、`/tmp/songloft-registry-token-browser-final.log`。驱动修正浏览器会话/测试初始化与弹窗退场等待；GitHub 查询在此流程为隔离响应，不作为真实 GitHub 访问验收。
+- 真实临时 Go 后端验证未登录 401、缺省空值、保存、格式拒绝、重启持久化、清除、no-store 和在线 Swagger；完整 `make check` 通过。Flutter 完整 **675 项**通过，最后源同步修正后定向 **113 项**与静态检查通过，嵌入 Web 构建通过。父仓库中英文插件源指南/wiki 和 Swagger、Flutter 中英文开发指南同步。原生宿主重定向和真机仍未验。
+- 用户确认实施结果后进入提交前自审，修复六类边界：源删除/停用时退回启用源并停止旧 Token；切源/保存源配置取消旧搜索防抖；Flutter 首条安装后迟到的高版本保留更新入口；匿名清单 401 不误判共享 Token 无效；Lynx Web 回退固定初始服务器并在异步鉴权后检查身份；有效空清单替换旧缓存，强制刷新切换代次防止旧请求覆盖缓存。全部源删除还会停止 Flutter 列表请求并清空模式。
+- 自审验证：最终完整 **313 文件 / 3429 项**回归、类型检查、生产双 bundle、Web 部署与 **72 项**发布检查通过，四文件线程扫描无诊断。Flutter 完整 **682 项**通过，最后空源状态和取消断言修正后 **15 项**组件回归及静态检查通过。两端隔离副本分别撤掉保护后 **7 / 6 条**新回归按预期失败，已恢复副本，正式工作树未做负向修改。首次隔离启动缺少 Vite 外部依赖读取范围及 Flutter 本地资源，补齐后才取得上述负向证据；这些启动失败不计入缺陷回归。先前全量采集到已删除的不可触达 UI 用例而失败，最终日志为重跑后的通过证据。日志 `/tmp/songloft-token-store-review-{lynx-full-final,types,build,web,release,flutter-full,flutter-widget-final,analyze-final,negative-final,dart-negative-final}.log`。
+- 自审后的生产 Web 再次通过 Docker Chrome 首条早于慢请求的场景，源 Token 优先且清单不带 Songloft JWT，页面异常为空，截图已目测。证据仍为 `/tmp/songloft-registry-{browser-result.json,progress-zh.png,complete-zh.png}`，本轮日志 `/tmp/songloft-token-store-review-browser.log`。原生宿主重定向、Android/iOS/HarmonyOS 和 Flutter 浏览器未实测；临时服务与容器停止后保留本地证据。
+- 阶段：用户已确认自审结果、三个仓库的提交信息及暂存范围，并明确授权提交和推送。按先客户端、后父仓库的顺序执行，父仓库同步两端子模块指针，实际提交与推送结果以 Git 记录为准。下方均为此前批次记录。
+
 ## 2026-10-12 · HarmonyOS CI 依赖安装重试
 
 - 提交收尾：用户已确认实施、自审与提交信息，并授权在 Lynx 仓库本地提交本批 4 个文件。实际提交结果以 Git 历史为准；未授权推送或重跑 CI，下文待确认描述为此前快照。

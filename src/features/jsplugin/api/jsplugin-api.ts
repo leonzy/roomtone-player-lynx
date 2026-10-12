@@ -1,6 +1,6 @@
 import { apiPrefix, appConfig } from '../../../core/config/app-config.js'
 import { getCachedAccessToken } from '../../../core/network/token-cache.js'
-import type { HttpClient } from '../../../core/network/http-client.js'
+import type { HttpClient, RequestOptions } from '../../../core/network/http-client.js'
 
 import {
   parseJSPlugin,
@@ -29,6 +29,9 @@ export interface PluginRegistryConfig {
 }
 
 export interface RegistryRefreshParams extends GithubProxyParams {
+  /** Pin compatible reads to their initiating server during asynchronous authentication. */
+  serverBaseUrl?: string
+  assertCurrent?: RequestOptions['assertCurrent']
   registryUrl?: string
   allSources?: boolean
   page?: number
@@ -191,8 +194,9 @@ export class JSPluginApi {
     if (params.search) body.search = params.search
     if (params.force) body.force = true
     if (params.githubProxy) body.github_proxy = params.githubProxy
-    const res = await this.client.post<unknown>(`${apiPrefix}/jsplugins/registry/refresh`, body, {
+    const res = await this.client.post<unknown>(`${params.serverBaseUrl ?? ''}${apiPrefix}/jsplugins/registry/refresh`, body, {
       receiveTimeoutMs: 60_000,
+      assertCurrent: params.assertCurrent,
     })
     return parseRegistryRefreshResponse(res.data)
   }
@@ -223,7 +227,9 @@ export class JSPluginApi {
    * prefix.
    */
   async getRemoteText(url: string): Promise<string> {
-    const res = await this.client.get<string>(url, { parseJson: false })
+    const origin = (address: string) => address.match(/^https?:\/\/[^/?#]+/i)?.[0].toLowerCase()
+    const external = origin(url) !== undefined && origin(url) !== origin(appConfig.resolvedBaseUrl)
+    const res = await this.client.get<string>(url, { parseJson: false, skipInterceptor: external })
     return typeof res.data === 'string' ? res.data : ''
   }
 

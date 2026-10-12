@@ -12,6 +12,36 @@ function client(transport: Transport) {
   return createPublicClient({ transport, getBaseUrl: () => 'http://api.test' })
 }
 
+test('GitHub discovery credentials are read, saved, and cleared through the business endpoint', async () => {
+  let token = ''
+  const transport = vi.fn<Transport>(async request => {
+    expect(request.url).toBe(`http://api.test${apiPrefix}/settings/github-discovery-token`)
+    if (request.method === 'PUT') token = (JSON.parse(request.body ?? '{}') as { token: string }).token
+    return { status: 200, headers: {}, body: JSON.stringify({ token }) }
+  })
+  const api = new SettingsApi(client(transport))
+  expect(await api.getGithubDiscoveryToken()).toBe('')
+  expect(await api.updateGithubDiscoveryToken('  ghp_saved  ')).toBe('ghp_saved')
+  expect(await api.getGithubDiscoveryToken()).toBe('ghp_saved')
+  expect(await api.updateGithubDiscoveryToken('')).toBe('')
+})
+
+test('GitHub token writes cannot switch servers while authentication is pending', async () => {
+  let current = true
+  let release!: () => void
+  const pendingAuth = new Promise<void>(resolve => { release = resolve })
+  const transport = vi.fn<Transport>()
+  const api = new SettingsApi(new HttpClient({ transport, interceptor: { onRequest: () => pendingAuth } }))
+  const pending = api.updateGithubDiscoveryToken('ghp_secret', {
+    serverBaseUrl: 'http://first.test/music',
+    assertCurrent: () => { if (!current) throw new Error('Server changed') },
+  })
+  current = false
+  release()
+  await expect(pending).rejects.toThrow('Server changed')
+  expect(transport).not.toHaveBeenCalled()
+})
+
 function capture(status: number, body: string): { transport: Transport; url: () => string; method: () => string; body: () => string | undefined } {
   let seenUrl = ''
   let seenMethod = ''

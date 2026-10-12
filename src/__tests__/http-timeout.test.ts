@@ -45,6 +45,15 @@ afterEach(() => {
 })
 
 describe('createFetchTransport timeouts', () => {
+  test('passes an authenticated no-redirect policy to fetch without changing ordinary requests', async () => {
+    const impl = vi.fn(async (_url: string, _init: { redirect?: string }) => okResponse)
+    const transport = createFetchTransport(impl)
+    await transport({ url: 'https://api.github.com/search/repositories', method: 'GET', headers: { Authorization: 'Bearer ghp_secret' }, redirect: 'error' })
+    expect(impl.mock.calls[0]?.[1].redirect).toBe('error')
+    await transport({ url: 'https://mirror.test/metadata', method: 'GET', headers: {} })
+    expect(impl.mock.calls[1]?.[1]).not.toHaveProperty('redirect')
+  })
+
   test('the deadline also covers a response body that stalls after headers', async () => {
     const transport = createFetchTransport(async () => ({
       ...okResponse,

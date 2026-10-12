@@ -19,6 +19,26 @@ import { parseTabConfig, type TabConfig } from '../../jsplugin/data/tab-config.j
 export class SettingsApi {
   constructor(private readonly client: HttpClient) {}
 
+  async getGithubDiscoveryToken({ serverBaseUrl, assertCurrent }: {
+    serverBaseUrl?: string; assertCurrent?: RequestOptions['assertCurrent']
+  } = {}): Promise<string> {
+    const res = await this.client.get<{ token: string }>(
+      `${serverBaseUrl ?? ''}${apiPrefix}/settings/github-discovery-token`, { assertCurrent },
+    )
+    if (typeof res.data?.token !== 'string') throw new Error('Invalid GitHub token setting response')
+    return res.data.token
+  }
+
+  async updateGithubDiscoveryToken(token: string, { serverBaseUrl, assertCurrent }: {
+    serverBaseUrl?: string; assertCurrent?: RequestOptions['assertCurrent']
+  } = {}): Promise<string> {
+    const res = await this.client.put<{ token: string }>(
+      `${serverBaseUrl ?? ''}${apiPrefix}/settings/github-discovery-token`, { token: token.trim() }, { assertCurrent },
+    )
+    if (typeof res.data?.token !== 'string') throw new Error('Invalid GitHub token setting response')
+    return res.data.token
+  }
+
   async getLogLevel(): Promise<LogLevel> {
     const res = await this.client.get<{ level?: string }>(`${apiPrefix}/settings/log-level`)
     return coerceLogLevel(res.data?.level)

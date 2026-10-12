@@ -14,6 +14,8 @@ import { toast } from '../../../shared/ui/toast-store.js'
 import { SubPageShell } from '../../settings/widgets/SubPageShell.js'
 import { GithubDiscoveryError } from '../api/github-discovery-api.js'
 import { discoveryErrorKey, useDiscoveryHostVersion, useGithubDiscoveryQuery } from '../data/github-discovery-query.js'
+import { useGithubDiscoveryTokenQuery } from '../data/github-discovery-token-query.js'
+import { GithubDiscoveryTokenDialog } from '../widgets/GithubDiscoveryTokenDialog.js'
 import { useGithubProxyQuery, usePluginsQuery } from '../data/jsplugin-query.js'
 import { useInstallFromRegistryMutation } from '../data/jsplugin-mutations.js'
 import { updateRegistryReturnState } from '../data/registry-return-state.js'
@@ -31,11 +33,16 @@ export function GithubDiscoveryPage({ onBack }: { onBack?: () => void }) {
   const [detail, setDetail] = useState<GithubPlugin | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [tokenOpen, setTokenOpen] = useState(false)
   const [installedHere, setInstalledHere] = useState<Record<string, string>>({})
   const proxyQuery = useGithubProxyQuery()
   const proxy = proxyQuery.data
   const serverKey = `${appConfig.resolvedBaseUrl}${appConfig.basePath}`
-  const query = useGithubDiscoveryQuery({ search: keyword, sort, proxy: proxy ?? '', refresh, enabled: !proxyQuery.isPending })
+  const credential = useGithubDiscoveryTokenQuery()
+  useEffect(() => { setTokenOpen(false) }, [serverKey])
+  const query = useGithubDiscoveryQuery({ search: keyword, sort, proxy: proxy ?? '', refresh,
+    token: credential.data ?? '', credentialRevision: credential.credentialRevision, serverKey,
+    enabled: !proxyQuery.isPending && credential.isSuccess && !credential.isFetching })
   const host = useDiscoveryHostVersion()
   const installed = usePluginsQuery()
   const install = useInstallFromRegistryMutation()
@@ -105,10 +112,18 @@ export function GithubDiscoveryPage({ onBack }: { onBack?: () => void }) {
             </view>
           ) : (
             <>
+              <view className='plugin-registry__topbar-btn' bindtap={() => setTokenOpen(true)} data-testid='github-discovery-token' accessibility-element={true} accessibility-label={t('githubDiscovery.tokenTitle')} accessibility-traits='button'>
+                <Icon name='settings' size={18} color={ICON_COLORS.content} />
+              </view>
               <view className='plugin-registry__topbar-btn' bindtap={() => setHelpOpen(true)} data-testid='github-discovery-help' accessibility-element={true} accessibility-label={t('githubDiscovery.helpTitle')} accessibility-traits='button'>
                 <Icon name='info' size={18} color={ICON_COLORS.content} />
               </view>
-              <view className='plugin-registry__topbar-btn' bindtap={() => { if (!query.isFetching) setRefresh(value => value + 1) }} data-testid='github-discovery-refresh' accessibility-element={true} accessibility-label={t('common.refresh')} accessibility-traits='button'>
+              <view className='plugin-registry__topbar-btn' bindtap={() => {
+                if (!query.isFetching && !credential.isFetching) {
+                  setRefresh(value => value + 1)
+                  void credential.refetch()
+                }
+              }} data-testid='github-discovery-refresh' accessibility-element={true} accessibility-label={t('common.refresh')} accessibility-traits='button'>
                 <Icon name='refresh' size={18} color={ICON_COLORS.content} />
               </view>
             </>
@@ -117,6 +132,10 @@ export function GithubDiscoveryPage({ onBack }: { onBack?: () => void }) {
       )}
       overlay={(
         <>
+          <GithubDiscoveryTokenDialog show={tokenOpen} ready={credential.isSuccess && !credential.isFetching}
+            configured={Boolean(credential.data)} loadFailed={credential.isError}
+            onRetry={() => { void credential.refetch() }} onClose={() => setTokenOpen(false)}
+            onSave={async token => { await credential.save.mutateAsync(token); setRefresh(value => value + 1) }} />
           <ConfirmDialog show={helpOpen} title={t('githubDiscovery.helpTitle')} message={t('githubDiscovery.help')}
             acknowledgeOnly confirmLabel={t('common.close')} onConfirm={() => setHelpOpen(false)} onCancel={() => setHelpOpen(false)} testId='github-discovery-help-dialog' />
           <ConfirmDialog show={confirmOpen} title={t('githubDiscovery.installTitle')}
@@ -142,6 +161,7 @@ export function GithubDiscoveryPage({ onBack }: { onBack?: () => void }) {
               onSelect={key => { setSort(key === 'stars' ? 'stars' : 'updated'); setSortOpen(false) }} />
           </view>
           <scroll-view className='plugin-registry__scroll' scroll-orientation='vertical' initial-scroll-offset={initialOffset} bindscroll={onScroll} data-testid='github-discovery-scroll'>
+            {credential.isError ? <view className='github-discovery__notice' bindtap={() => { void credential.refetch() }} data-testid='github-token-load-error'><text className='github-discovery__notice-text'>{t('githubDiscovery.tokenLoadFailed')}</text><text className='plugin-registry__retry-text'>{t('common.retry')}</text></view> : null}
             {query.isFetching && !query.isFetchingNextPage ? <text className='github-discovery__status'>{t('jsplugin.loadingList')}</text> : null}
             {query.isError || rateLimited ? (
               <view className='github-discovery__notice'>

@@ -64,6 +64,47 @@ test('discovers topic repositories through their actual default branch and stabl
   expect(requests.every(request => request.headers.Authorization === undefined && request.timeoutMs === 15_000)).toBe(true)
 })
 
+test('authenticated GitHub APIs bypass the proxy; proxies and metadata never receive the token', async () => {
+  const { api, transport, input } = fixture()
+  expect((await api.discover({ ...input, proxy: 'https://mirror.test/', token: 'ghp_secret' })).plugins).toHaveLength(1)
+  const requests = transport.mock.calls.map(([request]) => request)
+  const official = requests.filter(request => request.url.startsWith('https://api.github.com/'))
+  expect(official).toHaveLength(2)
+  expect(official.every(request => request.headers.Authorization === 'Bearer ghp_secret' && request.redirect === 'error')).toBe(true)
+  const publicRequests = requests.filter(request => !request.url.startsWith('https://api.github.com/'))
+  expect(publicRequests).toHaveLength(2)
+  expect(publicRequests[0]?.url).toContain('https://mirror.test/')
+  expect(publicRequests.every(request => request.headers.Authorization === undefined && !request.url.includes('ghp_secret'))).toBe(true)
+})
+
+test('changing or clearing a token invalidates release verification caches', async () => {
+  const { api, transport, input } = fixture()
+  for (const token of ['ghp_first', 'ghp_second', '']) expect((await api.discover({ ...input, token })).plugins).toHaveLength(1)
+  expect(transport.mock.calls.filter(([request]) => request.url.includes('/releases/tags/'))).toHaveLength(3)
+  expect(transport.mock.calls.at(-1)?.[0].headers.Authorization).toBeUndefined()
+})
+
+test.each([401, 302])('authenticated API failure (%i) never falls back to the proxy', async status => {
+  const { api, transport, input } = fixture({ route: () => json({}, status, { location: 'https://mirror.test/collect' }) })
+  await expect(api.discover({ ...input, proxy: 'https://mirror.test/', token: 'ghp_secret' }))
+    .rejects.toMatchObject({ reason: status === 401 ? 'invalidToken' : 'unavailable' })
+  expect(transport).toHaveBeenCalledOnce()
+  expect(transport.mock.calls[0]?.[0].url).toMatch(/^https:\/\/api.github.com\//)
+})
+
+test('a token rejected by the Release API is reported as an authentication failure', async () => {
+  const { api, input } = fixture({ route: url => url.includes('/releases/tags/') ? json({}, 401) : undefined })
+  await expect(api.discover({ ...input, token: 'ghp_expired' })).rejects.toMatchObject({ reason: 'invalidToken' })
+})
+
+test.each(['', 'ghp_valid'])('anonymous metadata 401 does not misreport the shared token as invalid (token=%s)', async token => {
+  const { api, transport, input } = fixture({ route: url => url.startsWith('https://raw.githubusercontent.com/') ? json({}, 401) : undefined })
+  const result = await api.discover({ ...input, token })
+  expect(result.plugins).toHaveLength(0)
+  expect(result.failures).toEqual({ unavailable: 1 })
+  expect(transport.mock.calls.find(([request]) => request.url.startsWith('https://raw.githubusercontent.com/'))?.[0].headers.Authorization).toBeUndefined()
+})
+
 describe('manifest contract', () => {
   test.each(['0.17.0', '2026.10.8'])('release tag does not constrain manifest version %s', async version => {
     const url = download.replace('/v2026.10.8/', '/v0.17/')

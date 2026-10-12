@@ -5,7 +5,7 @@ import {
   type GithubPlugin, type GithubRepository,
 } from '../domain/github-plugin-validation.js'
 
-export type DiscoveryFailure = 'invalidManifest' | 'unpublished' | 'invalidRelease' | 'unavailable' | 'rateLimited'
+export type DiscoveryFailure = 'invalidManifest' | 'unpublished' | 'invalidRelease' | 'unavailable' | 'rateLimited' | 'invalidToken'
 export class GithubDiscoveryError extends Error {
   constructor(readonly reason: DiscoveryFailure, readonly retryAt?: number) {
     super(reason)
@@ -27,9 +27,12 @@ function record(value: unknown): Record<string, unknown> {
 
 export class GithubDiscoveryApi {
   private readonly cache = new Map<string, { until: number; plugin: GithubPlugin }>()
+  private credential = ''
+  private credentialRevision = 0
   constructor(private readonly transport: Transport = createFetchTransport(), private readonly now = Date.now) {}
 
-  private checkStatus(response: TransportResponse): void {
+  private checkStatus(response: TransportResponse, authenticated: boolean): void {
+    if (response.status === 401 && authenticated) throw new GithubDiscoveryError('invalidToken')
     const headers = Object.fromEntries(Object.entries(response.headers).map(([key, value]) => [key.toLowerCase(), value]))
     if (response.status === 429 || response.status === 403 && (headers['x-ratelimit-remaining'] === '0'
       || headers['retry-after'] || /rate limit/i.test(response.body))) {
@@ -40,13 +43,17 @@ export class GithubDiscoveryApi {
     if (response.status < 200 || response.status >= 300) throw new GithubDiscoveryError('unavailable')
   }
 
-  private async get({ address, proxy, maximum = 2 * 1024 * 1024, signal, invalidData = 'unavailable' }: { address: string; proxy: string; maximum?: number; signal?: AbortSignal; invalidData?: DiscoveryFailure }): Promise<unknown> {
+  private async get({ address, proxy, token = '', maximum = 2 * 1024 * 1024, signal, invalidData = 'unavailable' }: { address: string; proxy: string; token?: string; maximum?: number; signal?: AbortSignal; invalidData?: DiscoveryFailure }): Promise<unknown> {
     if (signal?.aborted) throw new GithubDiscoveryError('unavailable')
-    const proxied = withGithubProxy(address, proxy)
+    const authenticated = address.startsWith('https://api.github.com/') && token.length > 0
+    // Prefix proxies never receive credentials. Authenticated API requests go directly to GitHub.
+    const proxied = authenticated ? address : withGithubProxy(address, proxy)
     const send = async (url: string) => {
-      const response = await this.transport({ url, method: 'GET', headers: { Accept: 'application/json' }, timeoutMs: 15_000 })
+      const response = await this.transport({ url, method: 'GET', headers: { Accept: 'application/json',
+        ...(authenticated ? { Authorization: `Bearer ${token}` } : {}) }, timeoutMs: 15_000,
+        ...(authenticated ? { redirect: 'error' as const } : {}) })
       if (signal?.aborted) throw new GithubDiscoveryError('unavailable')
-      this.checkStatus(response)
+      this.checkStatus(response, authenticated)
       if (utf8Size(response.body) > maximum) throw new GithubDiscoveryError(invalidData)
       try { return JSON.parse(response.body) as unknown } catch { throw new GithubDiscoveryError(invalidData) }
     }
@@ -57,11 +64,18 @@ export class GithubDiscoveryApi {
     }
   }
 
-  async discover(input: { page: number; search: string; sort: 'updated' | 'stars'; proxy: string; force?: boolean; signal?: AbortSignal; onProgress?: (data: GithubDiscoveryPageData) => void }): Promise<GithubDiscoveryPageData> {
+  async discover(input: { page: number; search: string; sort: 'updated' | 'stars'; proxy: string; token?: string; force?: boolean; signal?: AbortSignal; onProgress?: (data: GithubDiscoveryPageData) => void }): Promise<GithubDiscoveryPageData> {
+    const token = input.token?.trim() ?? ''
+    if (this.credential !== token) {
+      this.credential = token
+      this.credentialRevision++
+      this.cache.clear()
+    }
+    const credentialRevision = this.credentialRevision
     // PrimJS main-thread bytecode does not support Unicode property escapes.
     const keyword = input.search.trim().replace(/[^\w\u0080-\uffff./ -]/g, '').slice(0, 100)
     const q = `topic:songloft-plugin archived:false fork:false${keyword ? ` ${keyword} in:name,description,readme` : ''}`
-    const search = record(await this.get({ address: `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=${input.sort}&order=desc&per_page=20&page=${input.page}`, proxy: input.proxy, signal: input.signal }))
+    const search = record(await this.get({ address: `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=${input.sort}&order=desc&per_page=20&page=${input.page}`, proxy: input.proxy, token, signal: input.signal }))
     if (!Array.isArray(search.items) || typeof search.total_count !== 'number') throw new GithubDiscoveryError('unavailable')
     const repositories: GithubRepository[] = search.items.map(value => {
       const repo = record(value)
@@ -82,10 +96,11 @@ export class GithubDiscoveryApi {
     const workers = Array.from({ length: Math.min(3, repositories.length) }, async () => {
       while (cursor < repositories.length && !limited && !input.signal?.aborted) {
         const index = cursor++, repository = repositories[index]!
-        try { plugins[index] = await this.verify({ repository, proxy: input.proxy, force: input.force, signal: input.signal }) }
+        try { plugins[index] = await this.verify({ repository, proxy: input.proxy, token, credentialRevision, force: input.force, signal: input.signal }) }
         catch (error) {
           const reason = error instanceof GithubDiscoveryError ? error.reason : 'unavailable'
           failures[reason] = (failures[reason] ?? 0) + 1
+          if (reason === 'invalidToken') throw error
           if (reason === 'rateLimited') { limited = true; retryAt = (error as GithubDiscoveryError).retryAt }
         }
         checked++
@@ -97,8 +112,8 @@ export class GithubDiscoveryApi {
     return snapshot()
   }
 
-  private async verify({ repository, proxy, force = false, signal }: { repository: GithubRepository; proxy: string; force?: boolean; signal?: AbortSignal }): Promise<GithubPlugin> {
-    const key = `${repository.fullName}|${repository.defaultBranch}|${proxy}`
+  private async verify({ repository, proxy, token, credentialRevision, force = false, signal }: { repository: GithubRepository; proxy: string; token: string; credentialRevision: number; force?: boolean; signal?: AbortSignal }): Promise<GithubPlugin> {
+    const key = `${repository.fullName}|${repository.defaultBranch}|${proxy}|${credentialRevision}`
     const cached = this.cache.get(key)
     if (!force && cached && cached.until > this.now()) return { ...cached.plugin, repository }
     let address = `https://raw.githubusercontent.com/${repository.fullName}/${encodeURIComponent(repository.defaultBranch)}/plugin.json`
@@ -124,7 +139,7 @@ export class GithubDiscoveryApi {
     if (!manifest.download_url) throw new GithubDiscoveryError('invalidManifest')
     const download = parseReleaseDownload(manifest.download_url)
     if (!download) throw new GithubDiscoveryError('invalidRelease')
-    const release = record(await this.get({ address: `https://api.github.com/repos/${download.repository}/releases/tags/${encodeURIComponent(download.tag)}`, proxy, signal }))
+    const release = record(await this.get({ address: `https://api.github.com/repos/${download.repository}/releases/tags/${encodeURIComponent(download.tag)}`, proxy, token, signal }))
     if (release.draft !== false || release.prerelease !== false || release.tag_name !== download.tag
       || !Array.isArray(release.assets)
       || typeof release.published_at !== 'string' || !Number.isFinite(Date.parse(release.published_at))) throw new GithubDiscoveryError('invalidRelease')

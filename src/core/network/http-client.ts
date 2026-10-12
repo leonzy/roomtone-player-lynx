@@ -31,6 +31,8 @@ export interface TransportRequest {
   timeoutMs?: number
   headers: Record<string, string>
   body?: string
+  /** Fail on redirects where the fetch implementation supports this policy. */
+  redirect?: 'error'
 }
 
 export interface TransportResponse {
@@ -43,7 +45,7 @@ export type Transport = (req: TransportRequest) => Promise<TransportResponse>
 
 type FetchLike = (
   input: string,
-  init: { method: string; headers: Record<string, string>; body?: string; signal?: unknown },
+  init: { method: string; headers: Record<string, string>; body?: string; signal?: unknown; redirect?: 'error' },
 ) => Promise<{
   status: number
   headers: { forEach?: (cb: (value: string, key: string) => void) => void }
@@ -109,6 +111,7 @@ export function createFetchTransport(fetchImpl?: FetchLike): Transport {
         method: req.method,
         headers,
         body: req.body,
+        ...(req.redirect ? { redirect: req.redirect } : {}),
         ...(controller?.signal != null ? { signal: controller.signal } : {}),
       })
       const responseHeaders: Record<string, string> = {}

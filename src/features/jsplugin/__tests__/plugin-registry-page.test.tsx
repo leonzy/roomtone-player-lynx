@@ -7,6 +7,7 @@ import { act, fireEvent, getQueriesForElement, render } from '@lynx-js/react/tes
 import { installBackRouter } from '../../../__tests__/_render-mocks.js'
 
 import type { RegistryPluginEntry } from '../../../models/jsplugin.js'
+import type { ClientRegistryParams } from '../api/client-registry-api.js'
 
 /**
  * The registry (plugin store) is a drill-in reached from the plugin manager.
@@ -20,7 +21,7 @@ import type { RegistryPluginEntry } from '../../../models/jsplugin.js'
 const h = vi.hoisted(() => ({
   navigate: vi.fn(),
   registries: [] as Array<{ url: string; name?: string; token?: string; enabled?: boolean }>,
-  refreshRegistry: vi.fn(async (_params: { page?: number } = {}) => ({
+  refreshRegistry: vi.fn(async (_params: ClientRegistryParams = {}) => ({
     plugins: [] as RegistryPluginEntry[],
     total: 0,
     page: 1,
@@ -96,6 +97,11 @@ vi.mock('../data/jsplugin-mutations.js', () => ({
   useInstallFromRegistryMutation: () => ({ mutate: h.install, mutateAsync: h.installAsync }),
 }))
 
+vi.mock('../api/client-registry-api.js', async importOriginal => {
+  const actual = await importOriginal<typeof import('../api/client-registry-api.js')>()
+  return { ...actual, clientRegistryApi: { refreshRegistry: h.refreshRegistry } }
+})
+
 const { PluginRegistryPage } = await import('../pages/PluginRegistryPage.js')
 
 function makeEntry(over: Partial<RegistryPluginEntry> = {}): RegistryPluginEntry {
@@ -152,6 +158,22 @@ test('renders the store header and fetches on mount', async () => {
   expect(h.refreshRegistry).toHaveBeenCalledWith(
     expect.objectContaining({ allSources: true, page: 1 }),
   )
+})
+
+test('renders the first resolved plugin while later metadata is still pending', async () => {
+  let release!: (response: { plugins: RegistryPluginEntry[]; total: number; page: number; pageSize: number; warnings: string[] }) => void
+  const pending = new Promise<{ plugins: RegistryPluginEntry[]; total: number; page: number; pageSize: number; warnings: string[] }>(resolve => { release = resolve })
+  h.refreshRegistry.mockImplementation(params => {
+    params?.onProgress?.({ plugins: [makeEntry({ name: 'First resolved' })], total: 1, page: 1, pageSize: 20, warnings: [] })
+    return pending
+  })
+  const { getByText } = await renderPage()
+  expect(getByText('First resolved')).toBeInTheDocument()
+  await act(async () => {
+    release({ plugins: [makeEntry({ name: 'First resolved' }), makeEntry({ name: 'Late result', entryPath: 'late' })], total: 2, page: 1, pageSize: 20, warnings: [] })
+    for (let i = 0; i < 20; i++) await Promise.resolve()
+  })
+  expect(getByText('Late result')).toBeInTheDocument()
 })
 
 test('the back button routes when the page is standalone', async () => {
@@ -346,6 +368,22 @@ test('the refresh button forces, loading more does not', async () => {
   expect(h.refreshRegistry).toHaveBeenLastCalledWith(
     expect.not.objectContaining({ force: true }),
   )
+})
+
+test('switching sources during search debounce cannot restore the previous source', async () => {
+  h.registries = [...DEFAULT_REGISTRIES, { url: 'https://private/registry.json', name: 'Private', token: 'sekrit', enabled: true }]
+  const { getByTestId } = await renderPage()
+  vi.useFakeTimers()
+  try {
+    h.inputScript = ['music']
+    await act(async () => { fireEvent.tap(elementTree.root!.querySelector('.plugin-registry__search-input')!) })
+    await act(async () => { fireEvent.tap(getByTestId('registry-source-btn')) })
+    await act(async () => { fireEvent.tap(getByTestId('menu-item-https://private/registry.json')) })
+    const count = h.refreshRegistry.mock.calls.length
+    await act(async () => { vi.advanceTimersByTime(600); for (let i = 0; i < 20; i++) await Promise.resolve() })
+    expect(h.refreshRegistry).toHaveBeenCalledTimes(count)
+    expect(h.refreshRegistry).toHaveBeenLastCalledWith(expect.objectContaining({ registryUrl: 'https://private/registry.json', token: 'sekrit', search: 'music' }))
+  } finally { vi.useRealTimers() }
 })
 
 test('warnings from a partial fetch surface as a banner with details', async () => {

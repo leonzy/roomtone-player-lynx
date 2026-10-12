@@ -12,7 +12,8 @@ import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { PopoverMenu } from '../../../shared/ui/PopoverMenu.js'
 import type { PopoverMenuItem } from '../../../shared/ui/PopoverMenu.js'
 import { toast } from '../../../shared/ui/toast-store.js'
-import type { RegistryPluginEntry } from '../../../models/jsplugin.js'
+import type { RegistryPluginEntry, RegistryRefreshResponse } from '../../../models/jsplugin.js'
+import { clientRegistryApi, compareRegistryVersions } from '../api/client-registry-api.js'
 import { getJSPluginApi } from '../api/index.js'
 import type { PluginRegistryConfig } from '../api/index.js'
 import { useGithubProxyQuery } from '../data/jsplugin-query.js'
@@ -49,12 +50,25 @@ export function PluginRegistryPage({ onBack, onOpenDiscovery }: { onBack?: () =>
   /** Append-fetch in flight (infinite scroll). Keeps the list visible while the
    * next page loads — distinct from `loading`, which replaces the whole list. */
   const [loadingMore, setLoadingMore] = useState(false)
+  const [catalogLoading, setCatalogLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [plugins, setPlugins] = useState<RegistryPluginEntry[]>(restored?.plugins ?? [])
   const [total, setTotal] = useState(restored?.total ?? 0)
   const [warnings, setWarnings] = useState<string[]>(restored?.warnings ?? [])
   const [warningsOpen, setWarningsOpen] = useState(false)
   const pageSize = 20
+  const generation = useRef(0)
+  const active = useRef<AbortController | undefined>(undefined)
+  const installedDuringListing = useRef(new Map<string, RegistryPluginEntry>())
+  useEffect(() => () => { generation.current++; active.current?.abort() }, [returnKey])
+
+  const sessionState = (entry: RegistryPluginEntry): RegistryPluginEntry => {
+    const installed = installedDuringListing.current.get(entry.entryPath)
+    if (!installed) return entry
+    if ((entry.identity ?? '') === (installed.identity ?? '')) return { ...entry, installed: true,
+      installedVersion: installed.version, hasUpdate: compareRegistryVersions(entry.version, installed.version) > 0, conflict: false, conflictWith: undefined }
+    return { ...entry, installed: false, hasUpdate: false, conflict: true, conflictWith: `${installed.name} v${installed.version}` }
+  }
 
   /** The row currently installing/reinstalling (rowKey); null = none. */
   const [installingKey, setInstallingKey] = useState<string | null>(null)
@@ -74,26 +88,54 @@ export function PluginRegistryPage({ onBack, onOpenDiscovery }: { onBack?: () =>
     p: number,
     keyword: string,
     mode: { allSources: boolean, url?: string, token?: string },
-    opts: { force?: boolean, append?: boolean } = {},
+    opts: { force?: boolean, append?: boolean, sources?: PluginRegistryConfig[] } = {},
   ) => {
+    active.current?.abort()
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : undefined
+    active.current = controller
+    const current = ++generation.current
+    const currentServer = returnKey
+    const valid = () => current === generation.current && !controller?.signal.aborted
+      && currentServer === `${appConfig.resolvedBaseUrl}${appConfig.basePath}`
     if (opts.append) {
       setLoadingMore(true)
     } else {
       setLoading(true)
       setError(null)
+      installedDuringListing.current.clear()
+      setCatalogLoading(true)
     }
-    void getJSPluginApi()
+    const apply = (res: RegistryRefreshResponse, complete = false) => {
+      if (!valid()) return
+      setPlugins(previous => [...new Map([
+        ...(opts.append ? previous : []).map(entry => [rowKeyOf(entry), entry] as const),
+        ...res.plugins.map(entry => [rowKeyOf(entry), sessionState(entry)] as const),
+      ]).values()])
+      setWarnings(res.warnings)
+      setTotal(res.total)
+      setPage(res.page)
+      if (res.plugins.length || complete) setLoading(false)
+      if (complete) { setLoadingMore(false); setCatalogLoading(false) }
+    }
+    void clientRegistryApi
       .refreshRegistry({
         allSources: mode.allSources,
         registryUrl: mode.url,
-        // "All" mode resolves each source's token server-side; a single private
-        // source carries its own.
+        // Each source keeps its own credential; the shared GitHub setting is a fallback.
         token: mode.token,
         page: p,
         pageSize,
         search: keyword || undefined,
         force: opts.force,
         githubProxy: githubProxy || undefined,
+        registries: opts.sources ?? (registries.length ? registries : undefined),
+        signal: controller?.signal,
+        onProgress: partial => apply(partial),
+        onSources: sources => {
+          if (!valid()) return
+          setRegistries(sources)
+          if (mode.url && !sources.some(source => source.url === mode.url && source.enabled !== false)) setSelectedUrl(null)
+        },
       })
       .then((res) => {
         // Append mode accumulates the next page onto the list (infinite scroll);
@@ -101,16 +143,10 @@ export function PluginRegistryPage({ onBack, onOpenDiscovery }: { onBack?: () =>
         // replaces it. Warnings describe the current listing and only refresh on
         // a replace — an append's partial-source failures would just flicker the
         // banner without adding actionable detail.
-        if (opts.append) {
-          setPlugins((prev) => [...prev, ...res.plugins])
-        } else {
-          setPlugins(res.plugins)
-          setWarnings(res.warnings)
-        }
-        setTotal(res.total)
-        setPage(res.page)
+        apply(res, true)
       })
       .catch((e: unknown) => {
+        if (!valid()) return
         // An append failure leaves the already-loaded rows intact: `page` did
         // not advance and `hasNext` still holds, so the next scroll-to-bottom
         // retries — mirroring the song list's react-query infinite scroll,
@@ -118,8 +154,10 @@ export function PluginRegistryPage({ onBack, onOpenDiscovery }: { onBack?: () =>
         if (!opts.append) setError(String(e instanceof Error ? e.message : e))
       })
       .finally(() => {
+        if (!valid()) return
         setLoading(false)
         setLoadingMore(false)
+        setCatalogLoading(false)
       })
   }
 
@@ -136,31 +174,36 @@ export function PluginRegistryPage({ onBack, onOpenDiscovery }: { onBack?: () =>
     fetchList(p, keyword, currentMode(), opts)
   }
 
-  /*
-   * Boot: the listing and the source list load **in parallel**, started from
-   * the render body the same way the pre-rewrite page did. That is not just
-   * style: in the ReactLynx test environment an async setState chain that is
-   * *started from an effect fired by an earlier async setState* never lands in
-   * the serialized element tree (verified with a two-layer repro), and the
-   * first listing would silently stay on its loading frame. The initial
-   * listing defaults to "all sources" — exactly what Flutter's default
-   * selection is — so it never needs the registries answer to start.
-   */
-  const [didInit, setDidInit] = useState(!!restored?.ready)
-  if (!didInit) {
-    setDidInit(true)
-    doFetch(1, restored?.search ?? '')
+  const initialServer = useRef(returnKey)
+  useEffect(() => {
+    if (restored?.ready && initialServer.current === returnKey) return
+    let alive = true
+    setLoadingRegistries(true)
+    setSelectedUrl(null)
+    setRegistries([])
+    setPlugins([])
+    setWarnings([])
+    setError(null)
+    setTotal(0)
+    setLoadingMore(false)
+    setCatalogLoading(false)
     void getJSPluginApi().getPluginRegistries()
       .then((list) => {
+        if (!alive || returnKey !== `${appConfig.resolvedBaseUrl}${appConfig.basePath}`) return
         setRegistries(list)
         setLoadingRegistries(false)
+        if (list.some(source => source.enabled !== false)) {
+          fetchList(1, search, { allSources: true }, { sources: list })
+        }
       })
-      .catch(() => setLoadingRegistries(false))
-  }
+      .catch(() => { if (alive) setLoadingRegistries(false) })
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one boot per server; search has its own debounce
+  }, [returnKey])
   const bootedRef = useRef(true)
 
   // Search debounces to a listing fetch (never forced: paging and searching
-  // slice the server's cached tree). The mount run is skipped: the boot fetch
+  // slice the client's cached tree). The mount run is skipped: the boot fetch
   // already owns the initial listing, and a mount-time timer would fire a
   // redundant refetch half a second later.
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -171,6 +214,8 @@ export function PluginRegistryPage({ onBack, onOpenDiscovery }: { onBack?: () =>
       return
     }
     if (debounceRef.current) clearTimeout(debounceRef.current)
+    generation.current++
+    active.current?.abort()
     debounceRef.current = setTimeout(() => {
       if (bootedRef.current) doFetch(1, search)
     }, 500)
@@ -184,13 +229,14 @@ export function PluginRegistryPage({ onBack, onOpenDiscovery }: { onBack?: () =>
     // Refresh reloads from the first page (replace, not append) — the natural
     // "pull-to-refresh" semantic for an infinite list, which may have scrolled
     // several pages deep.
-    if (!loading && !loadingMore) doFetch(1, search, { force: true })
+    if (!loading && !loadingMore && !catalogLoading) doFetch(1, search, { force: true })
   }
 
   const onSourceSelected = (url: string) => {
     'background only'
+    if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null }
     if (url === GITHUB_DISCOVERY) {
-      saveRegistryReturnState(returnKey, { registries, selectedUrl, search, page, plugins, total, warnings, ready: !loading && !loadingMore && !loadingRegistries && !error })
+      saveRegistryReturnState(returnKey, { registries, selectedUrl, search, page, plugins, total, warnings, ready: !loading && !loadingMore && !catalogLoading && !loadingRegistries && !error })
       setSourceMenuOpen(false)
       if (onOpenDiscovery) onOpenDiscovery()
       else void navigate({ to: '/settings/plugins/registry/github' })
@@ -210,13 +256,14 @@ export function PluginRegistryPage({ onBack, onOpenDiscovery }: { onBack?: () =>
 
   /**
    * Install success updates the rows **in place** (the whole listing is a
-   * server-cached snapshot; refetching would flash and lose scroll position).
+   * client-cached snapshot; refetching would flash and lose scroll position).
    * Matching is (entryPath, identity) — entry_path alone lights up another
    * author's same-named entry too (songloft-org/songloft#339), and those
    * neighbours flip to "conflict" because the local plugin they would clash
    * with is now the one just installed.
    */
   const markInstalled = (installed: RegistryPluginEntry) => {
+    installedDuringListing.current.set(installed.entryPath, installed)
     setPlugins((list) => list.map((p) => {
       if (p.entryPath === installed.entryPath && (p.identity ?? '') === (installed.identity ?? '')) {
         return {
@@ -250,15 +297,16 @@ export function PluginRegistryPage({ onBack, onOpenDiscovery }: { onBack?: () =>
     }
     setConfirmConflict(null)
     setInstallingKey(rowKeyOf(entry))
+    const sourceToken = registries.find(source => source.url === entry.sourceUrl)?.token || selected?.token || undefined
     installMutation.mutate(
       {
         downloadUrl: entry.downloadUrl,
         sourceUrl: entry.sourceUrl,
         overwrite,
-        githubProxy: githubProxy || undefined,
+        githubProxy: sourceToken ? undefined : githubProxy || undefined,
         // "All" mode cannot know which source the entry came from — its
         // sourceUrl lets the backend resolve that source's own token.
-        token: selectedUrl != null ? (selected?.token || undefined) : undefined,
+        token: entry.sourceUrl ? undefined : sourceToken,
       },
       {
         onSuccess: (result) => {
@@ -315,7 +363,7 @@ export function PluginRegistryPage({ onBack, onOpenDiscovery }: { onBack?: () =>
    * switch) that is about to reset the list anyway.
    */
   const onEndReached = () => {
-    if (hasNext && !loading && !loadingMore) doFetch(page + 1, search, { append: true })
+    if (hasNext && !loading && !loadingMore && !catalogLoading) doFetch(page + 1, search, { append: true })
   }
 
   // Back while nothing is armed follows the shell's normal route-back.
@@ -401,13 +449,15 @@ export function PluginRegistryPage({ onBack, onOpenDiscovery }: { onBack?: () =>
             onClose={() => setManageOpen(false)}
             registries={registries}
             onSaved={(saved) => {
+              if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null }
               setRegistries(saved)
               // A deleted/disabled selection falls back to "all" (or nothing).
               if (selectedUrl != null && !saved.some((r) => r.url === selectedUrl && r.enabled !== false)) {
                 setSelectedUrl(null)
                 bootedRef.current = true
-                doFetch(1, search)
               }
+              const remaining = selectedUrl == null ? undefined : saved.find(source => source.url === selectedUrl && source.enabled !== false)
+              fetchList(1, search, { allSources: !remaining, url: remaining?.url, token: remaining?.token }, { force: true })
             }}
           />
         </>
@@ -465,6 +515,7 @@ export function PluginRegistryPage({ onBack, onOpenDiscovery }: { onBack?: () =>
                 bindscrolltolower={onEndReached}
                 data-testid='registry-scroll'
               >
+                {catalogLoading && !loading ? <view className='plugin-registry__footer' data-testid='registry-loading-background'><text className='plugin-registry__footer-text'>{t('jsplugin.loadingList')}</text></view> : null}
                 {loading
                   ? <RegistryState text={t('jsplugin.loadingList')} testId='registry-loading' />
                   : error
