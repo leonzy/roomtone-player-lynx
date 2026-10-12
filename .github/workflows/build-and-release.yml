@@ -310,7 +310,23 @@ jobs:
           cache: true
       - name: Install HarmonyOS dependencies
         working-directory: harmony
-        run: ohpm install
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            echo "[ohpm] Install attempt $attempt/3"
+            if ohpm install; then
+              break
+            else
+              status=$?
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::ohpm install failed after 3 attempts (exit $status)"
+              exit "$status"
+            fi
+            delay=$((attempt * 10))
+            echo "[ohpm] Install failed (exit $status); retrying in ${delay}s"
+            sleep "$delay"
+          done
       - name: Apply required host patches
         run: |
           bash harmony/scripts/patch-lynx-event-reporter.sh harmony
