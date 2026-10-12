@@ -102,6 +102,12 @@ function syncConsumable(): void {
   getNavigationModule().setBackConsumable(next)
 }
 
+/** Hosted pages use this after an asynchronous reply declines the back press. */
+export function continueHostBack(): void {
+  if (!performRouteBack()) promptOrExit()
+  syncConsumable()
+}
+
 /**
  * Handle one host back press.
  *
@@ -112,7 +118,7 @@ function syncConsumable(): void {
 function handleHostBack(seq: number): void {
   try {
     if (dispatchBack()) return
-    if (!performRouteBack()) promptOrExit()
+    continueHostBack()
   } finally {
     getNavigationModule().notifyBackHandled(seq)
     syncConsumable()
@@ -131,7 +137,11 @@ export function initBackController(router: AppRouter): void {
   setBackRouter(router)
 
   installBackPressedListener(handleHostBack)
-  subscribeBackStack(syncConsumable)
+  subscribeBackStack(() => {
+    // A new overlay or hosted-page mode abandons a previous root exit prompt.
+    if (getBackStackDepth() > 0) disarmExitPrompt()
+    syncConsumable()
+  })
   router.subscribe('onResolved', () => {
     // Leaving a tab root abandons a half-finished exit prompt; otherwise returning
     // within the window would exit without ever having shown the toast.

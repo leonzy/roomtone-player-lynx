@@ -5,7 +5,9 @@ import { useTranslation } from 'react-i18next'
 
 import { appConfig } from '../../../core/config/app-config.js'
 import { performRouteBack } from '../../../core/navigation/route-back-action.js'
+import { continueHostBack } from '../../../core/navigation/back-controller.js'
 import { useBackHandler } from '../../../shared/nav/use-back-handler.js'
+import { dispatchBack } from '../../../shared/nav/back-stack.js'
 import { getSongloftStorage } from '../../../core/storage/index.js'
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { getAppTheme, resolveTheme, subscribeAppTheme } from '../../../shared/theme/theme-model.js'
@@ -38,6 +40,7 @@ import { isWebPlatform } from '../../../native/web-platform.js'
 import { subscribeAppResumed } from '../../../native/app-lifecycle.js'
 import type { Song } from '../../../models/song.js'
 import { LynxPluginFrame } from '../widgets/LynxPluginFrame.js'
+import { createPluginBackBridge } from '../domain/plugin-back-bridge.js'
 import './PluginWebViewPage.css'
 
 async function getAccessToken(): Promise<string> {
@@ -158,6 +161,44 @@ export function PluginWebViewPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const webviewRef = useRef<NodesRef>(null)
+  const backBridgeRef = useRef<ReturnType<typeof createPluginBackBridge> | null>(null)
+  const canPluginBackRef = useRef(false)
+  const [canPluginBack, setCanPluginBack] = useState(false)
+  const fallbackBackRef = useRef<() => void>(() => { })
+  const continuingBackRef = useRef(false)
+
+  useEffect(() => {
+    canPluginBackRef.current = false
+    setCanPluginBack(false)
+    if (!src || plugin?.renderEngine === 'lynx') return
+    const bridge = createPluginBackBridge({
+      send: (message) => {
+        if (isWebPlatform()) {
+          getWebviewModule().postMessage(JSON.stringify(message))
+        } else {
+          const node = webviewRef.current
+          if (!node) throw new Error('WebView is unavailable')
+          node.invoke({
+            method: 'eval',
+            params: { func: `document.dispatchEvent(new CustomEvent(${JSON.stringify(message.type)}, {detail:${JSON.stringify(message)}}))` },
+            fail: () => { /* Only a correlated page reply confirms consumption; timeout owns fallback. */ },
+          }).exec()
+        }
+      },
+      onCanBack: (value) => {
+        canPluginBackRef.current = value
+        setCanPluginBack(value)
+      },
+      onUnhandled: () => fallbackBackRef.current(),
+    })
+    backBridgeRef.current = bridge
+    bridge.connect()
+    return () => {
+      backBridgeRef.current = null
+      canPluginBackRef.current = false
+      bridge.dispose()
+    }
+  }, [src, plugin?.renderEngine])
 
   useEffect(() => {
     if (!src || isWebPlatform() || plugin?.renderEngine === 'lynx') return
@@ -189,11 +230,10 @@ export function PluginWebViewPage() {
    *    `history.back()`. {@link selfBackPending} distinguishes them: when we trigger a
    *    back we set the flag, and the next `locationchange` is consumed as the echo
    *    rather than counted as a new level.
-   *  - The handler only activates while {@link webDepth} > 0. On a host where
+   *  - This legacy history path only activates while {@link webDepth} > 0. On a host where
    *    `locationchange` never fires (the type marks it `@PC`-only, so Android is
-   *    unverified), `webDepth` stays 0 and the back key falls straight through to the
-   *    route level — the pre-existing behaviour. The feature degrades to a no-op rather
-   *    than misbehaving.
+   *    unverified), `webDepth` stays 0. Plugins supporting the back bridge still
+   *    report their internal state; others retain the existing route fallback.
    */
   const webDepthRef = useRef(0)
   const [webDepth, setWebDepth] = useState(0)
@@ -209,6 +249,11 @@ export function PluginWebViewPage() {
   const onWebViewLoad = () => {
     setDepth(0)
     selfBackPendingRef.current = false
+    if (backConfirmTimerRef.current) {
+      clearTimeout(backConfirmTimerRef.current)
+      backConfirmTimerRef.current = null
+    }
+    backBridgeRef.current?.connect()
     /*
      * First-paint delivery of the theme message: `?theme=` carries only
      * light/dark, and appearance has NO URL channel at all — a postMessage to
@@ -281,7 +326,7 @@ export function PluginWebViewPage() {
   }, [])
 
   /*
-   * Back walks the plugin's internal history first, then leaves the page.
+   * Legacy history fallback, after the plugin declines or times out.
    *
    * After triggering `history.back()` we arm a short watchdog: if no `locationchange`
    * confirms it, the webview had no history to give. When that exhausts our count we
@@ -289,7 +334,7 @@ export function PluginWebViewPage() {
    * count reaches zero — with levels still counted, a slow event should not yank the
    * user out of the plugin.)
    */
-  useBackHandler(webDepth > 0, () => {
+  const historyBack = () => {
     const next = webDepthRef.current - 1
     setDepth(next)
     selfBackPendingRef.current = true
@@ -300,9 +345,27 @@ export function PluginWebViewPage() {
     backConfirmTimerRef.current = setTimeout(() => {
       backConfirmTimerRef.current = null
       selfBackPendingRef.current = false
-      if (next <= 0) performRouteBack()
+      if (next <= 0) fallbackBackRef.current()
     }, 400)
     return true
+  }
+  fallbackBackRef.current = () => {
+    // The stack may have changed during the reply/watchdog wait. Offer the
+    // press to current overlays without requesting this plugin a second time.
+    continuingBackRef.current = true
+    try {
+      if (dispatchBack()) return
+      if (webDepthRef.current > 0) historyBack()
+      else continueHostBack()
+    } finally {
+      continuingBackRef.current = false
+    }
+  }
+  useBackHandler(canPluginBack || webDepth > 0, () => {
+    'background only'
+    if (continuingBackRef.current) return false
+    if (!canPluginBackRef.current && webDepthRef.current <= 0) return false
+    return backBridgeRef.current?.requestBack() ?? historyBack()
   })
 
   useEffect(() => {
@@ -349,6 +412,7 @@ export function PluginWebViewPage() {
       const raw = e.detail?.msg
       if (!raw) return
       const req = typeof raw === 'string' ? JSON.parse(raw) : raw
+      if (backBridgeRef.current?.receive(req)) return
       void handlePluginHostCall(req, hostContext)
     } catch { /* ignore malformed messages */ }
   }
@@ -450,7 +514,18 @@ export function PluginWebViewPage() {
     return (
       <view className='plugin-webview'>
         {topbar}
-        <WebPluginFrame src={src} frameKey={entryPath} />
+        <WebPluginFrame
+          src={src}
+          frameKey={entryPath}
+          onBackMessage={(payload) => {
+            'background only'
+            return backBridgeRef.current?.receive(payload) ?? false
+          }}
+          onConnectBack={() => {
+            'background only'
+            backBridgeRef.current?.connect()
+          }}
+        />
       </view>
     )
   }
@@ -492,7 +567,12 @@ export function PluginWebViewPage() {
  *  - plugin → host: `songloft-host-call` `{id, ns, method, params}`, replied to
  *    with `songloft-host-reply` `{id, ok, data|error}`.
  */
-function WebPluginFrame({ src, frameKey }: { src: string; frameKey: string }) {
+function WebPluginFrame({ src, frameKey, onBackMessage, onConnectBack }: {
+  src: string
+  frameKey: string
+  onBackMessage: (payload: unknown) => boolean
+  onConnectBack: () => void
+}) {
   const { t } = useTranslation()
   const [failed, setFailed] = useState(false)
 
@@ -546,6 +626,7 @@ function WebPluginFrame({ src, frameKey }: { src: string; frameKey: string }) {
 
     setWebviewBridgeHandlers({
       onMessage: (payload) => {
+        if (onBackMessage(payload)) return
         const req = decodeHostCall(payload)
         if (!req) return
         void handlePluginHostCall(req, hostContext).then((result) => {
@@ -565,6 +646,7 @@ function WebPluginFrame({ src, frameKey }: { src: string; frameKey: string }) {
        * branch's `bindload` re-push and Flutter's `onLoadStop`.
        */
       onLoad: () => {
+        onConnectBack()
         send(buildThemeMessage())
         send({ type: 'songloft-player-state', state: playerStateToJson() })
       },

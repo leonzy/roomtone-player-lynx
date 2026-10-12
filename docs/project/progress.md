@@ -1,5 +1,17 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-12 · MIoT 返回桥接同步
+
+- 提交收尾：用户已确认自审、Lynx / MIoT / 父仓库提交信息与两子模块指针同步范围，并授权本地提交。暂存 12 个文件与范围一致，差异与编码检查通过；实际结果以 Git 历史为准，尚未推送或操作 Issue。下文待确认描述为实施时快照。
+- 关联 `songloft-org/songloft-plugin-miot#121`。Flutter 与插件已完成初次修复，用户要求 Lynx 同步，并确认原生 WebView / Web iframe 接入与 MIoT 跨域适配的范围。本轮工作树起始干净，父仓库既有 Lynx 指针差异保留；尚未提交、推送或操作 Issue。
+- 新增 `plugin-back-bridge.ts`。每次加载 / 保活页重入使用新会话，按序号确认返回结果；插件声明有内部返回状态才接入现有 LIFO 栈。原生通过已有 eval + bindmessage，Web 通过已有 iframe 消息通道，无新增原生模块方法。eval 调用成功不当作已消费；重复在途按键合并，1 秒回执超时走历史 / 路由兜底，旧会话、重复结果和卸载后的结果忽略。页面卸载取消定时器；真实加载也取消旧历史回退看门狗。
+- MIoT 共用一个返回动作判定，同时用于消费和状态公告；保留 Flutter 的可取消 DOM 事件，新增原生 DOM 连接 / 请求和 Web 父窗口消息，回传 `canBack` / `consumed`。跨域请求校验父窗口来源、origin、会话和序号，离页释放 watcher / 事件监听。根页撤销内部状态层；新的插件状态 / 覆盖层取消旧退出提示，原生第二次返回仍可由宿主本地执行，Web 根页不保留 sentinel。
+- 类型检查、生产 Lynx/Web 双 bundle、Web 部署构建通过。完整 **311 文件 / 3397 项**回归通过，新增会话、重载、超时、重复按键、卸载、覆盖层优先、原生 DOM 事件和退出标志测试；跨组件回调线程边界补强后 **3 文件 / 28 项**复测通过，三个运行时文件 ReactLynx 扫描无诊断。MIoT 类型、构建、全部前端测试通过；diff 与编码检查通过。完整日志 `/tmp/miot-121-lynx-{all,types-final,build-final,web-final,focused-final}.log`。
+- 反向验证：暂时撤掉插件状态接入，原生和 iframe 两条页面用例均失败（`/tmp/miot-121-lynx-negative.log`）；暂时断开 MIoT iframe 消息监听，跨域用例失败（`/tmp/miot-121-miot-negative.log`）。两处正式实现均已恢复，再执行最终验证。
+- 提交前自审发现并修复一处异步竞态：等待插件回执期间打开宿主弹层，原超时回退直接导航，越过当前覆盖层。回退现重新检查 LIFO 栈并跳过插件自身，历史看门狗复用同一顺序。新增回归在修正前失败（`/tmp/miot-121-lynx-review-negative.log`），修正后 **3 文件 / 29 项**和扩大范围的 **16 文件 / 192 项**导航、覆盖层、路由回归通过；类型、生产双 bundle、Web 部署构建与三个文件线程扫描通过。日志 `/tmp/miot-121-lynx-review-{tests,navigation,types,build,web}.log`。完整 3397 项是上述自审修正前的结果；本轮未重复全量。等待用户确认审查通过，尚未提交或推送。
+- 自审修正后的生产 Web 产物再次通过下述跨域浏览器场景，根页标志最终 false，页面异常为空，最新截图已复核。日志 `/tmp/miot-121-lynx-review-browser.log`；更新了相同路径的 JSON / PNG 证据，临时服务与浏览器容器已停止。
+- Docker Chrome 运行生产 Web 产物，宿主 `:58423` 与 MIoT `:58424` 确为不同 origin。通过宿主返回事件验证歌词 → 封面 → 迷你播放器及弹层优先，并通过浏览器实际后退验证 sentinel 消费；回执序号 1–5 各有一次消费结果，返回标志三次 true/false 切换，最终 false，页面异常为空。截图已目测；证据 `/tmp/miot-121-lynx-browser-result.json`、`/tmp/miot-121-lynx-player.png`。隔离 API 夹具不证明真实音箱状态，启动阶段对默认 localhost 的连接失败不作为协议失败；最初驱动误选 `about:srcdoc` iframe，已改为插件 URL 定位。当前 adb 无设备，未做 Android/iOS/HarmonyOS 真机验证，未修改或编译原生宿主。
+
 ## 2026-10-10 · Shell 发版入口
 
 - 提交收尾：用户已授权提交推送，并同步父仓库子模块指针。复核脚本可执行位、目录定位、参数/退出状态透传、文档及真实 Git 回归，无新增问题；沿用本轮 72 项发布检查结果，实际完成状态以 Git 历史与远端为准，下方未提交状态为实施时快照。

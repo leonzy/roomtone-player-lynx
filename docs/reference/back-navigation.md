@@ -85,7 +85,7 @@ useBackHandler(open, () => { setOpen(false); return true })
 | `FullPlayerPage` 歌词页 | Swiper 第 2 屏 | 滑回封面（`swipeTo(0)`）；**宽屏并排常显时此层不存在**（`!isWide` 判定） |
 | `SettingsPage` 双栏 pane | `activeSubPage` | 复位到 `DEFAULT_SUB_PAGE`；仅 `isDualColumn` 且非默认时是一层 |
 | `DuplicateCheckPage` phase | `status`/`computing`/`results` | 仅从 `results` 退回 `status`（保留已选保留项，不清空）；`computing`/`status` 交给路由层 |
-| `PluginWebViewPage` 内部历史 | webview 自身 history | 逐层 `history.back()`，耗尽后交给路由层（见下） |
+| `PluginWebViewPage` 内部状态 / 历史 | 插件状态回执 + webview 自身 history | 优先让插件消费返回，再处理浏览历史与路由（见下） |
 
 **歌词页**需要新增 index state：`Swiper` 的 `onChange` 记录当前屏，返回键据此判断是否在歌词屏。`swipeTo` 会触发 `onChange`，所以自动进入歌词（`readAutoEnterLyrics`）与手动滑动共用同一个 state。
 
@@ -97,11 +97,20 @@ useBackHandler(open, () => { setOpen(false); return true })
 
 已安装插件列表打开插件时附带 `?from=manager`（songloft-org/songloft#489）。UI 返回箭头经统一路由策略直接回到 `/settings/plugins`；系统返回键先处理插件内部历史，耗尽后经同一策略回到管理列表。首页网格仍返回最近的首页/曲库，`?tab=true` 的导航 Tab 入口仍执行 Tab 退出策略。路由仅接受固定的 `manager` 来源值，不接受任意返回 URL。
 
-Lynx `<webview>` 没有 `canGoBack`/`goBack`，只能近似：
+支持返回桥接的插件（如 MIoT）使用与 Flutter 一致的可取消 `songloft-back` DOM 事件。原生 WebView 用 `eval` 派发连接和请求，插件经 `window.postMessage` / `bindmessage` 回传；Web iframe 使用父子窗口消息，因此跨域部署无需访问插件 DOM，也无需新增原生模块方法。
+
+- 每次加载、重新进入保活页面时发送 `songloft-back-connect`，创建新会话。插件回传 `songloft-back-state` 的 `canBack`；只在该值为真时将页面内部状态注册到 LIFO 返回栈，宿主覆盖层仍在它之上。MIoT 按实际状态变化报告，根页不挂一层永久返回拦截。
+- 返回键发送带会话和序号的 `songloft-back-request`。插件先派发可取消事件，再通过 `songloft-back-result` 明确回复 `consumed` 和新的 `canBack`。`eval` 成功仅证明调用成功，不能当作已消费返回。
+- 等待回执时合并重复按键，1 秒超时降级到既有历史 / 路由返回；不匹配或重复的结果、旧加载会话和卸载后的结果不再处理。离页清理定时器，不触发过期返回。
+- 异步回退先重新检查当前覆盖层，跳过发起请求的插件自身，避免等待期间打开的弹层被路由返回越过；历史看门狗也复用该回退顺序。
+- 回到插件根页时撤销内部状态层，原生第二次返回仍由宿主本地退出，Web 根页仍可离开页面。新内部状态或覆盖层出现时取消旧退出提示。原生和跨域 iframe 都复用同一会话控制器。
+- Web iframe 只接受当前父窗口的连接 / 请求，并向该父窗口的 origin 回包；宿主既有通道只转发当前活动 iframe 的消息。`renderEngine: "lynx"` 的 frame 不接入此 WebView 协议。
+
+未支持协议的插件继续使用既有降级路径。Lynx `<webview>` 没有 `canGoBack`/`goBack`，浏览历史仍只能近似：
 
 - `bindlocationchange` 告知页面发生了导航；我们用它维护深度计数 `webDepth`，并用 `eval('history.back()')` 驱动回退。
 - **`locationchange` 对前进导航和我们自己的 `history.back()` 都会触发**。用 `selfBackPending` 标志区分：主动 back 时置位，下一个 `locationchange` 当作回声消耗掉而不计数。
-- **handler 只在 `webDepth > 0` 时激活**。类型里 `bindlocationchange` 标着 `@since Lynx 3.5 @PC` —— Android 是否触发**未经证实**。若不触发，`webDepth` 恒 0，返回键直接落回路由层（即接入前的行为）。**优雅降级为 no-op，而不是误动作**。
+- **历史降级 handler 只在 `webDepth > 0` 时激活**。类型里 `bindlocationchange` 标着 `@since Lynx 3.5 @PC` —— Android 是否触发**未经证实**。若不触发且插件也不支持状态桥接，`webDepth` 恒 0，返回键直接落回路由层。
 - 主动 back 后挂一个 400ms 看门狗：若无 `locationchange` 确认且计数已归零，说明 webview 没有可退的历史，改走路由返回，避免「按了没反应」。计数仍 >0 时不强制离开——宁可让用户再按一次，也不把一个还有内部历史的插件直接拽出去。
 
 > ⚠️ 顶栏返回箭头**刻意保持** `performRouteBack()`（离开插件），不逐层退内部历史：它是显式的「关闭此插件」动作，与系统返回键的「沿历史后退」分工不同，这也与多数内嵌 webview 的应用一致。

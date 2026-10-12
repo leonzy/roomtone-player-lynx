@@ -4,6 +4,7 @@ import '@testing-library/jest-dom'
 import { runInNewContext } from 'node:vm'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { act, fireEvent, getQueriesForElement, render } from '@lynx-js/react/testing-library'
+import { clearBackHandlersForTests, dispatchBack, pushBackHandler } from '../../../shared/nav/back-stack.js'
 
 /**
  * The Web branch of PluginWebViewPage: placeholder + main-thread iframe.
@@ -28,6 +29,7 @@ const h = vi.hoisted(() => ({
   postMessage: vi.fn(),
   hide: vi.fn(),
   close: vi.fn(),
+  continueBack: vi.fn(),
   available: true,
   isWeb: true,
   // `?tab=true` in the search string for this test.
@@ -74,6 +76,8 @@ vi.mock('@tanstack/react-router', () => ({
 vi.mock('../../../native/web-platform.js', () => ({
   isWebPlatform: () => h.isWeb,
 }))
+
+vi.mock('../../../core/navigation/back-controller.js', () => ({ continueHostBack: h.continueBack }))
 
 vi.mock('../../../shared/theme/theme-model.js', () => ({
   getAppTheme: () => 'light',
@@ -172,6 +176,7 @@ function activeHandlers() {
 }
 
 beforeEach(() => {
+  clearBackHandlersForTests()
   h.tab = false
   h.available = true
   h.isWeb = true
@@ -187,6 +192,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  clearBackHandlersForTests()
   vi.restoreAllMocks()
   vi.clearAllMocks()
   h.handlerCalls = []
@@ -232,6 +238,7 @@ test('Android resume reaches the mounted WebView and not an unmounted plugin', a
   const { q, unmount } = await renderPage()
   expect(q.getByTestId('plugin-webview-frame')).toBeTruthy()
   expect(host.listeners.size).toBe(1)
+  host.invoke.mockClear()
   act(() => host.resume())
   expect(host.invoke).toHaveBeenCalledTimes(1)
   const call = host.invoke.mock.calls[0]![0] as unknown as { method: string; params: { func: string } }
@@ -435,8 +442,8 @@ test('an iframe load event re-sends the theme message and player state', async (
   act(() => {
     activeHandlers().onLoad?.()
   })
-  // One theme + one player-state message.
-  expect(h.postMessage.mock.calls.length).toBe(before + 2)
+  // One back connection + one theme + one player-state message.
+  expect(h.postMessage.mock.calls.length).toBe(before + 3)
   const themeMsg = JSON.parse(h.postMessage.mock.calls.at(-2)![0] as string)
   expect(themeMsg.type).toBe('songloft-theme')
   expect(themeMsg.appearance.navigationStyle).toBe('capsule')
@@ -465,4 +472,92 @@ test('a missing SongloftWebview module falls back to the unavailable message', a
   const { q } = await renderPage()
   expect(q.getByText(/This plugin requires the native app/)).toBeTruthy()
   expect(h.open).not.toHaveBeenCalled()
+})
+
+test('iframe state owns back until the plugin root; overlays remain above it', async () => {
+  const { unmount } = await renderPage()
+  const connection = h.postMessage.mock.calls.map(call => JSON.parse(call[0] as string))
+    .find(message => message.type === 'songloft-back-connect')!
+  act(() => activeHandlers().onMessage({ type: 'songloft-back-state', session: connection.session, canBack: true }))
+  let removeOverlay = () => { }
+  removeOverlay = pushBackHandler(() => { removeOverlay(); return true })
+  const before = h.postMessage.mock.calls.length
+  act(() => { expect(dispatchBack()).toBe(true) })
+  expect(h.postMessage).toHaveBeenCalledTimes(before)
+  act(() => { expect(dispatchBack()).toBe(true) })
+  const request = JSON.parse(h.postMessage.mock.calls.at(-1)![0] as string)
+  expect(request).toMatchObject({ type: 'songloft-back-request', session: connection.session })
+  act(() => activeHandlers().onMessage({ type: 'songloft-back-result', session: connection.session, id: request.id, consumed: true, canBack: false }))
+  expect(h.continueBack).not.toHaveBeenCalled()
+  expect(dispatchBack()).toBe(false)
+  unmount()
+})
+
+test('iframe declines or times out once; unmount cancels a pending fallback', async () => {
+  vi.useFakeTimers()
+  try {
+    const { unmount } = await renderPage()
+    const connection = h.postMessage.mock.calls.map(call => JSON.parse(call[0] as string))
+      .find(message => message.type === 'songloft-back-connect')!
+    const activate = () => activeHandlers().onMessage({ type: 'songloft-back-state', session: connection.session, canBack: true })
+    act(activate)
+    act(() => { dispatchBack(); dispatchBack() })
+    const request = JSON.parse(h.postMessage.mock.calls.at(-1)![0] as string)
+    act(() => activeHandlers().onMessage({ type: 'songloft-back-result', session: connection.session, id: request.id, consumed: false, canBack: false }))
+    expect(h.continueBack).toHaveBeenCalledTimes(1)
+    act(activate)
+    act(() => { dispatchBack(); vi.advanceTimersByTime(1000) })
+    expect(h.continueBack).toHaveBeenCalledTimes(2)
+    act(activate)
+    act(() => { dispatchBack(); unmount(); vi.advanceTimersByTime(1000) })
+    expect(h.continueBack).toHaveBeenCalledTimes(2)
+  } finally { vi.useRealTimers() }
+})
+
+test('native WebView connects and requests back through DOM events, without eval result assumptions', async () => {
+  h.isWeb = false
+  const host = nativeHost()
+  const { q, unmount } = await renderPage()
+  const emitted: Array<{ type: string; detail: Record<string, unknown> }> = []
+  const browser = {
+    document: { dispatchEvent: (event: { type: string; detail: Record<string, unknown> }) => emitted.push(event) },
+    CustomEvent: class { constructor(public type: string, public options: { detail: Record<string, unknown> }) { } get detail() { return this.options.detail } },
+  }
+  runInNewContext(host.invoke.mock.calls[0]![0].params.func, browser)
+  const session = emitted[0]!.detail['session']
+  const receive = (payload: unknown) => {
+    const target = q.getByTestId('plugin-webview-frame')
+    const event = target.ownerDocument.createEvent('Event')
+    event.initEvent('bindEvent:message', false, false)
+    Object.assign(event, { eventType: 'bindEvent', eventName: 'message', detail: { msg: JSON.stringify(payload) } })
+    fireEvent(target, event)
+  }
+  act(() => { receive({ type: 'songloft-back-state', session, canBack: true }) })
+  act(() => { expect(dispatchBack()).toBe(true) })
+  runInNewContext(host.invoke.mock.calls.at(-1)![0].params.func, browser)
+  expect(emitted.at(-1)!.type).toBe('songloft-back-request')
+  const id = emitted.at(-1)!.detail['id']
+  act(() => { receive({ type: 'songloft-back-result', session, id, consumed: true, canBack: false }) })
+  expect(h.continueBack).not.toHaveBeenCalled()
+  expect(dispatchBack()).toBe(false)
+  unmount()
+})
+
+test('a pending plugin timeout respects an overlay opened while awaiting the reply', async () => {
+  vi.useFakeTimers()
+  try {
+    const { unmount } = await renderPage()
+    const connection = h.postMessage.mock.calls.map(call => JSON.parse(call[0] as string))
+      .find(message => message.type === 'songloft-back-connect')!
+    act(() => activeHandlers().onMessage({ type: 'songloft-back-state', session: connection.session, canBack: true }))
+    act(() => { expect(dispatchBack()).toBe(true) })
+    const closeOverlay = vi.fn()
+    let removeOverlay = () => { }
+    removeOverlay = pushBackHandler(() => { closeOverlay(); removeOverlay(); return true })
+    act(() => { vi.advanceTimersByTime(1000) })
+    expect(closeOverlay).toHaveBeenCalledTimes(1)
+    expect(h.continueBack).not.toHaveBeenCalled()
+    expect(dispatchBack()).toBe(false)
+    unmount()
+  } finally { vi.useRealTimers() }
 })
