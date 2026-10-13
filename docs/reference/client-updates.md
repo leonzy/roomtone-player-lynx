@@ -71,6 +71,8 @@ HarmonyOS 在 `filesDir/bundle_updates` 保存签名文件和相同指针，通�
 
 ## 自动检查与下载
 
+跨平台说明（2026-10-13）：Markdown 兼容补齐没有平台分支；iOS 与鸿蒙发版复用同一原生 bundle，Web 也包含该解析器。iOS 默认后台运行时为 JavaScriptCore，项目最低版本为 iOS 15.0；`at` / `hasOwn` 在 [iOS 15.4 的 WebKit](https://webkit.org/blog/12445/new-webkit-features-in-safari-15-4/) 才加入，旧系统存在缺失风险。鸿蒙依赖 PrimJS 4.0.0，与本批 Android 验证的版本一致，因此需保留相同兼容处理。Chromium 121、Firefox 134、WebKit 18.2 的完整关于页与真实 Worker 缺失 API 场景已验证；客户端/后端 Markdown、双语表格与横向滚动正常。iOS 与鸿蒙原生设备未验证，Linux WebKit 结果不能替代 iOS 原生验收。
+
 开关默认关闭，保存在设备本地 `SongloftStorage.prefs` 的 `client_automatic_update` 中，与账号、服务器无关。Android/iOS/HarmonyOS 共用调度；Web 不显示开关，缺少安全元数据能力的旧壳禁用开关。沿用原生验签、完整兼容契约和下载哈希校验，不兼容的新版本仅在关于页提供安装包入口。
 
 - 开启立即检查；冷启动在真实页面显示后异步检查，自动启动检查至少间隔 10 分钟，手动检查不受限制。正在试运行的新 bundle 确认启动后才允许继续自动更新。

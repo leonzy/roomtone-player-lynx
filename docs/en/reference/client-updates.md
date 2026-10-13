@@ -71,6 +71,8 @@ About separates client updates from backend upgrades and displays immutable shel
 
 ## Automatic checks and downloads
 
+Cross-platform note (2026-10-13): Markdown compatibility setup has no platform branch. iOS and HarmonyOS releases reuse the same native bundle, and Web includes the same parser. iOS defaults to JavaScriptCore on the background thread, with an iOS 15.0 deployment floor; `at` / `hasOwn` arrived in [WebKit for iOS 15.4](https://webkit.org/blog/12445/new-webkit-features-in-safari-15-4/), so older systems may lack them. HarmonyOS depends on PrimJS 4.0.0, matching the Android version tested in this batch, and needs the same compatibility handling. Full About pages and missing-API scenarios in actual Workers pass on Chromium 121, Firefox 134 and WebKit 18.2, including client/backend Markdown, bilingual tables and horizontal scrolling. Native iOS and HarmonyOS devices remain untested; Linux WebKit checks do not replace native iOS acceptance.
+
 The switch defaults to OFF and uses the device-local `client_automatic_update` preference in `SongloftStorage.prefs`, independently of accounts and servers. Android/iOS/HarmonyOS share scheduling. Web hides the switch; older shells without secure metadata support disable it. Native signatures, the complete compatibility contract, and download hashes remain mandatory. Incompatible releases offer installation links in About.
 
 - Enabling checks immediately. Cold launches check asynchronously after the real page renders, with at least ten minutes between automatic startup checks; manual checks bypass this throttle. A trial bundle must confirm startup before another automatic update can proceed.

@@ -1,5 +1,14 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-13 · 更新说明的 iOS / 鸿蒙 / Web 跨平台检查
+
+- 用户确认本批 5 个文档文件并授权提交、推送及同步主仓库子模块指针；下方未提交描述为验证阶段快照，实际结果以 Git 记录为准。
+- 检查已推送修复 `c278a72`：`markdown-parser.ts` 的兼容补齐不受平台判断限制，`background-only` 隔离保留，`Markdown` 在 `useEffect` 中解析；客户端与后端区均复用它。发版 prepare 生成公共 bundle，iOS/HarmonyOS job 下载同一产物并复制，Web 采用同次构建的 Web bundle；无需为每个宿主另加修复。
+- iOS Pod 锁定 Lynx 4.0.1 / PrimJS 4.0.0，但后台默认 JavaScriptCore，不能根据 pod 依赖断言其后台也一定使用 PrimJS。宿主未指定 QuickJS，实际最低部署目标是 **15.0**（部分旧注释写 16.0，不作为目标来源）。[Lynx 官方运行时说明](https://lynxjs.org/guide/scripting-runtime/index.html)与 [WebKit 15.4 发布说明](https://webkit.org/blog/12445/new-webkit-features-in-safari-15-4/)确认引擎默认值及两项 API 的引入版本，旧系统有缺失风险，共用兼容处理覆盖该场景。Marked 的 179 个正则字面量检查未发现 lookbehind 或 d/v 新标志；动态 lookbehind 有自身能力检测。鸿蒙配置使用 PrimJS 4.0.0，与此前 Android 实测版本一致，保留同一兼容实现。SDK 依赖与共享代码检查不是鸿蒙原生运行时实测。
+- Chromium **121.0.6167.85**、Firefox **134.0**、Linux WebKit **18.2** 的生产完整关于页验证通过：客户端标题数 3 / 表格数 3、后端标题数 1 / 表格数 1，真实双语安装模板、强调、代码和引用均可读；标题计算样式为 20px/600。表格 scrollLeft=150、scrollWidth=660、clientWidth=326（390px 浏览器），页面异常为空。六张截图已目测；Chromium 用 1024px 桌面宽度，其余两端为 390px。
+- 各浏览器真实 Worker 单独执行从当前解析模块打包的探针，先记录原生 API，再移除 `Array.prototype.at` / `Object.hasOwn`；兼容补齐后均解析出 31 个 token 和 2 个双语表格，两项 API 恢复 function。探针仅去掉编译守卫空模块，不替换解析实现；这不是 iOS/鸿蒙原生运行时或布局测试。`pnpm exec vitest run` 的共享解析/UI/客户端区/关于页 **4 文件 / 26 项**回归通过，未改业务代码，不重复此前完整测试/构建。
+- 证据 `/tmp/lynx-md-platform-check/{browser-results-*,browser*-final.log,shared-tests.log,*-client.png,*-backend.png}`。首次 WebKit 自签 HTTPS 元数据夹具失败、页面给出更新失败提示，后端渲染已正常；为隔离 Markdown 验证，最终 Release 元数据由浏览器路由按实际请求 URL 返回本地夹具。首次代码断言未还原 NBSP，调整验证脚本后通过，不计为产品缺陷。iOS 无 Xcode/模拟器，鸿蒙无已连接可用设备，设备渲染仍待验；未下载或执行升级，仅同步双语验证记录，未提交、推送或操作 Issue。
+
 ## 2026-10-13 · Android 与后端更新 Markdown 渲染复验
 
 - 用户确认本批修复并明确授权提交、推送 Lynx 与主仓库子模块指针；提交前逐文件复核通过，实际结果以 Git 记录为准。下方未提交描述为实施阶段快照。
