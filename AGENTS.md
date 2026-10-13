@@ -7,6 +7,7 @@
 | 任务 | 权威入口 |
 |---|---|
 | 项目概览 | [`README.md`](README.md) |
+| AI 开发、Issue 排查与复盘 | [`docs/guides/ai-development.md`](docs/guides/ai-development.md) · [`LESSONS.md`](LESSONS.md) |
 | 架构和调用链 | [`ARCHITECTURE.md`](ARCHITECTURE.md) · [`docs/architecture/overview.md`](docs/architecture/overview.md) |
 | 构建、测试与平台闸门 | [`HARNESS.md`](HARNESS.md) · [`docs/guides/build-and-run.md`](docs/guides/build-and-run.md) · [`docs/guides/testing.md`](docs/guides/testing.md) |
 | Lynx 双线程、元素和 Web 限制 | [`docs/architecture/lynx-constraints.md`](docs/architecture/lynx-constraints.md) |
@@ -146,11 +147,14 @@ E2E 通过 TestBridge（TCP 9230）驱动设备，运行入口和环境检查见
 - 使用 `apply_patch` 编辑文本；保留用户已有 dirty changes，不重置、不覆盖无关文件。
 - `patches/` 与 `pnpm-lock.yaml` 属于源码契约；`node_modules/`、`dist/`、`songloft-player/`、`.codegraph/` 不提交。
 - 分支为 `main`，远程为 `origin`。提交使用 `type(scope): 简体中文描述`，禁止 `Co-Authored-By`；Issue 引用使用 `songloft-org/songloft#NNN`。
-- 未获得明确确认时不提交、不推送、不操作 Issue。每个聚焦批次验收后暂停等待确认。
+- 调查、实现、验证、自审连续执行，不逐阶段确认。关键缺失信息、产品决定或扩大范围才询问；提交、推送、正式发布和 Issue 写操作分别按用户明确授权，已有授权不重复询问。子仓库先提交，父仓库后更新指针。
+- 开始前读适用 LESSONS，结束记录证据型经验并同步英文。三个不同日期的独立事件提出升级，同一事故不重复计数；既有铁律立即执行，事故全文仍留在 pitfalls/progress。
+- 未解决 Issue 排查覆盖父仓库和全部递归子模块，去重、完整分页，结合正文、全部评论、最新代码与验证判断；完整仓库引用、未检查项和父指针/发布/设备安装状态分别报告。
+- 验证记录绑定仓库、SHA 或未提交差异标识、环境、命令、实际结果和相关 `Not run`；代码变更重跑受影响项，追踪同一 SHA 的必要 CI，取消/跳过不算通过。JS 闸门不替代原生宿主或设备验收。
 
 ## 7. 项目 Skills
 
-- `dev-flow`：分阶段处理 Issue、Bug、功能和优化，阶段间等待确认。
+- `dev-flow`：连续处理开发任务、跨仓库 Issue 排查与经验复盘；外部动作按明确授权执行。
 - `lynx-api-docs`：写页面、元素、布局或排查 Lynx 渲染前查询官方 API 文档。
 - `lynx-ui`：选择组件和核对公开 API。
 - `lynx-check-css-support`：按 Lynx 版本与渲染后端确认 CSS 支持。

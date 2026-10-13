@@ -7,6 +7,7 @@ This entry contains constraints that affect code changes, validation, and explor
 | Task | Authoritative entry |
 |---|---|
 | Overview | [README](README.en.md) |
+| AI development, Issue triage, retrospectives | [AI workflow](docs/en/guides/ai-development.md), [LESSONS](LESSONS.en.md) |
 | Architecture | [ARCHITECTURE](ARCHITECTURE.md), [overview](docs/architecture/overview.md) |
 | Build/test/platform gates | [HARNESS](HARNESS.en.md), [build](docs/en/guides/build-and-run.md), [testing](docs/en/guides/testing.md) |
 | Threads, elements, Web limits | [Lynx constraints](docs/architecture/lynx-constraints.md) |
@@ -140,11 +141,14 @@ TestBridge uses TCP 9230. Install the fresh product before E2E. Published packag
 - Edit through apply_patch; preserve unrelated changes.
 - Commit patches and lockfiles. Do not commit dependencies, dist, Flutter reference checkouts, or codegraph indexes.
 - Use main/origin and Chinese Conventional Commits, without Co-Authored-By. Parent issues use songloft-org/songloft#NNN.
-- Do not commit, push, or change Issues without explicit confirmation. Pause after each focused batch's acceptance.
+- Investigate, implement, validate, and self-review continuously without stage approvals. Ask for essential missing information, product decisions, or scope expansion; commits, pushes, formal releases, and Issue writes require distinct authorization. Do not repeat existing authorization requests; commit children before parent pointers.
+- Read applicable LESSONS before work and record evidence-backed lessons afterward in Chinese/English. Three independent events on distinct dates make promotion candidates; re-reviewing one incident does not increase counts. Existing rules apply immediately; incident details stay in pitfalls/progress.
+- Unresolved Issue triage covers the parent and all recursive submodules with deduplication/full pagination. Read bodies, all comments, current code, and validation. Report full references, gaps, and parent-pointer/publication/device-installation status separately.
+- Bind validation to repository, SHA or uncommitted fingerprint, environment, commands, outcomes, and relevant `Not run`. Changes require affected checks again; follow required CI for the same SHA and never count cancelled/skipped as passing. JS gates do not replace native-host/device acceptance.
 
 ## 7. Project skills
 
-- dev-flow: staged analysis/implementation/verification/release with confirmations.
+- dev-flow: continuous development, cross-repository Issue triage, and retrospectives; external actions follow explicit authorization.
 - lynx-api-docs: consult official element/layout APIs before UI/render work.
 - lynx-ui: component selection and API validation.
 - lynx-check-css-support: version/backend-specific CSS support.

@@ -1,5 +1,11 @@
 # Handoff (2026-10-13)
 
+## AI Workflow Reorganization (2026-10-13)
+
+This batch adds bilingual AI workflow/LESSONS and updates instruction entry points and both dev-flow copies. Investigation, implementation, validation, and self-review proceed continuously without stage approvals. Commits, pushes, releases, and Issue writes follow distinct current-session authorization. Unresolved Issue triage includes the parent and all recursive submodules. HARNESS owns platform acceptance; lessons use evidence and independent event dates, with historical detail kept in pitfalls/progress.
+
+Skill structure, links, UTF-8, and diff checks pass. This is documentation/skill work: App builds, JS tests, and device acceptance were not run. No commits, pushes, or Issue writes; the parent pointer is unchanged. Authorization, validation, and outstanding work below are historical snapshots, not authorization for this task or evidence of this batch's checks.
+
 The user confirmed this batch's cross-platform verification records and authorized committing and pushing the Lynx repository and parent submodule pointer. The commit covers five documentation files with no business code changes. Git history records the actual commit and push results; the uncommitted state below describes the verification snapshot.
 
 **Current batch: cross-platform checks of update notes on iOS / HarmonyOS / Web are complete, with no new business code.** The shared parser installs missing APIs by capability; background isolation and packaging from the same source are checked. Older iOS 15.0–15.3 systems may lack the same APIs, and HarmonyOS PrimJS 4.0.0 needs the compatibility handling verified on that Android version. Full About pages on Chromium 121 / Firefox 134 / WebKit 18.2 pass for both note sections, bilingual Release tables and horizontal scrolling. Actual Workers still parse successfully after removing both APIs. Page errors are empty and screenshots are visually checked. Four related files / 26 tests pass. Evidence is in `/tmp/lynx-md-platform-check/`; metadata uses local fixtures and browser routes, with no actual upgrade. Native iOS/HarmonyOS devices are unavailable, so device rendering remains pending. Only verification records changed; no commits or pushes. Earlier snapshots follow.
