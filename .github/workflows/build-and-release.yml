@@ -209,6 +209,12 @@ jobs:
           set -euo pipefail
           swiftc -swift-version 5 ios/SongloftLynx/BundleUpdateStore.swift ios/SongloftLynx/BundleUpdateTransfer.swift scripts/verify-ios-updater.swift -o "$RUNNER_TEMP/verify-ios-updater"
           "$RUNNER_TEMP/verify-ios-updater" updates/fixtures/signature-v1.json
+      - name: Verify native playback task and seek lifecycle
+        run: |
+          set -euo pipefail
+          swiftc -swift-version 5 ios/SongloftLynx/PlaybackBackgroundTask.swift scripts/verify-ios-playback-background.swift -o "$RUNNER_TEMP/verify-ios-playback-background"
+          "$RUNNER_TEMP/verify-ios-playback-background"
+          node scripts/verify-ios-playback-preparation.mjs
       - name: Verify device cache with Apple Foundation and real HTTP/files
         run: |
           set -euo pipefail

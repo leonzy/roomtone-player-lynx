@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AE0000000000000000000001 /* PlaybackBackgroundTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE0000000000000000000011 /* PlaybackBackgroundTask.swift */; };
 		AF0000000000000000000001 /* SongloftTabGlassUI.m in Sources */ = {isa = PBXBuildFile; fileRef = AF0000000000000000000011 /* SongloftTabGlassUI.m */; };
 		AD0000000000000000000001 /* PluginTemplateTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000000000000000000011 /* PluginTemplateTransfer.swift */; };
 		AC0000000000000000000001 /* SongCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000000000000000000011 /* SongCacheStore.swift */; };
@@ -41,6 +42,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		AE0000000000000000000011 /* PlaybackBackgroundTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackBackgroundTask.swift; sourceTree = "<group>"; };
 		AF0000000000000000000011 /* SongloftTabGlassUI.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SongloftTabGlassUI.m; sourceTree = "<group>"; };
 		AF0000000000000000000012 /* SongloftTabGlassUI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SongloftTabGlassUI.h; sourceTree = "<group>"; };
 		AF0000000000000000000013 /* SongloftTabGlassMotion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SongloftTabGlassMotion.h; sourceTree = "<group>"; };
@@ -137,6 +139,7 @@
 				AA0000000000000000000031 /* SongloftTestBridgeModule.swift */,
 				AA0000000000000000000033 /* TestBridgeServer.swift */,
 				AA000000000000000000002C /* AudioEqualizer.swift */,
+				AE0000000000000000000011 /* PlaybackBackgroundTask.swift */,
 				AA000000000000000000002E /* LiveActivityModule.swift */,
 				AA0000000000000000000034 /* SongloftDlnaModule.swift */,
 				AA0000000000000000000036 /* InsecureTls.swift */,
@@ -298,6 +301,7 @@
 				AA0000000000000000000030 /* SongloftTestBridgeModule.swift in Sources */,
 				AA0000000000000000000032 /* TestBridgeServer.swift in Sources */,
 				AA000000000000000000002D /* AudioEqualizer.swift in Sources */,
+				AE0000000000000000000001 /* PlaybackBackgroundTask.swift in Sources */,
 				AA000000000000000000002F /* LiveActivityModule.swift in Sources */,
 				AA0000000000000000000035 /* SongloftDlnaModule.swift in Sources */,
 				AA0000000000000000000037 /* InsecureTls.swift in Sources */,

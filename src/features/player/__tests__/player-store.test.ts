@@ -98,6 +98,7 @@ beforeEach(() => {
 
 afterEach(() => {
   usePlayerStore.getState().reset()
+  delete (globalThis as Record<string, unknown>).SystemInfo
   vi.useRealTimers()
 })
 
@@ -359,12 +360,30 @@ describe('completion routing by play mode', () => {
   })
 
   test('order at the end stops (no wrap)', async () => {
+    const globals = globalThis as Record<string, unknown>
+    globals.SystemInfo = { platform: 'iOS' }
     await usePlayerStore.getState().playPlaylist([song(1, 1)], 0)
     await flush()
+    const pause = vi.spyOn(getAudio(), 'pause')
     vi.advanceTimersByTime(1_000)
     await flush()
     expect(usePlayerStore.getState().currentIndex).toBe(0)
     expect(usePlayerStore.getState().isPlaying).toBe(false)
+    expect(pause).toHaveBeenCalledOnce()
+    pause.mockRestore()
+  })
+
+  test.each(['web', 'Android', 'harmony'])('%s queue completion does not receive an iOS cleanup pause', async (platform) => {
+    const globals = globalThis as Record<string, unknown>
+    globals.SystemInfo = { platform }
+    await usePlayerStore.getState().playPlaylist([song(1, 1)], 0)
+    await flush()
+    const pause = vi.spyOn(getAudio(), 'pause')
+    vi.advanceTimersByTime(1_000)
+    await flush()
+    expect(usePlayerStore.getState().isPlaying).toBe(false)
+    expect(pause).not.toHaveBeenCalled()
+    pause.mockRestore()
   })
 
   test('loop wraps from the last track to the first', async () => {
@@ -498,9 +517,12 @@ describe('playback error retry', () => {
   })
 
   test('gives up after three attempts and leaves the error standing', async () => {
+    const globals = globalThis as Record<string, unknown>
+    globals.SystemInfo = { platform: 'iOS' }
     await usePlayerStore.getState().playPlaylist([song(1, 300)], 0)
     await flush()
     const loadSpy = vi.spyOn(getAudio(), 'load')
+    const pauseSpy = vi.spyOn(getAudio(), 'pause')
 
     for (const delay of [1_000, 3_000, 9_000]) {
       mock().simulateError('502')
@@ -508,6 +530,7 @@ describe('playback error retry', () => {
       await flush()
     }
     expect(loadSpy).toHaveBeenCalledTimes(3)
+    expect(pauseSpy).not.toHaveBeenCalled()
 
     // Fourth failure: the budget is spent, so nothing more is scheduled.
     mock().simulateError('502')
@@ -515,8 +538,10 @@ describe('playback error retry', () => {
     await flush()
     expect(loadSpy).toHaveBeenCalledTimes(3)
     expect(usePlayerStore.getState().errorMessage).toBe('502')
+    expect(pauseSpy).toHaveBeenCalledOnce()
 
     loadSpy.mockRestore()
+    pauseSpy.mockRestore()
   })
 
   test('a pending retry is dropped when the user moves to another song', async () => {

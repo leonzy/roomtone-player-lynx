@@ -32,6 +32,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    ClientFileLog.write(
+      "I", tag: "lifecycle", "process started pid=\(ProcessInfo.processInfo.processIdentifier)")
     LynxEnv.sharedInstance()
     SongloftTabGlassUI.registerComponent()
     registerHttpService()

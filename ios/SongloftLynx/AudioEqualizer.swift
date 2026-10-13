@@ -51,9 +51,8 @@ final class AudioEqualizer {
     applyGain(au, band: index, gain: clamped)
   }
 
-  func buildAudioMix(for item: AVPlayerItem) -> AVAudioMix? {
-    guard let track = item.asset.tracks(withMediaType: .audio).first else { return nil }
-
+  /// The caller asynchronously loads this track before entering the main thread.
+  func buildAudioMix(for track: AVAssetTrack) -> AVAudioMix? {
     var callbacks = MTAudioProcessingTapCallbacks(
       version: kMTAudioProcessingTapCallbacksVersion_0,
       clientInfo: Unmanaged.passUnretained(self).toOpaque(),

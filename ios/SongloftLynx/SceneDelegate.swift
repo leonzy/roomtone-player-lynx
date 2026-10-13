@@ -22,14 +22,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
   }
 
   func sceneDidBecomeActive(_ scene: UIScene) {
+    ClientFileLog.write("I", tag: "lifecycle", "scene became active")
     (window?.rootViewController as? ViewController)?.setSceneActive(true)
   }
 
   func sceneWillResignActive(_ scene: UIScene) {
+    ClientFileLog.write("I", tag: "lifecycle", "scene resigned active")
     (window?.rootViewController as? ViewController)?.setSceneActive(false)
   }
 
   func sceneDidDisconnect(_ scene: UIScene) {
+    ClientFileLog.write("I", tag: "lifecycle", "scene disconnected")
     (window?.rootViewController as? ViewController)?.setSceneActive(false)
     window = nil
   }

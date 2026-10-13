@@ -24,6 +24,18 @@ pnpm exec tsc -b       # 类型检查（必须 -b）
 - 测试文件与源码同目录下的 `__tests__/`
 - **文件正文禁止字面量 `@vitest-environment`**（Lynx 约束）
 
+## iOS 后台播放原生验证
+
+```bash
+swiftc -swift-version 5 ios/SongloftLynx/PlaybackBackgroundTask.swift scripts/verify-ios-playback-background.swift -o /tmp/verify-ios-playback-background
+/tmp/verify-ios-playback-background
+node scripts/verify-ios-playback-preparation.mjs
+```
+
+Swift 脚本执行真实任务管理代码，验证单次申请、到期不续期、旧回调隔离及释放。Node 脚本提取引擎实际 seek 方法，在保留未就绪与取消语义的受控播放器接口下编译执行，覆盖最新位置、旧回调、暂停意图和加载代次；两种缺陷变体必须在对应断言失败。两个验证均无需 UIKit，可在 Linux Swift 环境运行，Apple CI 也会执行；没有宿主 Swift 时，Node 脚本可加 `--docker` 使用 `swift:6.2` 容器。它们与 Vitest 接线闸门都不能替代 `pnpm run ios:build` 或设备验收。
+
+Issue #10 设备验收需覆盖：本地曲与插件音源锁屏连续跨曲播放、慢响应/断网重试、队列末尾和睡眠计时器、加载中暂停/定位/快速换曲、均衡器与视频输出。导出客户端日志对照 `process started`、scene 前后台、`native page loaded`、音源准备耗时、播放结束与后台窗口申请/释放/到期记录；重启或插件重载必须单独判断，不能仅从暂停推断。插件“常驻运行”控制服务器 JS 服务，不保证 iOS 插件页面持续执行。
+
 ## E2E 行为测试
 
 ```bash

@@ -67,6 +67,21 @@ final class SongloftAudioEngine {
   private var timeControlObservation: NSKeyValueObservation?
   private var presentationSizeObservation: NSKeyValueObservation?
   private var endObserver: NSObjectProtocol?
+  private var lifecycleObservers: [NSObjectProtocol] = []
+  private var loadGeneration = 0
+  private var initialSeekGeneration = 0
+  private var preparingAsset: AVURLAsset?
+  private var isPreparingSource = false
+  private var loadStartedAt = Date()
+  private lazy var backgroundTask = PlaybackBackgroundTask(
+    begin: { expiration in
+      let task = UIApplication.shared.beginBackgroundTask(
+        withName: "Songloft playback transition", expirationHandler: expiration)
+      return task == .invalid ? nil : task.rawValue
+    },
+    end: { UIApplication.shared.endBackgroundTask(UIBackgroundTaskIdentifier(rawValue: $0)) },
+    log: { ClientFileLog.write("I", tag: "audio", $0) }
+  )
 
   /// url → notification metadata, populated from the JS store's `setQueue`.
   private var metadataByURL: [String: QueueMetadata] = [:]
@@ -140,7 +155,14 @@ final class SongloftAudioEngine {
     activateSession()
     installRemoteCommands()
     let player = ensurePlayer()
-    if sourceId != nil { player.pause() }
+    invalidatePreparation()
+    let generation = loadGeneration
+    loadStartedAt = Date()
+    isPreparingSource = true
+    itemStatusObservation = nil
+    presentationSizeObservation = nil
+    player.pause()
+    player.replaceCurrentItem(with: nil)
     self.sourceId = sourceId
     pendingInitialPositionMs = sourceId == nil ? nil : max(0, initialPositionMs)
     pendingAutoplay = autoplay
@@ -152,6 +174,9 @@ final class SongloftAudioEngine {
     emitState("loading")
 
     guard let assetURL = URL(string: url) else {
+      isPreparingSource = false
+      itemFailed = true
+      protectPlaybackGap(force: true)
       emit(Self.eventError, ["code": "ERROR_INVALID_URL", "message": "invalid media url"])
       emitState("error")
       return
@@ -169,25 +194,49 @@ final class SongloftAudioEngine {
     // AVFoundation (which cannot be talked out of rejecting the certificate) — see
     // `InsecureMediaLoader`. A no-op in every other case.
     let asset = AVURLAsset(url: InsecureMediaLoader.assetURL(for: assetURL), options: options)
-    // Not `.main`: `buildAudioMix` below blocks the main thread on the asset's tracks,
-    // so the loader's callbacks have to be serviceable from another queue or the two
-    // deadlock — see `InsecureMediaLoader.callbackQueue`.
+    // The custom loader services asynchronous AVAsset requests on its own queue.
     asset.resourceLoader.setDelegate(
       InsecureMediaLoader.shared,
       queue: InsecureMediaLoader.shared.callbackQueue
     )
-    let item = AVPlayerItem(asset: asset)
-    if let mix = equalizer.buildAudioMix(for: item) {
-      item.audioMix = mix
+    preparingAsset = asset
+    protectPlaybackGap()
+    asset.loadTracks(withMediaType: .audio) { [weak self] tracks, error in
+      guard let self else { return }
+      self.runOnMain {
+        guard self.loadGeneration == generation, self.preparingAsset === asset else { return }
+        self.preparingAsset = nil
+        self.isPreparingSource = false
+        if let error {
+          self.itemFailed = true
+          self.protectPlaybackGap(force: true)
+          let nativeError = error as NSError
+          self.emit(
+            Self.eventError,
+            [
+              "code": "\(nativeError.domain):\(nativeError.code)",
+              "message": nativeError.localizedDescription,
+            ])
+          self.emitState("error")
+          return
+        }
+        let item = AVPlayerItem(asset: asset)
+        if let track = tracks?.first, let mix = self.equalizer.buildAudioMix(for: track) {
+          item.audioMix = mix
+        }
+        self.observe(item: item)
+        player.replaceCurrentItem(with: item)
+        if self.videoOutputAttached { self.installPresentationSizeObserver() }
+        self.updateNowPlaying()
+        if self.pendingAutoplay && self.pendingInitialPositionMs == nil { self.play() }
+      }
     }
-    observe(item: item)
-    player.replaceCurrentItem(with: item)
-    updateNowPlaying()
   }
 
   func play() {
     pendingAutoplay = true
-    if pendingInitialPositionMs != nil { return }
+    protectPlaybackGap()
+    if isPreparingSource || pendingInitialPositionMs != nil { return }
     let player = ensurePlayer()
     activateSession()
     reachedEnd = false
@@ -199,11 +248,15 @@ final class SongloftAudioEngine {
 
   func pause() {
     pendingAutoplay = false
+    backgroundTask.end()
     player?.pause()
     updateNowPlaying()
   }
 
   func stop() {
+    invalidatePreparation()
+    pendingAutoplay = false
+    backgroundTask.end()
     pendingInitialPositionMs = nil
     player?.pause()
     player?.replaceCurrentItem(with: nil)
@@ -216,6 +269,15 @@ final class SongloftAudioEngine {
   }
 
   func seek(positionMs: Double) {
+    // Preserve the latest target through asset preparation, item readiness and
+    // replacement of an in-flight initial seek.
+    if isPreparingSource || pendingInitialPositionMs != nil {
+      pendingInitialPositionMs = max(0, positionMs)
+      if !isPreparingSource, let item = player?.currentItem, item.status == .readyToPlay {
+        seekInitialPosition(of: item)
+      }
+      return
+    }
     guard let player else { return }
     let target = CMTime(seconds: max(0, positionMs) / 1000, preferredTimescale: 600)
     // Zero tolerance: the seek bar must land where the user dropped it, not on
@@ -279,12 +341,19 @@ final class SongloftAudioEngine {
 
   /// Full teardown — called by the module's `dispose()`.
   func release() {
+    invalidatePreparation()
+    pendingAutoplay = false
+    pendingInitialPositionMs = nil
+    backgroundTask.end()
+    for observer in lifecycleObservers { NotificationCenter.default.removeObserver(observer) }
+    lifecycleObservers.removeAll()
     if let player, let timeObserver {
       player.removeTimeObserver(timeObserver)
     }
     timeObserver = nil
     itemStatusObservation = nil
     timeControlObservation = nil
+    presentationSizeObservation = nil
     volumeObservation = nil
     if let endObserver {
       NotificationCenter.default.removeObserver(endObserver)
@@ -355,7 +424,8 @@ final class SongloftAudioEngine {
       let size = item.presentationSize
       guard size.width > 0, size.height > 0 else { return }
       self?.runOnMain {
-        self?.videoSizeSink?(Int(size.width.rounded()), Int(size.height.rounded()))
+        guard let self, self.player?.currentItem === item else { return }
+        self.videoSizeSink?(Int(size.width.rounded()), Int(size.height.rounded()))
       }
     }
   }
@@ -395,15 +465,64 @@ final class SongloftAudioEngine {
 
   private func ensurePlayer() -> AVPlayer {
     if let player { return player }
+    installLifecycleObservers()
     let created = AVPlayer()
     created.automaticallyWaitsToMinimizeStalling = true
     timeControlObservation = created.observe(\.timeControlStatus, options: [.new]) {
       [weak self] player, _ in
-      self?.onTimeControlStatus(of: player)
+      self?.runOnMain { self?.onTimeControlStatus(of: player) }
     }
     installTimeObserver(on: created)
     player = created
     return created
+  }
+
+  private func invalidatePreparation() {
+    loadGeneration += 1
+    preparingAsset?.cancelLoading()
+    preparingAsset = nil
+    isPreparingSource = false
+  }
+
+  private func protectPlaybackGap(force: Bool = false) {
+    guard UIApplication.shared.applicationState == .background,
+      pendingAutoplay, force || player?.timeControlStatus != .playing
+    else { return }
+    backgroundTask.begin()
+  }
+
+  private func installLifecycleObservers() {
+    guard lifecycleObservers.isEmpty else { return }
+    let center = NotificationCenter.default
+    lifecycleObservers.append(
+      center.addObserver(
+        forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main
+      ) { [weak self] _ in
+        ClientFileLog.write("I", tag: "audio", "entered background")
+        self?.protectPlaybackGap()
+      })
+    lifecycleObservers.append(
+      center.addObserver(
+        forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main
+      ) { [weak self] _ in
+        ClientFileLog.write("I", tag: "audio", "entered foreground")
+        self?.backgroundTask.end()
+      })
+    lifecycleObservers.append(
+      center.addObserver(
+        forName: AVAudioSession.interruptionNotification, object: nil, queue: .main
+      ) { notification in
+        let type = (notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? NSNumber)?
+          .uintValue
+        ClientFileLog.write(
+          "I", tag: "audio", "audio interruption type=\(type.map(String.init) ?? "unknown")")
+      })
+    lifecycleObservers.append(
+      center.addObserver(
+        forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main
+      ) { _ in
+        ClientFileLog.write("W", tag: "audio", "memory warning")
+      })
   }
 
   /**
@@ -460,11 +579,7 @@ final class SongloftAudioEngine {
       guard let self, let item, self.player?.currentItem === item else { return }
       self.onReachedEnd()
     }
-    // Re-arm on item replacement (a new track / an HLS variant switch), but only
-    // while the video screen is open — otherwise the observation is wasted work.
-    if videoOutputAttached {
-      installPresentationSizeObserver()
-    }
+    // Presentation-size observation is installed after player item replacement.
   }
 
   // MARK: - Player state → facade events
@@ -473,30 +588,17 @@ final class SongloftAudioEngine {
     guard player?.currentItem === item else { return }
     switch item.status {
     case .readyToPlay:
+      ClientFileLog.write(
+        "I", tag: "audio",
+        "source ready after \(Int(Date().timeIntervalSince(loadStartedAt) * 1000))ms")
       emitState("ready")
-      if let positionMs = pendingInitialPositionMs, let player {
-        let expectedSourceId = sourceId
-        let seconds = item.duration.seconds
-        let targetMs = seconds.isFinite && seconds > 0 ? min(positionMs, seconds * 1000) : positionMs
-        let target = CMTime(seconds: targetMs / 1000, preferredTimescale: 600)
-        player.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self, weak item] finished in
-          guard let self, let item else { return }
-          self.runOnMain {
-            guard self.sourceId == expectedSourceId, self.player?.currentItem === item else { return }
-            self.pendingInitialPositionMs = nil
-            if !finished {
-              self.emit(Self.eventError, ["code": "seek_failed", "message": "Initial seek failed"])
-              return
-            }
-            if self.pendingAutoplay { self.play() } else { self.pause() }
-            self.emitProgress()
-            self.emit("SongloftAudio.sourceReady", ["positionMs": Self.milliseconds(player.currentTime())])
-          }
-        }
-      }
+      if pendingInitialPositionMs != nil { seekInitialPosition(of: item) }
       updateNowPlaying()
     case .failed:
       itemFailed = true
+      // JS owns the finite retry budget. Keep this same window across backoff;
+      // terminal failure explicitly pauses, and expiration never auto-renews.
+      protectPlaybackGap(force: true)
       let error = item.error as NSError?
       emit(
         Self.eventError,
@@ -511,12 +613,45 @@ final class SongloftAudioEngine {
     }
   }
 
+  private func seekInitialPosition(of item: AVPlayerItem) {
+    guard let positionMs = pendingInitialPositionMs, let player,
+      player.currentItem === item, item.status == .readyToPlay
+    else { return }
+    initialSeekGeneration += 1
+    let expectedSeek = initialSeekGeneration
+    let expectedLoad = loadGeneration
+    let seconds = item.duration.seconds
+    let targetMs = seconds.isFinite && seconds > 0 ? min(positionMs, seconds * 1000) : positionMs
+    let target = CMTime(seconds: targetMs / 1000, preferredTimescale: 600)
+    player.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero) {
+      [weak self, weak item] finished in
+      guard let self, let item else { return }
+      self.runOnMain {
+        guard self.loadGeneration == expectedLoad, self.initialSeekGeneration == expectedSeek,
+          self.player?.currentItem === item
+        else { return }
+        self.pendingInitialPositionMs = nil
+        if !finished {
+          self.emit(Self.eventError, ["code": "seek_failed", "message": "Initial seek failed"])
+          return
+        }
+        if self.pendingAutoplay { self.play() } else { self.pause() }
+        self.emitProgress()
+        self.emit(
+          "SongloftAudio.sourceReady", ["positionMs": Self.milliseconds(player.currentTime())])
+      }
+    }
+  }
+
   private func onTimeControlStatus(of player: AVPlayer) {
     // A fatally-failed item keeps transitioning timeControlStatus; reporting those
     // would override the error state the JS side just settled on. See [itemFailed].
-    guard !itemFailed else { return }
+    guard self.player === player, !itemFailed, !isPreparingSource,
+      player.currentItem != nil
+    else { return }
     switch player.timeControlStatus {
     case .playing:
+      backgroundTask.end()
       emitState("playing")
       // Kotlin's `startProgress()` does `mainHandler.post(progressTick)`, i.e. the
       // first tick lands immediately after `playing` rather than one interval later.
@@ -525,6 +660,7 @@ final class SongloftAudioEngine {
       // up to one interval stale.
       emitProgress()
     case .waitingToPlayAtSpecifiedRate:
+      protectPlaybackGap()
       // Stalled / buffering — the same condition Android reports as
       // `Player.STATE_BUFFERING` → `loading`.
       emitState("loading")
@@ -539,6 +675,10 @@ final class SongloftAudioEngine {
 
   private func onReachedEnd() {
     reachedEnd = true
+    ClientFileLog.write("I", tag: "audio", "track completed; dispatching auto-advance")
+    // Acquire before emitting: JS resolves cache/metadata asynchronously while
+    // AVPlayer no longer supplies continuous background audio.
+    protectPlaybackGap(force: true)
     emitProgress()
     emitState("completed")
   }

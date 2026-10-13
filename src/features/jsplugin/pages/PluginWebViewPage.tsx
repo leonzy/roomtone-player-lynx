@@ -247,6 +247,7 @@ export function PluginWebViewPage() {
 
   /** A (re)load resets the page to its entry point, so there is no internal history. */
   const onWebViewLoad = () => {
+    console.info('[plugin] native page loaded:', entryPath)
     setDepth(0)
     selfBackPendingRef.current = false
     if (backConfirmTimerRef.current) {

@@ -582,8 +582,16 @@ function cancelRetry(): void {
   _consecutiveSkips = 0
 }
 
+/** Release iOS's execution window without sending invalid terminal commands to other hosts. */
+function finishIOSPlaybackGap(): void {
+  if (getPlatformTarget() === 'ios') void audio.pause()
+}
+
 function scheduleRetry(song: Song, { positionMs, autoplay }: { positionMs: number; autoplay: boolean }): void {
-  if (cachedSongIdentity(song)) return
+  if (cachedSongIdentity(song)) {
+    finishIOSPlaybackGap()
+    return
+  }
   if (_retrySongId !== song.id) {
     _retryCount = 0
     _retrySongId = song.id
@@ -595,7 +603,10 @@ function scheduleRetry(song: Song, { positionMs, autoplay }: { positionMs: numbe
   // auto-skips up to 3 consecutive failures; we do the same.
   if (delay === undefined) {
     _consecutiveSkips += 1
-    if (_consecutiveSkips > MAX_CONSECUTIVE_SKIPS) return
+    if (_consecutiveSkips > MAX_CONSECUTIVE_SKIPS) {
+      finishIOSPlaybackGap()
+      return
+    }
     // Find the next playable index via the same logic as `playNext`.
     const s = usePlayerStore.getState()
     _navigation.markFailed(s.currentIndex)
@@ -603,6 +614,8 @@ function scheduleRetry(song: Song, { positionMs, autoplay }: { positionMs: numbe
     const nextIdx = _navigation.peekNext(s.currentIndex, s.playlist.length)
     if (nextIdx != null && nextIdx !== s.currentIndex) {
       void usePlayerStore.getState().playNext()
+    } else {
+      finishIOSPlaybackGap()
     }
     return
   }
@@ -758,6 +771,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       // The next user play must reload this song at the beginning.
       _loadedSongId = null
       _loadedSourceKind = null
+      // Tell the native engine the playback gap is terminal so it can release
+      // its finite background execution window immediately.
+      finishIOSPlaybackGap()
       set({ isPlaying: false })
       return
     }
@@ -1297,6 +1313,7 @@ audio.on('error', (e) => {
     syncNavigation()
   }
   if (usePlayerStore.getState().isAudioTrackSwitching) {
+    finishIOSPlaybackGap()
     usePlayerStore.setState({ isPlaying: false, isBuffering: false })
     return
   }
@@ -1304,6 +1321,7 @@ audio.on('error', (e) => {
   // Retry transparently; `scheduleRetry` is a no-op once the song's budget is spent,
   // so the error state above is what the user is left with after the last attempt.
   if (currentSong) scheduleRetry(currentSong, { positionMs: currentTime, autoplay: isPlaying })
+  else finishIOSPlaybackGap()
 })
 
 /**

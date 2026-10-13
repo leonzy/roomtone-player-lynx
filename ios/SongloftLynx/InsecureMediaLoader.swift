@@ -49,13 +49,10 @@ final class InsecureMediaLoader: NSObject {
   /**
    * Serial queue the resource loader calls us back on, and which guards [tasks].
    *
-   * **Must not be the main queue.** `AudioEqualizer.buildAudioMix` reads
-   * `asset.tracks(withMediaType:)`, which blocks until the asset has loaded, and the
-   * engine calls it from the main thread. With the callbacks scheduled on main, the
-   * only thread that could deliver the bytes is the one already blocked waiting for
-   * them: measured as a ~10 s stall per attempt, then `AVFoundationErrorDomain -11800`
-   * with `curll_respondToHandleRequestCompletionOnQueue: … timed-out on handler` in the
-   * device log, and the HTTP request finally leaving *after* AVFoundation had given up.
+   * Keep resource I/O independent of the player's main-thread lifecycle. The engine
+   * now loads tracks asynchronously before building the EQ mix. Older synchronous
+   * track loading blocked the main thread while waiting for these callbacks, causing
+   * a measured ~10 s stall and AVFoundationErrorDomain -11800 when this queue was main.
    */
   let callbackQueue = DispatchQueue(label: "org.songloft.lynx.insecure-media-loader")
 

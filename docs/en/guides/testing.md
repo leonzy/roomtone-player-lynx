@@ -17,6 +17,18 @@ pnpm exec tsc -b
 
 Current results belong in the [handoff](../project/handoff.md), not duplicated counts in this guide. Tests use Vitest/@testing-library and live in __tests__ beside source. Test bodies must not include the literal Vitest environment annotation prohibited by the Lynx testing harness.
 
+## Native iOS background playback verification
+
+```bash
+swiftc -swift-version 5 ios/SongloftLynx/PlaybackBackgroundTask.swift scripts/verify-ios-playback-background.swift -o /tmp/verify-ios-playback-background
+/tmp/verify-ios-playback-background
+node scripts/verify-ios-playback-preparation.mjs
+```
+
+The Swift script executes the actual task owner to verify single acquisition, no renewal after expiration, stale callback isolation and cleanup. The Node script extracts the engine's actual seek methods and compiles/runs them against a controlled player interface retaining unknown/readiness and cancellation semantics, covering latest position, stale callbacks, pause intent and load generations; two defective variants must fail the corresponding assertions. Both need no UIKit and can run with Swift on Linux; Apple CI runs both. Without host Swift, pass `--docker` to the Node script to use `swift:6.2`. These verifiers and the Vitest wiring gates do not replace `pnpm run ios:build` or device acceptance.
+
+Issue #10 device acceptance covers locked-screen playback across local and plugin tracks, slow responses/network retries, queue end and sleep timers, pause/seek/rapid track changes during loading, EQ and video output. Export client logs and correlate `process started`, scene activity, `native page loaded`, source preparation time, track completion and background task acquisition/cleanup/expiration. Diagnose process restarts and plugin reloads separately instead of inferring them from a pause. Plugin keep-alive controls the server JS service and does not guarantee continued execution of an iOS plugin page.
+
 ## E2E behavior tests
 
 ```bash

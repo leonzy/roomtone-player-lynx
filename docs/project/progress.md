@@ -1,5 +1,17 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-13 · iOS 后台播放风险修正（songloft-org/songloft-player-lynx#10）
+
+- 用户确认方案后，音轨准备改用异步 `AVAsset.loadTracks`，取消主线程的同步网络媒体读取；加载代次和 asset 身份拦截快速换曲、停止及销毁后的迟到回调。准备期间保留播放/暂停意图及 seek 位置，视频尺寸观察在替换新 item 后安装。
+- 后台切歌完成事件发出前申请有限执行窗口，缓冲、准备和可重试失败复用同一窗口；系统到期后立即释放且同一间隙不续期。播放恢复、前台、暂停、停止、销毁释放，JS 仅在 iOS 队列末尾及不可继续的失败分支通过现有 pause 命令收尾。检查发现 HarmonyOS 引擎直接在 completed/error 状态调用 AVPlayer.pause 可能报错，新增通知因此限定 iOS，三种其他宿主有对应回归。没有新增跨平台桥接方法。
+- 补充原生进程启动、scene 状态、音频中断/内存警告、音源准备耗时、播放结束与后台任务日志，插件 bindload 记录 entryPath，日志不包含插件 URL 或 Token。新增真实 Swift 任务管理验证脚本、Apple CI 接入与接线闸门；中英文测试指南和交接同步。
+- 验证：`pnpm exec tsc -b`、完整 **315 文件 / 3446 项**测试（**2026-10-13 12:11:45 UTC+8** 开始）、生产 Lynx/Web 双 bundle 构建通过；保留已有两条 touch-action 构建警告。格式化及视频旧回调隔离后的原生接线/播放 **379 项**定向复核通过。隔离旧源码的 6 条新增断言按预期失败（64 项原有断言通过），没有用环境加载失败冒充反向验证。
+- 官方 Swift 6.2 容器、`-swift-version 5` 编译并执行真实 `PlaybackBackgroundTask` 验证脚本通过：单次申请、系统拒绝、到期不续期、同步到期、旧回调、重置与重复清理。去掉到期门控、代次校验或 token 清理的三种变体均在对应 precondition 失败。修改的 UIKit/AVFoundation 文件通过 Swift 语法解析，**这不是 Apple SDK 类型检查或 iOS 应用编译**。Swift 修改区域与新增文件已格式化；工作流 YAML、差异和严格 UTF-8/U+FFFD 检查通过。日志 `/tmp/lynx-issue10-{final-test,final-build,last-focused,final-negative,final-swift,swift-negative}.log` 保留证据。
+- 用户确认实施结果后，自审修复 1 处定位竞态：音轨准备完成但 item 尚未就绪或初始 seek 尚未完成时，新定位可能被旧初始位置覆盖，旧 seek 的取消回调还可能清空新位置或误报失败。最新位置现在跨两个准备阶段保留，每次初始 seek 独立编号，并同时校验加载代次及 item 身份；暂停意图仍在最终有效回调读取。同步修正 `InsecureMediaLoader` 中已过时的同步加载说明。
+- 自审验证：类型检查和 **5 文件 / 390 项**定向测试（**2026-10-13 12:47:59 UTC+8** 开始）通过；新增 `verify-ios-playback-preparation.mjs` 提取真实 seek 方法，在受控播放器接口下编译执行，并确认移除未就绪保护或 seek 代次保护的两个变体均在对应断言失败。真实任务管理验证及修改 iOS 文件语法解析重新通过，格式化、工作流 YAML、差异与严格 UTF-8/U+FFFD 检查通过。日志 `/tmp/lynx-issue10-review-{typecheck,focused,seek,swift}.log`；沿用实施阶段的完整测试与双 bundle 构建证据，未把受控接口验证视为真实 AVPlayer 验收。
+- 改动清单（21 文件）：iOS 的 `SongloftAudioEngine.swift`、`AudioEqualizer.swift`、`PlaybackBackgroundTask.swift`、`InsecureMediaLoader.swift`、`AppDelegate.swift`、`SceneDelegate.swift` 和 `project.pbxproj`；共享 `player-store.ts`、`PluginWebViewPage.tsx`；两份测试 `player-store.test.ts`、`ios-playback-background.test.ts`；`scripts/verify-ios-playback-background.swift`、`scripts/verify-ios-playback-preparation.mjs`、`.github/workflows/build-and-release.yml`；`docs/reference/native-modules.md`、`docs/project/{progress,bugs,handoff}.md`、`docs/guides/testing.md` 与已有英文 `handoff/testing` 对应文件。没有新增桥接 API、数据库或 Swagger 产物，双 bundle 属于忽略的构建产物。
+- Issue 缺少版本、设备日志和停止时间，尚未证实插件重载/应用重启的根因。`xcodebuild -list` 在本机返回 command not found；Linux 没有 Apple SDK，不能进行 UIKit/AVFoundation 编译或真实 iOS 长后台验收。测试指南列出本地/插件源跨曲、慢网重试、暂停/定位/快速切曲、均衡器/视频和睡眠计时器的设备矩阵。阶段四完成，已修复上述自审问题，等待用户确认自审结果；未提交、推送或操作 Issue，父仓库指针未提交。
+
 ## 2026-10-13 · 全屏播放器歌曲信息选择复制（songloft-org/songloft#517）
 
 - 用户要求同时排查并修复 Flutter 与 Lynx。Lynx 全屏播放器的歌名和艺术家未开启选择，Web 引擎的默认 `user-select: none` 阻止拖选。两处 `<text>` 现按官方 API 同时设置 `text-selection={true}` 和 `flatten={false}`；歌曲信息区域按歌曲 ID 重建，切歌清除旧选区。布局、颜色与播放行为保持原有实现；未修改原生宿主或接口。

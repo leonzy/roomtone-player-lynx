@@ -95,6 +95,8 @@ Web 通过 `<lynx-view>` 的 `nativeModulesMap` 注册 **7 个**模块：`Songlo
 - 基础事件名与 7 个 state 核对三端；准备契约的事件、版本读取与 load 字段同时核对 Android/iOS/HarmonyOS/Web。
 - TS 原生接口方法在 Kotlin 有 `@LynxMethod`、在 Swift 同时有 `func` 与 `methodLookup` 条目，在 HarmonyOS 有 public 方法；除明确禁用的 EQ 外，HarmonyOS 音频方法拒绝空实现。Node 转译源码适配器验证毫秒定位、音量比例、命令参数与元数据时序，不能替代 HAP 编译和设备验证。
 - iOS 后台播放两半必须都在：`Info.plist` 的 `UIBackgroundModes` 含 `<string>audio</string>`，且引擎调 `setCategory(.playback`。
+- iOS 加载音轨使用 `AVAsset.loadTracks` 异步 API；主线程只接入已准备的音轨与播放器。快速换源、停止和销毁以加载代次与 asset 身份取消旧回调；准备期间到达的 play/pause/seek 保留意图和位置，不能 seek 空播放器。待 ready 与初始 seek 在途时的新 seek 继续更新待处理位置；初始定位以加载代次、item 身份和独立 seek 代次过滤旧完成回调，仅最新定位发布 sourceReady 或错误。视频尺寸观察在新 item 替换后安装。
+- iOS 后台切歌、缓冲和有限重试使用同一个 `PlaybackBackgroundTask` 执行窗口，播放结束事件发出前先申请。恢复播放、进入前台、显式暂停/停止/销毁及 JS 确认的终止失败释放任务；可重试错误保留窗口覆盖退避。系统到期后立即释放，同一间隙不反复续期。JS 仅在 iOS 队列末尾、缓存失败、音轨切换失败和重试耗尽时，通过现有 pause 命令收尾，不新增桥接 API；其他宿主不接收这些额外命令，避免 HarmonyOS completed/error 状态的非法 pause。此保护不保证插件 WebView 后台持续执行或系统不回收进程；Issue #10 尚需 iOS 编译及真机验收。
 - `load` 的 `opts` **永远传对象、不传 `null`**：iOS 按方法签名构造 ObjC 调用，对象参数为 nil 会每次换歌打一条 `LynxError`。
 - 音量只在 store 层从 0–100 整数换算一次为 0–1 浮点；四端 facade / module / engine 均透传 0–1。HarmonyOS 不得再次 `/ 100`，契约闸门直接锁住该调用形状。
 - Android 的**通知位（notification id 1001）只能有一个主人**：`SongloftPlaybackService` 的 FGS 占位通知与 media3 `DefaultMediaNotificationProvider` 共用该 id，占位只允许在 media3 未持有时发（`mediaNotificationOwnsSlot`，在 `onUpdateNotification` 里先赋值再 `super`）。闸门 `src/__tests__/android-media-notification.test.ts`；机制与实测判据见 [pitfalls §3](../project/pitfalls.md)。
