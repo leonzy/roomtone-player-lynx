@@ -375,9 +375,9 @@ export function FullPlayerPage() {
                 : <CoverArt song={song} size={layout.coverSize} />}
           </view>
 
-          <view className='full-player__meta full-player__meta--enter'>
-            <text className='full-player__title'>{song.title}</text>
-            {song.artist ? <text className='full-player__artist'>{song.artist}</text> : null}
+          <view key={song.id} className='full-player__meta full-player__meta--enter'>
+            <text className='full-player__title' text-selection={true} flatten={false}>{song.title}</text>
+            {song.artist ? <text className='full-player__artist' text-selection={true} flatten={false}>{song.artist}</text> : null}
           </view>
 
           <view className='full-player__controls-enter'>
