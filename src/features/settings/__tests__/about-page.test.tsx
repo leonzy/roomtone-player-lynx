@@ -3,15 +3,17 @@ import '@testing-library/jest-dom'
 import { afterEach, expect, test, vi } from 'vitest'
 import { act, fireEvent, getQueriesForElement, render } from '@lynx-js/react/testing-library'
 
-const { navigateSpy, getVersionSpy } = vi.hoisted(() => ({
+const { navigateSpy, getVersionSpy, openURLSpy } = vi.hoisted(() => ({
   navigateSpy: vi.fn(),
   getVersionSpy: vi.fn(async () => '2.9.1'),
+  openURLSpy: vi.fn(),
 }))
 
 vi.mock('react-i18next', async () =>
   (await import('../../../__tests__/_render-mocks.js')).mockReactI18next(),
 )
 vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigateSpy }))
+vi.mock('../../../native/native-platform.js', () => ({ openURL: openURLSpy }))
 
 /**
  * Per-endpoint stubs so a test can make `/upgrade/progress` fail while
@@ -22,6 +24,7 @@ const checkResponse = {
   has_update: false,
   current_version: '2.1.0',
   latest_version: '2.1.0',
+  changelog: undefined as string | undefined,
 }
 let progressGet: () => Promise<{ data: Record<string, unknown> }>
 
@@ -43,6 +46,7 @@ const { clientVersion } = await import('../../../core/config/constants.js')
 afterEach(() => {
   vi.clearAllMocks()
   checkResponse.has_update = false
+  checkResponse.changelog = undefined
   vi.useRealTimers()
 })
 
@@ -85,6 +89,32 @@ test('the licenses row defers to onOpenLicenses inside the settings pane', async
 })
 
 // ── Backend update (merged in from the former /settings/upgrade page) ─────────
+
+test('renders backend release Markdown inside About and keeps links and the upgrade action usable', async () => {
+  checkResponse.has_update = true
+  checkResponse.changelog =
+    '## 更新内容\n\n- **修复**说明显示\n\n[详情](https://example.com/release)\n\n| 平台 | 状态 |\n| --- | --- |\n| Android | 已修复 |'
+  const queries = await renderPage()
+  expect(
+    queries.getByText('更新内容').closest('.markdown__heading--2'),
+  ).toBeInTheDocument()
+  expect(
+    queries.getByText('修复').closest('.markdown__strong'),
+  ).toBeInTheDocument()
+  const notes = elementTree.root!.querySelector('.upgrade-page__changelog')!
+  expect(notes.querySelector('.markdown__table-scroll')).toHaveAttribute(
+    'scroll-orientation',
+    'horizontal',
+  )
+  expect(notes.textContent).not.toContain('| --- |')
+  expect(queries.getByTestId('upgrade-start')).toBeInTheDocument()
+  await act(async () => {
+    fireEvent.tap(queries.getByText('详情'))
+  })
+  expect(openURLSpy).toHaveBeenCalledExactlyOnceWith(
+    'https://example.com/release',
+  )
+})
 
 test('shows up-to-date when no update available', async () => {
   const { queryByText } = await renderPage()

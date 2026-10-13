@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { apiPrefix } from '../../../core/config/app-config.js'
 import type { HttpClient } from '../../../core/network/http-client.js'
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
+import { Markdown } from '../../../shared/ui/Markdown.js'
 import { getSettingsApi } from '../api/index.js'
 import './UpgradeSection.css'
 
@@ -159,7 +160,7 @@ export function UpgradeSection() {
                     {t('upgrade.current', { version: checkResult.currentVersion })}
                   </text>
                   {checkResult.changelog
-                    ? <text className='upgrade-page__changelog'>{checkResult.changelog}</text>
+                    ? <Markdown className='upgrade-page__changelog' content={checkResult.changelog} />
                     : null}
                   <view
                     className='upgrade-page__btn'

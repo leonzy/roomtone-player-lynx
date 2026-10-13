@@ -67,7 +67,7 @@ HarmonyOS 在 `filesDir/bundle_updates` 保存签名文件和相同指针，通�
 - 元数据请求不经过业务 HttpClient，也不带 Songloft token、Authorization 或 Cookie。三端独立系统 TLS、最多八次经验证的 HTTPS 跳转、12 秒网络总期限、流式大小限制：API 512 KiB、清单 128 KiB、签名 8 KiB。Web 使用浏览器 TLS 和无凭据有界 fetch。
 - 代理按既有 GitHub HTTPS 前缀约定分别包装 API 与下载 URL，不包含凭据/查询参数；代理网络失败仅回退同一 URL 的直连。下载时仍由壳验签与检查 hash，不因代理放宽安全要求。
 - Android/HarmonyOS 提供 APK/HAP，iOS 提醒 IPA 需要重签；Web 提供对应 standalone/embedded 部署包及部署后刷新说明，不能用原生 bundle 更新 Web 主线程宿主。
-- Release 说明按 GitHub Flavored Markdown 显示标题、段落、列表（含任务列表）、引用、分隔线、粗体/斜体/删除线、代码和表格；表格可横向滚动。HTTP/HTTPS 链接通过宿主打开，其他链接保留文字；图片显示替代文字，HTML 按字面文本显示。保持 16000 字符上限，解析失败回退纯文本。解析仅在后台线程执行，避免 Markdown 正则进入 Lynx 主线程字节码编译。
+- 客户端 Release 说明与后端更新 changelog 共用 GitHub Flavored Markdown 组件，显示标题、段落、列表（含任务列表）、引用、分隔线、粗体/斜体/删除线、代码和表格；表格可横向滚动。HTTP/HTTPS 链接通过宿主打开，其他链接保留文字；图片显示替代文字，HTML 按字面文本显示。客户端保持 16000 字符上限，后端说明完整显示，解析失败回退纯文本。解析仅在后台线程执行，避免 Markdown 正则进入 Lynx 主线程字节码编译；解析前按需补齐 Android PrimJS 缺失的 `Array.prototype.at` 和 `Object.hasOwn`，已有实现保持不变。
 
 ## 自动检查与下载
 

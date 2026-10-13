@@ -1,5 +1,14 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-13 · Android 与后端更新 Markdown 渲染复验
+
+- 用户确认本批修复并明确授权提交、推送 Lynx 与主仓库子模块指针；提交前逐文件复核通过，实际结果以 Git 记录为准。下方未提交描述为实施阶段快照。
+- 用户反馈前次修复仍未解决，并明确在 Android 测试、后端更新说明也需修复。真实 Web 关于页复现后端仍显示 Markdown 源码，客户端 Web 已正确；Android 原生后台实测 `Array.prototype.at` / `Object.hasOwn` 均缺失，直接调用 Marked 报 `TypeError: t.at is not a function`，旧组件的 catch 因此回退纯文本。截图 `android-client-before.png` 保留复现，不沿用前次 Web 独立组件验证结论。
+- 后台解析前按需安装两项兼容实现，保留现有内建方法；新增回归删除这些方法后解析真实双语 Release 模板、引用链接与嵌套块，并检查负索引、越界、非整数、NaN/Infinity、自有属性和不可枚举行为。旧实现的回归按预期失败，日志 `parser-negative.log`。后端 `UpgradeSection` 改用共用 Markdown，完整保留 changelog；关于页回归覆盖格式、链接与升级按钮，旧纯文本实现同样反向失败（`backend-negative.log`）。
+- 自有 API 35 / 16 KB 模拟器的 SwiftShader 在启动应用时出现 bad color buffer handle 后退出；切换自有 Docker 环境的 Mesa llvmpipe 后成功。新 Debug APK 明确以 arm64-v8a/native bridge 安装，实际安装哈希与构建包一致：`d5dd9050832347b9b3c3812df5f456d51fa62dfe750f3fa6e86198706571b2f8`。APK 构建 **53s**通过；关于页的客户端和后端均实际显示标题、强调、链接、引用、代码与表格，横向设备手势将表格 scrollX 从 **0** 改为 **93**。原生截图 `android-{client,server}-after.png`、真实模板截图 `android-release-after.png` 已目测，原生解析前后 JSON 与 `native-verification.json` 保留，AndroidRuntime/LynxError 输出为空。
+- `pnpm exec tsc -b`、完整 **316 文件 / 3450 项**测试、生产 Lynx/Web 双 bundle、Web 部署复制及 **72 项**发布检查通过。构建首次发现新增测试覆盖 hasOwnProperty 时的类型错误，改用属性描述符后类型/构建重跑与两项解析回归通过，运行时实现未再变更。日志 `tests.log`、`typecheck-final.log`、`production-build-final.log`、`release-check.log`、`parser-final.log`。
+- Docker Chrome 的完整关于页通过 HTTP 后端夹具和 HTTPS Release 夹具验证两处说明，客户端标题数 3、无更新错误、页面异常为空；截图 `server-after.png`、`client-after.png` 已目测。全部证据在 `/tmp/lynx-md-recheck/`。设备客户端候选由测试桥注入真实组件，后端说明走实际 HTTP 接口；这不是远端 GitHub 发布链路或真实升级验收，没有执行下载、安装升级或后端升级。iOS/HarmonyOS 设备未验；双语 reference/交接已同步，未提交、推送或操作 Issue。
+
 ## 2026-10-13 · iOS 后台播放风险修正（songloft-org/songloft-player-lynx#10）
 
 - 用户确认方案后，音轨准备改用异步 `AVAsset.loadTracks`，取消主线程的同步网络媒体读取；加载代次和 asset 身份拦截快速换曲、停止及销毁后的迟到回调。准备期间保留播放/暂停意图及 seek 位置，视频尺寸观察在替换新 item 后安装。
