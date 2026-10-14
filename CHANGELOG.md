@@ -2,6 +2,32 @@
 
 此文件记录 Songloft Player（Lynx）的版本变更，仅提供中文版本。版本 tag 的 Release 发布成功后，由 CI 根据 Conventional Commits 分类追加记录并提交到 `main`；滚动 dev 记录见 [GitHub Releases](https://github.com/songloft-org/songloft-player-lynx/releases/tag/dev)。
 
+## [v0.1.2] - 2026-10-14
+### :sparkles: 新增功能
+- [`e48b491`](https://github.com/songloft-org/songloft-player-lynx/commit/e48b49103a0ace611469040e4b04c4c198cd8eb4) - **jsplugin**: 支持 GitHub Token 与商店客户端渐进加载 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`d2124fe`](https://github.com/songloft-org/songloft-player-lynx/commit/d2124fece3b3ece248c1cf196a5e3ccc581b5723) - **player**: 支持全屏歌曲信息选择复制 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`a69a45f`](https://github.com/songloft-org/songloft-player-lynx/commit/a69a45f4c3048171ddbc1f0f33c9922fa3af74d8) - **playlists**: 优化歌单浏览并支持隐藏首页电台 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`9a92929`](https://github.com/songloft-org/songloft-player-lynx/commit/9a92929f5f33efdefecc1a01632cb8270ebdc59b) - **lyrics**: 支持歌词页屏幕常亮配置 *(提交者 [@hanxi](https://github.com/hanxi))*
+
+### :bug: 问题修复
+- [`4641dc7`](https://github.com/songloft-org/songloft-player-lynx/commit/4641dc7a7433d161c77384f65b980466b4e22b57) - **jsplugin**: 优先处理插件内部返回操作 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`5b74fb0`](https://github.com/songloft-org/songloft-player-lynx/commit/5b74fb075417508207cec9637d99105501cdb96e) - **ci**: 为 HarmonyOS 依赖安装增加有限重试 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`1f4715d`](https://github.com/songloft-org/songloft-player-lynx/commit/1f4715d3d6891c6dcdd0ddc47423d45cce29fe8d) - **settings**: 渲染客户端更新说明的 Markdown *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`e9ac244`](https://github.com/songloft-org/songloft-player-lynx/commit/e9ac2446f052924769a7527db39c44d4b3c096bb) - **player**: 修正 iOS 后台切歌执行窗口与音源准备竞态 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`c278a72`](https://github.com/songloft-org/songloft-player-lynx/commit/c278a728f8e8a06876a146bb558673802562bb6e) - **settings**: 修复 Android 与后端更新说明的 Markdown 渲染 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`be86b3c`](https://github.com/songloft-org/songloft-player-lynx/commit/be86b3c2fca31be99abbcfa3fac68a55cec39faa) - **settings**: 修复后端更新通道请求参数 *(PR [#11](https://github.com/songloft-org/songloft-player-lynx/pull/11) by [@hanxi](https://github.com/hanxi))*
+- [`992eb49`](https://github.com/songloft-org/songloft-player-lynx/commit/992eb4930bc686f7160a1ca0bfbab42368dad284) - **jsplugin**: 支持插件每日发布序号比较 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`d1c7ae7`](https://github.com/songloft-org/songloft-player-lynx/commit/d1c7ae74f240da79a8c56592ba65c9e5b1e4d47e) - **android**: 完善退出及缓存和进度滑块（Ref songloft-org/songloft[#520](https://github.com/songloft-org/songloft-player-lynx/pull/520)） *(提交者 [@hanxi](https://github.com/hanxi))*
+
+### :memo: 文档更新
+- [`728c504`](https://github.com/songloft-org/songloft-player-lynx/commit/728c504bf336f82c0171b1c48b4c094febed9b71) - **changelog**: 更新 v0.1.1 变更记录 *(提交者 [@github-actions[bot]](https://github.com/apps/github-actions))*
+- [`8c58029`](https://github.com/songloft-org/songloft-player-lynx/commit/8c580299205930dbc036c77195187ef49a16725b) - **updater**: 补充更新说明 Markdown 跨平台验证记录 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`0651222`](https://github.com/songloft-org/songloft-player-lynx/commit/0651222b87b5a97daebef7e48c5d497c32a7e71a) - **ai**: 统一连续开发与跨仓库复盘流程 *(提交者 [@hanxi](https://github.com/hanxi))*
+
+### :wrench: 维护工作
+- [`2698e2e`](https://github.com/songloft-org/songloft-player-lynx/commit/2698e2eb1d85990f8c1433261e430697aaf3b33d) - **release**: 发布 0.1.2 *(提交者 [@hanxi](https://github.com/hanxi))*
+
+
 ## [v0.1.1] - 2026-10-10
 ### :sparkles: 新增功能
 - [`a486924`](https://github.com/songloft-org/songloft-player-lynx/commit/a4869247cfdb8bc355956970f032a8338f5e82d9) - **core**: 批2 核心基础设施（models+zod / 网络401单飞刷新 / UrlHelper / 存储 / Query无DOM / Zustand） *(提交者 [@hanxi](https://github.com/hanxi))*
@@ -653,3 +679,4 @@
 - [`2c5c37f`](https://github.com/songloft-org/songloft-player-lynx/commit/2c5c37fe736a10525f729e82614fca1949b24a6a) — 合并导航与插件设置。
 - [`dcbf7c3`](https://github.com/songloft-org/songloft-player-lynx/commit/dcbf7c397f6e6453e31fbe238a2747059717b9be) — 将插件导航设置集中到插件管理页。
 [v0.1.1]: https://github.com/songloft-org/songloft-player-lynx/compare/9b27ab201ff2ac9cf9c3389d6e8421287399eb72...v0.1.1
+[v0.1.2]: https://github.com/songloft-org/songloft-player-lynx/compare/v0.1.1...v0.1.2
