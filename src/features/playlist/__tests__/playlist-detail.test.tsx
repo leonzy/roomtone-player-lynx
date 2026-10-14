@@ -121,6 +121,16 @@ vi.mock('../../library/widgets/SongListRow.js', async () => {
 
 const { PlaylistDetailPage } = await import('../pages/PlaylistDetailPage.js')
 
+test('playlist rows preserve numbers and show an initial only at each group boundary', async () => {
+  songsHook.mockReturnValue({ data: { pages: [{ songs: [makeSong(1, { title: '夜曲' }), makeSong(2, { title: '夜空' }), makeSong(3, { title: '大城小爱' })], total: 3 }] } })
+  render(<PlaylistDetailPage />)
+  await act(async () => { await Promise.resolve() })
+  const initials = Array.from(elementTree.root!.querySelectorAll('.song-row__initial')).map(node => node.textContent)
+  const numbers = Array.from(elementTree.root!.querySelectorAll('.song-row__number')).map(node => node.textContent)
+  expect(initials).toEqual(['Y', 'D'])
+  expect(numbers).toEqual(['1', '2', '3'])
+})
+
 function makeSong(id: number, over: Partial<Song> = {}): Song {
   return {
     id,

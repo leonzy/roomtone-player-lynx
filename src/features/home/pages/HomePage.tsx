@@ -20,6 +20,8 @@ import { useLibraryStatsQuery } from '../data/home-stats-query.js'
 import { homeSectionItems } from '../data/home-select.js'
 import { HomeSection } from '../widgets/HomeSection.js'
 import { StatsStrip } from '../widgets/StatsStrip.js'
+import { useHomeConfig } from '../data/home-layout.js'
+import { homeGridColumns, homeItemLimit } from '../domain/home-layout.js'
 
 import './HomePage.css'
 
@@ -41,32 +43,48 @@ import './HomePage.css'
 export function HomePage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const homeConfig = useHomeConfig()
   const normal = useHomePlaylists('normal')
-  const radio = useHomePlaylists('radio')
+  const radio = useHomePlaylists('radio', homeConfig.showRadios)
   // Library totals come from `/songs/stats`, not from the two sections' `total`
   // fields — those only ever described playlist counts. Falls back to zeroes while
   // loading or if the read fails, so the panel degrades instead of disappearing.
   const statsQuery = useLibraryStatsQuery()
   const playingPlaylistId = usePlayerStore((s) => s.sourcePlaylistId)
 
-  const { isWide: homeIsWide, breakpoint: homeBreakpoint, onLayoutChange: homeLayoutChange } = useShellSeededBreakpoint('.home')
+  const { width: homeWidth, isWide: homeIsWide, breakpoint: homeBreakpoint, onLayoutChange: homeLayoutChange } = useShellSeededBreakpoint('.home')
   // Bento (the two sections side by side) only at desktop/tv: at tablet the
   // half-width cramps the 30%-width grid cards. `breakpoint` reflects the
   // measured `.home` content rect, so `desktop` means content ≥ 900px — not the
   // shell window, which is why `shell--wide` (≥600) is the wrong gate here.
-  const isBento = homeBreakpoint === 'desktop' || homeBreakpoint === 'tv'
-  const sectionLimit = homeIsWide ? 9 : 6
+  const isBento = homeConfig.showRadios && (homeBreakpoint === 'desktop' || homeBreakpoint === 'tv')
+  const sectionWidth = homeWidth > 0 ? (isBento ? (homeWidth - 16) / 2 : homeWidth) : (homeIsWide ? 600 : 390)
+  const autoColumns = homeBreakpoint === 'desktop' || homeBreakpoint === 'tv'
+    ? (isBento ? 4 : 6) : (homeIsWide ? 3 : 2)
+  const columns = homeGridColumns(sectionWidth, homeConfig.columns, autoColumns)
+  const sectionLimit = homeItemLimit(homeConfig, columns, homeIsWide)
   const normalItems = homeSectionItems(normal.data?.pages, sectionLimit)
   const radioItems = homeSectionItems(radio.data?.pages, sectionLimit)
+  const cursors = useRef<Record<string, number>>({})
+  useEffect(() => {
+    for (const [type, query] of [['normal', normal], ['radio', radio]] as const) {
+      if (type === 'radio' && !homeConfig.showRadios) continue
+      const count = homeSectionItems(query.data?.pages, 0).length
+      if (!query.hasNextPage || query.isFetchingNextPage || query.isFetchNextPageError || count >= sectionLimit) continue
+      if (cursors.current[type] === count) continue
+      cursors.current[type] = count
+      void query.fetchNextPage()
+    }
+  }, [sectionLimit, homeConfig.showRadios, normal.data, radio.data, normal.isFetchingNextPage, radio.isFetchingNextPage])
   const stats = statsQuery.data ?? EMPTY_LIBRARY_STATS
 
   const normalFailed = normal.isError
-  const radioFailed = radio.isError
+  const radioFailed = homeConfig.showRadios && radio.isError
   // First load = neither section has data nor an error yet.
   const isFirstLoad =
-    (normal.isLoading && !normal.data) && (radio.isLoading && !radio.data)
-  const bothFailed = normalFailed && radioFailed &&
-    normalItems.length === 0 && radioItems.length === 0
+    (normal.isLoading && !normal.data) && (!homeConfig.showRadios || (radio.isLoading && !radio.data))
+  const bothFailed = normalFailed && (!homeConfig.showRadios || radioFailed) &&
+    normalItems.length === 0 && (!homeConfig.showRadios || radioItems.length === 0)
 
   const [loadingSlow, setLoadingSlow] = useState(false)
   useEffect(() => {
@@ -111,7 +129,8 @@ export function HomePage() {
   // is a worker with no `window`/`document` (see `isWebPlatform`).
   const isWeb = isWebPlatform()
   const onStartRefresh = () => {
-    void Promise.all([normal.refetch(), radio.refetch(), statsQuery.refetch()]).finally(() => {
+    cursors.current = {}
+    void Promise.all([normal.refetch(), ...(homeConfig.showRadios ? [radio.refetch()] : []), statsQuery.refetch()]).finally(() => {
       refreshRef.current?.invoke({ method: 'finishRefresh' }).exec()
     })
   }
@@ -121,7 +140,7 @@ export function HomePage() {
       <view className='home__content'>
         {isFirstLoad
           ? loadingSlow
-            ? <HomeState text={t('home.loadingSlow')} action={t('common.retry')} onAction={() => { void normal.refetch(); void radio.refetch() }} />
+            ? <HomeState text={t('home.loadingSlow')} action={t('common.retry')} onAction={() => { void normal.refetch(); if (homeConfig.showRadios) void radio.refetch() }} />
             : <HomeState text={t('common.loading')} />
           : bothFailed
             ? <HomeState text={t('home.loadError')} tone='error' />
@@ -140,11 +159,13 @@ export function HomePage() {
                     onPlayAll={onPlayAll}
                     playingPlaylistId={playingPlaylistId}
                     isWide={homeIsWide}
+                    layout={homeConfig.layout}
+                    columns={columns}
                     emptyTitle={t('home.sectionEmptyPlaylists')}
                     emptyActionLabel={t('home.sectionCreatePlaylist')}
                     onEmptyAction={createPlaylist}
                   />
-                  <HomeSection
+                  {homeConfig.showRadios && <HomeSection
                     title={t('home.myRadios')}
                     icon='music'
                     items={radioItems}
@@ -156,8 +177,10 @@ export function HomePage() {
                     onPlayAll={onPlayAll}
                     playingPlaylistId={playingPlaylistId}
                     isWide={homeIsWide}
+                    layout={homeConfig.layout}
+                    columns={columns}
                     emptyTitle={t('home.sectionEmptyRadios')}
-                  />
+                  />}
                 </view>
                 <PluginGrid />
                 <StatsStrip stats={stats} />

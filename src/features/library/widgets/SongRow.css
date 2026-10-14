@@ -75,6 +75,7 @@
 }
 
 .song-row__cover {
+  flex-shrink: 0;
   /* `align-self: center` overrides the row's `stretch` so the 48×48 cover stays
      put (a definite cross-size is not stretched, but it would otherwise
      top-align); every other direct child is `__content`, which we WANT stretched. */
@@ -84,6 +85,19 @@
   border-radius: var(--radius-xs);
   background-color: var(--tertiary-system-fill);
 }
+
+.song-row__index {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  margin-right: var(--space-1);
+  flex-shrink: 0;
+}
+.song-row__initial { color: var(--accent); font-size: var(--font-subhead); font-weight: var(--weight-semibold); }
+.song-row__number { color: var(--secondary-label); font-size: var(--font-footnote); }
+.song-row__number--small { font-size: var(--font-caption2); }
 
 .song-row__cover--empty {
   background-color: var(--tertiary-system-fill);

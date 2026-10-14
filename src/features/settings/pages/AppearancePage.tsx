@@ -48,6 +48,7 @@ import { SwitchRow } from '../widgets/SwitchRow.js'
 import { ThemeAppearancePicker } from '../widgets/ThemeAppearancePicker.js'
 import { SubPageShell } from '../widgets/SubPageShell.js'
 import { ThemePacksSection } from '../widgets/ThemePacksSection.js'
+import { HomeLayoutSettings } from '../widgets/HomeLayoutSettings.js'
 import {
   getReduceTransparency,
   changeReduceTransparency,
@@ -224,6 +225,7 @@ export function AppearancePage({ onOpenCatalog }: { onOpenCatalog?: () => void }
 
   return (
     <SubPageShell title={t('settings.categoryAppearance')} backTestId='appearance-back' grouped>
+      <HomeLayoutSettings />
       <SettingsSection title={t('settings.themeSection')}>
         <view className='settings-section__padded'>
           <ThemeAppearancePicker

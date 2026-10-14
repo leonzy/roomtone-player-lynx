@@ -1,5 +1,9 @@
 # Handoff (2026-10-14)
 
+## Playlist Browsing · songloft-org/songloft#518 (2026-10-14)
+
+This batch completes both clients’ home layouts, song counts and title initials, Lynx grid dimensions and a scrollbar, and a home radio visibility switch in both clients. The user authorized local client commits and parent gitlinks; Git records the actual results. Scope, evidence and device boundaries are in the [batch record](issue-518.md). No pushes, releases or Issue writes; native devices remain unverified. Older snapshots follow.
+
 ## Backend Update Request · songloft-org/songloft-player-lynx#11 (2026-10-14)
 
 The user authorized local commits for this Lynx fix and the parent submodule pointer. The source identifier still matches the validated worktree; all 12 files belong to this batch, and diff/encoding checks pass. Git records the actual results. Uncommitted descriptions below are validation-stage snapshots; pushes, releases, and Issue writes are not authorized.

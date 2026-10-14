@@ -11,6 +11,8 @@ import './SongRow.css'
 export interface SongRowProps {
   song: Song
   index: number
+  showIndex?: boolean
+  titleInitial?: string
   onTap?: (song: Song, index: number) => void
   onLongPress?: (song: Song) => void
   isFavorite?: boolean
@@ -50,13 +52,17 @@ export interface SongRowProps {
   moreAnchorId?: string
 }
 
-export function SongRow({ song, index, onTap, onLongPress, isFavorite, onToggleFavorite, isCurrentSong, isSelected, isWide, trailing, subtitleSuffix, onMore, moreAnchorId }: SongRowProps) {
+export function SongRow({ song, index, showIndex, titleInitial, onTap, onLongPress, isFavorite, onToggleFavorite, isCurrentSong, isSelected, isWide, trailing, subtitleSuffix, onMore, moreAnchorId }: SongRowProps) {
   const { t } = useTranslation()
   const cover = song.coverUrl ? buildCoverUrl(song.coverUrl, song.updatedAt) : ''
   const subtitle = [song.artist, song.album, subtitleSuffix].filter(Boolean).join(' · ')
 
   return (
     <view className={`song-row${isCurrentSong ? ' song-row--current' : ''}${isSelected ? ' song-row--selected' : ''}`} bindtap={() => onTap?.(song, index)} bindlongpress={() => onLongPress?.(song)}>
+      {showIndex ? <view className='song-row__index'>
+        {titleInitial ? <text className='song-row__initial'>{titleInitial}</text> : null}
+        <text className={titleInitial ? 'song-row__number song-row__number--small' : 'song-row__number'}>{String(index + 1)}</text>
+      </view> : null}
       {cover
         ? <image className='song-row__cover' mode='aspectFill' src={cover} />
         : <view className='song-row__cover song-row__cover--empty' />}

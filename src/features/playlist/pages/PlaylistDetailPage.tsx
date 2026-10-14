@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from '@lynx-js/react'
+import { useEffect, useMemo, useRef, useState } from '@lynx-js/react'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Input } from '@lynx-js/lynx-ui-input'
@@ -18,10 +18,11 @@ import { toast } from '../../../shared/ui/toast-store.js'
 import { useDebounce } from '../../library/data/use-debounce.js'
 import { flattenSongs } from '../../library/data/pagination.js'
 import { SongListRow } from '../../library/widgets/SongListRow.js'
-import { VirtualList } from '../../library/widgets/VirtualList.js'
+import { PlaylistSongList } from '../widgets/PlaylistSongList.js'
 import { PlaylistDescPanel } from '../widgets/PlaylistDescPanel.js'
 import { PlaylistToolbar } from '../widgets/PlaylistToolbar.js'
 import { getPlaylistApi } from '../api/index.js'
+import { songGroupInitial } from '../domain/song-title-initial.js'
 import { playlistContext } from '../../player/domain/playback-context.js'
 import { usePlayerStore } from '../../player/store/index.js'
 import { indexedSongCacheAvailable } from '../../player/data/indexed-song-cache.js'
@@ -63,7 +64,8 @@ export function PlaylistDetailPage() {
   const currentOrder = playlist?.sortOrder ?? 'asc'
   const keyword = debouncedKeyword.trim() || undefined
   const songsQuery = usePlaylistSongsInfiniteQuery(id, { sort: currentSort, order: currentOrder, keyword })
-  const songs = flattenSongs(songsQuery.data?.pages)
+  const songs = useMemo(() => flattenSongs(songsQuery.data?.pages), [songsQuery.data?.pages])
+  const songTitles = songs.map(song => song.title)
   const total = songsQuery.data?.pages[0]?.total ?? 0
 
   /**
@@ -522,7 +524,12 @@ export function PlaylistDetailPage() {
             : songs.length === 0
               ? <DetailState text={t('playlist.noSongs')} />
               : (
-                <VirtualList<Song>
+                <PlaylistSongList<Song> key={`${id}:${currentSort}:${currentOrder}:${keyword ?? ''}`}
+                  total={total}
+                  enabled={!selectMode}
+                  loadingMore={songsQuery.isFetchingNextPage}
+                  hasMore={!!songsQuery.hasNextPage}
+                  loadFailed={songsQuery.isFetchNextPageError}
                   className='playlist-detail__list'
                   items={songs}
                   itemKey={(song) => String(song.id)}
@@ -540,6 +547,8 @@ export function PlaylistDetailPage() {
                         <SongListRow
                           song={song}
                           index={index}
+                          showIndex={!selectMode}
+                          titleInitial={songGroupInitial(songTitles, index)}
                           onTap={onTapSong}
                           selectionMode={selectMode}
                           isSelected={selected.has(song.id)}

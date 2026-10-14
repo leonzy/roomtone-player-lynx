@@ -12,6 +12,8 @@ import { SongRow } from './SongRow.js'
 export interface SongListRowProps {
   song: Song
   index: number
+  showIndex?: boolean
+  titleInitial?: string
   onTap?: (song: Song, index: number) => void
   /**
    * Multi-select mode: hides the favorite heart, the wide-screen shortcuts, the
@@ -56,6 +58,8 @@ export interface SongListRowProps {
 export function SongListRow({
   song,
   index,
+  showIndex,
+  titleInitial,
   onTap,
   selectionMode = false,
   isSelected = false,
@@ -98,6 +102,8 @@ export function SongListRow({
     <SongRow
       song={song}
       index={index}
+      showIndex={showIndex && !selectionMode}
+      titleInitial={titleInitial}
       onTap={onTap}
       onLongPress={selectionMode ? undefined : openMenuAnchored}
       isFavorite={isFavorite}

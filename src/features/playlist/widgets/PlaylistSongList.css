@@ -1,0 +1,10 @@
+.playlist-song-list { position: relative; display: flex; flex-direction: column; flex: 1; min-height: 0; width: 100%; }
+.playlist-song-list__nav-inset { position: absolute; left: 0; bottom: 0; width: 1px; height: calc(var(--nav-inset) + var(--safe-bottom)); }
+.playlist-song-list .playlist-song-list__rows--scrollbar { width: calc(100% - 24px); }
+.playlist-song-list__scrollbar { position: absolute; right: 0; top: 4px; bottom: 44px; width: 32px; z-index: 2; }
+.playlist-song-list__track { position: absolute; left: 25px; top: 20px; bottom: 20px; width: 3px; border-radius: var(--radius-pill); background-color: var(--quaternary-system-fill); }
+.playlist-song-list__thumb { width: 6px; height: 44px; border-radius: var(--radius-pill); background-color: var(--secondary-label); }
+.playlist-song-list__indicator { background-color: transparent; }
+.playlist-song-list__hint { position: absolute; right: 40px; width: 224px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background-color: var(--label); z-index: 2; }
+.playlist-song-list__hint-title { color: var(--system-background); font-size: var(--font-subhead); white-space: nowrap; text-overflow: ellipsis; }
+.playlist-song-list__hint-count { color: var(--system-background); font-size: var(--font-caption1); }

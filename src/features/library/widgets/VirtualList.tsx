@@ -28,6 +28,9 @@ export interface VirtualListProps<T> {
   /** Scrolls with the rows, so large-font page chrome cannot consume their viewport. */
   header?: ReactNode
   className?: string
+  id?: string
+  /** Placeholder estimate only; rendered rows can still grow with font size. */
+  estimatedItemHeight?: number
   /** Distance (px) from the end that triggers `onEndReached`. */
   lowerThreshold?: number
 }
@@ -41,10 +44,13 @@ export function VirtualList<T>({
   footer,
   header,
   className,
+  id,
+  estimatedItemHeight,
   lowerThreshold = 200,
 }: VirtualListProps<T>) {
   return (
     <list
+      id={id}
       className={className}
       scroll-y
       lower-threshold={lowerThreshold}
@@ -54,8 +60,10 @@ export function VirtualList<T>({
       {header ? <list-item key='__header__' item-key='__header__' className='library__list-item'>{header}</list-item> : null}
       {items.map((item, index) => (
         <list-item
+          id={id ? `${id}-item-${itemKey(item, index)}` : undefined}
           key={itemKey(item, index)}
           item-key={itemKey(item, index)}
+          estimated-main-axis-size-px={estimatedItemHeight}
           className='library__list-item'
         >
           {renderItem(item, index)}

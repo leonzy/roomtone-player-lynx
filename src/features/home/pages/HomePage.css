@@ -134,6 +134,10 @@
 }
 
 .home-section__title {
+  flex-shrink: 1;
+  min-width: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: var(--label);
   font-size: var(--font-title2);
   font-weight: var(--weight-bold);
@@ -144,6 +148,7 @@
 }
 
 .home-section__action {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -234,10 +239,22 @@
   padding: 0;
 }
 
+.home-section__list {
+  display: flex;
+  flex-direction: column;
+}
+
 .home-section__grid .playlist-card__cover {
   width: 100%;
   aspect-ratio: 1;
 }
+
+.home-section__grid--1 .playlist-card { width: 100%; }
+.home-section__grid--2 .playlist-card { width: calc(50% - 6px); }
+.home-section__grid--3 .playlist-card { width: calc(33.333333% - 8px); }
+.home-section__grid--4 .playlist-card { width: calc(25% - 9px); }
+.home-section__grid--5 .playlist-card { width: calc(20% - 9.6px); }
+.home-section__grid--6 .playlist-card { width: calc(16.666667% - 10px); }
 
 .home-section__error {
   display: flex;

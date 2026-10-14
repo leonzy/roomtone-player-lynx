@@ -10,6 +10,6 @@ import { usePlaylistsInfiniteQuery } from '../../playlist/data/playlist-query.js
  * so this reuses {@link usePlaylistsInfiniteQuery} rather than adding a new
  * endpoint. Kept as a named hook so render tests can mock exactly this seam.
  */
-export function useHomePlaylists(type: PlaylistType) {
-  return usePlaylistsInfiniteQuery({ type })
+export function useHomePlaylists(type: PlaylistType, enabled = true) {
+  return usePlaylistsInfiniteQuery({ type }, enabled)
 }

@@ -32,6 +32,8 @@ export interface VerticalSliderProps {
   value: number
   /** Called with the dragged-to 0..1 ratio on every pointer move. */
   onChange: (ratio: number) => void
+  onDragStart?: () => void
+  onDragEnd?: () => void
   /**
    * Classes for the four boxes. The stylesheet here only supplies the geometry
    * that makes a vertical slider a vertical slider (which box is positioned
@@ -78,6 +80,8 @@ export interface VerticalSliderProps {
 export function VerticalSlider({
   value,
   onChange,
+  onDragStart,
+  onDragEnd,
   className,
   trackClassName,
   indicatorClassName,
@@ -93,6 +97,7 @@ export function VerticalSlider({
   // Only relevant to mouse input (Web): `mousemove` fires on hover as well, so
   // it must only drive the slider while a button is actually held.
   const mouseDownRef = useRef(false)
+  const draggingRef = useRef(false)
   // Platform is fixed for the session; read once to pick the pointer coordinate
   // field that matches `boundingClientRect`'s space (see `pointerYFromEvent`).
   const isWeb = useRef(isWebPlatform())
@@ -137,12 +142,16 @@ export function VerticalSlider({
   const handleStart = useCallback((e: unknown) => {
     const y = pointerYFromEvent(e, isWeb.current)
     if (!Number.isFinite(y)) return
+    if (!draggingRef.current) {
+      draggingRef.current = true
+      onDragStart?.()
+    }
     // A fresh measure on every pointer-down: the surface's viewport-relative
     // `top` changes whenever something around it scrolls or moves.
     pendingYRef.current = y
     measuredRef.current = false
     measure()
-  }, [measure])
+  }, [measure, onDragStart])
 
   const handleMove = useCallback((e: unknown) => {
     const y = pointerYFromEvent(e, isWeb.current)
@@ -167,7 +176,11 @@ export function VerticalSlider({
 
   const onPointerUp = useCallback(() => {
     mouseDownRef.current = false
-  }, [])
+    if (draggingRef.current) {
+      draggingRef.current = false
+      onDragEnd?.()
+    }
+  }, [onDragEnd])
 
   return (
     <view

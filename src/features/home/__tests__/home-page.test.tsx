@@ -20,7 +20,8 @@ import type { Playlist } from '../../../models/playlist.js'
  * run against the injected data; assertions check the rendered structure
  * (greeting, section titles, card names, stats, states), not fixtures echoed back.
  */
-const { normalHook, radioHook, statsHook } = vi.hoisted(() => ({
+const { normalHook, radioHook, statsHook, breakpointHook } = vi.hoisted(() => ({
+  breakpointHook: vi.fn(),
   normalHook: vi.fn(),
   radioHook: vi.fn(),
   statsHook: vi.fn(),
@@ -44,11 +45,16 @@ vi.mock('../data/home-query.js', () => ({
   useHomePlaylists: (type: string) => (type === 'radio' ? radioHook() : normalHook()),
 }))
 
+vi.mock('../../../shared/responsive/use-shell-seeded-breakpoint.js', () => ({
+  useShellSeededBreakpoint: () => breakpointHook(),
+}))
+
 vi.mock('../data/home-stats-query.js', () => ({
   useLibraryStatsQuery: () => statsHook(),
 }))
 
 const { HomePage } = await import('../pages/HomePage.js')
+const { changeHomeConfig } = await import('../data/home-layout.js')
 
 function makePlaylist(id: number, over: Partial<Playlist> = {}): Playlist {
   return {
@@ -92,7 +98,9 @@ function stats(over: Record<string, number> = {}) {
   return { data: parseLibraryStats(over), refetch: vi.fn() }
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  await changeHomeConfig({ showRadios: true })
+  breakpointHook.mockReturnValue({ width: 390, isWide: false, breakpoint: 'mobile', onLayoutChange: () => {} })
   normalHook.mockReturnValue(result([{ playlists: [], total: 0 }]))
   radioHook.mockReturnValue(result([{ playlists: [], total: 0 }]))
   statsHook.mockReturnValue(stats())
@@ -107,6 +115,26 @@ async function renderPage() {
   })
   return getQueriesForElement(elementTree.root!)
 }
+
+test('a layout larger than one API page fills its budget and stops after enough cards load', async () => {
+  await changeHomeConfig({ layout: 'carousel' })
+  const fetchNextPage = vi.fn()
+  const playlists = Array.from({ length: 40 }, (_, index) => makePlaylist(index + 1))
+  normalHook.mockReturnValue(result([{ playlists: playlists.slice(0, 20), total: 44 }], {
+    hasNextPage: true, isFetchingNextPage: false, fetchNextPage,
+  }))
+  const view = render(<HomePage />)
+  await act(async () => { await Promise.resolve() })
+  expect(fetchNextPage).toHaveBeenCalledTimes(1)
+  normalHook.mockReturnValue(result([{ playlists, total: 44 }], {
+    hasNextPage: true, isFetchingNextPage: false, fetchNextPage,
+  }))
+  await act(async () => { view.rerender(<HomePage />); await Promise.resolve() })
+  expect(fetchNextPage).toHaveBeenCalledTimes(1)
+  expect(view.container.querySelectorAll('.playlist-card')).toHaveLength(30)
+  view.unmount()
+  await changeHomeConfig({ layout: 'adaptive' })
+})
 
 test('renders greeting, both sections, cards and the stats strip', async () => {
   normalHook.mockReturnValue(
@@ -225,4 +253,33 @@ test('degrades one failed section to an inline error while the other still rende
   expect(queryByText('Couldn’t load this section.')).toBeInTheDocument()
   expect(queryByText('My Radios')).toBeInTheDocument()
   expect(queryByText('Jazz Radio')).toBeInTheDocument()
+})
+
+test('hidden radios remove the whole section, skip paging and ignore its loading state', async () => {
+  await changeHomeConfig({ showRadios: false })
+  normalHook.mockReturnValue(result([{ playlists: [makePlaylist(1)], total: 1 }]))
+  const fetchNextPage = vi.fn()
+  radioHook.mockReturnValue(result(undefined, { isLoading: true, hasNextPage: true, fetchNextPage }))
+  const view = render(<HomePage />)
+  await act(async () => { await Promise.resolve() })
+  expect(view.queryByText('My Playlists')).toBeInTheDocument()
+  expect(view.queryByText('My Radios')).not.toBeInTheDocument()
+  expect(fetchNextPage).not.toHaveBeenCalled()
+  await act(async () => { await changeHomeConfig({ showRadios: true }) })
+  expect(view.queryByText('My Radios')).toBeInTheDocument()
+})
+
+test('a single desktop section uses six automatic columns and fills both rows', async () => {
+  await changeHomeConfig({ layout: 'adaptive', columns: 0, rows: 2, showRadios: false })
+  breakpointHook.mockReturnValue({ width: 1664, isWide: true, breakpoint: 'desktop', onLayoutChange: () => {} })
+  normalHook.mockReturnValue(result([{ playlists: Array.from({ length: 20 }, (_, i) => makePlaylist(i + 1)), total: 20 }]))
+  const view = render(<HomePage />)
+  await act(async () => { await Promise.resolve() })
+  expect(view.container.querySelector('.home--bento')).toBeNull()
+  expect(view.container.querySelector('.home-section__grid--6')).not.toBeNull()
+  expect(view.container.querySelectorAll('.playlist-card')).toHaveLength(12)
+  await act(async () => { await changeHomeConfig({ showRadios: true }) })
+  expect(view.container.querySelector('.home--bento')).not.toBeNull()
+  expect(view.container.querySelector('.home-section__grid--4')).not.toBeNull()
+  expect(view.container.querySelectorAll('.playlist-card')).toHaveLength(8)
 })

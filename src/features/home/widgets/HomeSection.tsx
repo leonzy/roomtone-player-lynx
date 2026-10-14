@@ -8,6 +8,11 @@ import type { IconName } from '../../../shared/ui/icons.js'
 // grid (`width: 33.33%`, cover `height: 96px`); the home strip overrides both into
 // a fixed square-cover card through descendant selectors in `HomePage.css`.
 import { PlaylistCard } from '../../playlist/widgets/PlaylistCard.js'
+import { MediaListItem } from '../../../shared/ui/MediaListItem.js'
+import { buildCoverUrl } from '../../../core/network/url-helper.js'
+import type { HomeLayout } from '../domain/home-layout.js'
+import { resolveHomeLayout } from '../domain/home-layout.js'
+import { HomeLayoutMenu } from './HomeLayoutMenu.js'
 
 /**
  * One home content section: a header (optional icon + title + "View all") over a
@@ -43,6 +48,8 @@ export interface HomeSectionProps {
   /** Wide-screen layout switch, sourced from `HomePage`'s shell-seeded breakpoint
    * (not measured independently here — see songloft-player-lynx#6). */
   isWide: boolean
+  layout?: HomeLayout
+  columns?: number
 }
 
 export function HomeSection({
@@ -60,6 +67,8 @@ export function HomeSection({
   emptyActionLabel,
   onEmptyAction,
   isWide,
+  layout = 'adaptive',
+  columns = 3,
 }: HomeSectionProps) {
   const { t } = useTranslation()
 
@@ -85,6 +94,7 @@ export function HomeSection({
           : null}
         <text className='home-section__title'>{title}</text>
         <view className='home-section__spacer' />
+        <HomeLayoutMenu />
         <view className='home-section__action' bindtap={() => onViewAll()}>
           <text className='home-section__action-text'>{t('home.viewAll')}</text>
         </view>
@@ -118,9 +128,19 @@ export function HomeSection({
                     : null}
                 </view>
               ))
-          : isWide
+          : resolveHomeLayout(layout, isWide) === 'list'
+            ? <view className='home-section__list'>
+                {items.map(playlist => <MediaListItem key={String(playlist.id)}
+                  name={playlist.name}
+                  subtitle={t(playlist.songCount === 1 ? 'common.songCountOne' : 'common.songCountOther', { count: playlist.songCount })}
+                  coverUrl={playlist.coverUrl ? buildCoverUrl(playlist.coverUrl, playlist.updatedAt) : undefined}
+                  isPlaying={playingPlaylistId === playlist.id}
+                  onTap={() => onTapPlaylist(playlist)}
+                  onPlayAll={onPlayAll ? () => onPlayAll(playlist) : undefined} />)}
+              </view>
+            : resolveHomeLayout(layout, isWide) === 'grid'
             ? (
-              <view className='home-section__grid'>
+              <view className={`home-section__grid home-section__grid--${columns}`}>
                 {cards}
               </view>
             )

@@ -10,6 +10,15 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### UI-001: Verify scroll hints against visible songs and host callback shapes
+
+- Scope: virtual-list positioning, initials and numeric hints (songloft-org/songloft#518).
+- Rule: a visible bubble does not prove positioning. Native `attachedCells` uses list-relative coordinates; Web's `getVisibleCells` array cache can lag, so use binary searches over actual row bounds. Supply a realistic Web placeholder-height estimate; scroll offset divided by row height is only provisional. Keep one row-bound read in flight, coalesce the latest pending position, and revisit it afterward to avoid backlog or losing the final scroll. Reject stale callbacks. A void `scrollToPosition` success does not prove new rows have committed; require visible-destination confirmation with bounded retries.
+- Failure evidence: on 2026-10-14, the initial uncommitted browser implementation displayed row 14 while the hint remained at row 1. `/tmp/songloft-518-ui/lynx-full-drag.png`, `lynx-debug.json` and installed web-elements source confirm the callback differences.
+- Fix evidence: the current uncommitted worktree normalizes visible cells, follows actual scroll events, finishes void invokes, estimates song placeholders at 64px and paginates destinations; Git identifies the eventual commit. Tests cover native objects, Web array coordinates, immutable query chains, interleaved callbacks and settled positions without a subsequent scroll event. Both final browser runs continue to offset=100; at scroll offset 6592, row 104, “夜空中最亮的星”, appears at the list top with `Y` and `104 / 130` in the hint. See `/tmp/songloft-518-ui/lynx-final-{result,repeat}.json` and the validation object in the [batch record](docs/en/project/issue-518.md).
+- Done right: verify bubbles, visible rows, real page requests and restored preferences separately. Keep hints visible throughout a held drag and confirm virtual rows that settle after the last scroll event. When the viewport has not moved, a newer pending query must not invalidate a valid response; reject responses older than an already-applied result instead. Browser assertions record held and released hints separately. Cancel old positioning and query timers on navigation.
+- Seen **1×**: 2026-10-14. Status: lesson; native devices remain unverified, and Web evidence is not native acceptance.
+
 ### API-001: Validate Upgrade Payloads Against the Backend Channel Contract
 
 - Scope: Lynx backend update checks, start requests, and page tests.

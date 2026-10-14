@@ -43,6 +43,16 @@ function makeItems(): Playlist[] {
 }
 
 describe('HomeSection layout follows the isWide prop', () => {
+  test('explicit grid works on a phone and explicit list works on a wide screen', () => {
+    const grid = render(<HomeSection title='Playlists' items={makeItems()}
+      onViewAll={() => {}} onTapPlaylist={() => {}} isWide={false} layout='grid' columns={2} />)
+    expect(grid.container.querySelector('.home-section__grid')).not.toBeNull()
+    expect(grid.container.querySelector('.home-section__scroll')).toBeNull()
+    const list = render(<HomeSection title='Playlists' items={makeItems()}
+      onViewAll={() => {}} onTapPlaylist={() => {}} isWide={true} layout='list' />)
+    expect(list.container.querySelector('.home-section__list')).not.toBeNull()
+    expect(list.container.querySelector('.home-section__grid')).toBeNull()
+  })
   test('wide: renders the grid, not the horizontal scroll', () => {
     const { container } = render(
       <HomeSection

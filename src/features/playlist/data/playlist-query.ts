@@ -24,7 +24,7 @@ export const playlistQueryKeys = {
 }
 
 /** Infinite playlist list for the given filters. */
-export function usePlaylistsInfiniteQuery(filters: PlaylistsFilters = {}) {
+export function usePlaylistsInfiniteQuery(filters: PlaylistsFilters = {}, enabled = true) {
   return useInfiniteQuery({
     queryKey: playlistQueryKeys.list(filters),
     initialPageParam: 0,
@@ -34,6 +34,7 @@ export function usePlaylistsInfiniteQuery(filters: PlaylistsFilters = {}) {
         offset: pageParam,
       }),
     getNextPageParam: playlistsNextPageParam,
+    enabled,
   })
 }
 
