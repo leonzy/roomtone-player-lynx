@@ -32,6 +32,7 @@
 }
 
 .size-limit-slider__root {
+  width: 100%;
   height: 24px;
   display: flex;
   align-items: center;
@@ -46,11 +47,13 @@
 }
 
 .size-limit-slider__indicator {
-  /* Overlay the rail (track is position:relative) — lynx-ui controls the width
-     from the slider value; in flow it would render as a second line instead. */
+  width: 100%;
+  /* The library sizes an outer progress wrapper across the full hit area.
+     Fill that wrapper horizontally and center this 4px rail vertically. */
   position: absolute;
   left: 0;
-  top: 0;
+  top: 50%;
+  transform: translateY(-50%);
   height: 4px;
   border-radius: var(--radius-pill);
   background-color: var(--accent);

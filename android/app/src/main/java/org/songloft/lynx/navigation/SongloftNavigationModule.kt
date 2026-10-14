@@ -44,11 +44,8 @@ class SongloftNavigationModule(context: Context) : LynxModule(context) {
     /**
      * Leave the app.
      *
-     * `moveTaskToBack` rather than `finish()`: this is a music player, and finishing
-     * would tear down the LynxView so the next launch is a cold start with the whole
-     * UI state rebuilt. It also matches what the system itself does for a root
-     * activity since Android 12. `finish()` remains the fallback for the case
-     * `moveTaskToBack` refuses (not the task root).
+     * Stops playback and both services, then removes the task. Home/background
+     * navigation still keeps playback; an explicit exit means the user is done.
      *
      * Posted to the main looper because `@LynxMethod` runs on the Lynx JS thread,
      * and touching the Activity from there throws — an exception this module's
@@ -58,7 +55,7 @@ class SongloftNavigationModule(context: Context) : LynxModule(context) {
     fun exitApp() {
         mainHandler.post {
             val host = (mContext as? LynxContext)?.getContext()
-            if (host is Activity && !host.moveTaskToBack(true)) host.finish()
+            if (host is Activity) AppExit.exit(host)
         }
     }
 }

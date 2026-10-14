@@ -66,12 +66,13 @@
 }
 
 .player-progress__indicator {
-  /* Overlay the rail (track is position:relative). lynx-ui controls the width
-     from the slider value. Without absolute positioning it flows as a SECOND
-     line instead of overlaying the track → the "two lines" artifact. */
+  width: 100%;
+  /* The library sizes the outer progress wrapper. Center the inner rail in
+     its full-height hit area instead of painting at the top of the slider. */
   position: absolute;
   left: 0;
-  top: 0;
+  top: 50%;
+  transform: translateY(-50%);
   height: 4px;
   border-radius: var(--radius-pill);
   background-color: var(--accent);

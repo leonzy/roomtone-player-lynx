@@ -58,6 +58,7 @@ class MainActivity : Activity() {
 
     private fun appearance(): Map<String, Any> {
         val props = SystemAppearance.from(resources.configuration, contentResolver).toMutableMap()
+        props["androidExitAppStopsPlayback"] = true
         // Window attach happens after the initial globalProps snapshot. Use the
         // resolved Activity configuration rather than transient Window flags.
         val accelerated = packageManager.getActivityInfo(componentName, 0).flags and ActivityInfo.FLAG_HARDWARE_ACCELERATED != 0
@@ -210,10 +211,9 @@ class MainActivity : Activity() {
      * mirrors into the host — `onBackPressed` must answer synchronously and Lynx
      * cannot be called synchronously, so the answer has to be cached ahead of time.
      * When the flag says yes we forward the press as a global event and **do not**
-     * call `super`; when it says no the system default runs, which for this
-     * (task-root) Activity means leaving the app.
+     * exit; when it says no, AppExit stops playback/services and removes the task.
      *
-     * The `super` path is also the watchdog's exit: [BackKeyState.shouldForward]
+     * AppExit is also the watchdog's exit: [BackKeyState.shouldForward]
      * stops trusting the flag after [BackKeyState.MAX_UNANSWERED] unanswered
      * presses, so a wedged JS thread cannot hold the key hostage.
      *
@@ -226,7 +226,7 @@ class MainActivity : Activity() {
     override fun onBackPressed() {
         val view = lynxView
         if (view == null || !BackKeyState.shouldForward()) {
-            super.onBackPressed()
+            org.songloft.lynx.navigation.AppExit.exit(this)
             return
         }
         val params = JavaOnlyArray()

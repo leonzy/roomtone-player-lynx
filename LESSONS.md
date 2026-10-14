@@ -10,6 +10,17 @@
 
 ## 条目
 
+### UI-002：滑块松手和边界测量要属于同一手势
+
+- 范围：lynx-ui 3.135.4 共享滑块和旧原生壳能力，songloft-org/songloft#520。
+- 规则：不能只在已开始更新值时处理松手；边界测量未完成也要记录结束，并在同一手势的最后位置得到结果后提交。新手势/卸载拒绝旧回调；轨道和内部填充条分别测量。
+- 证据：2026-10-14，基线 `992eb4930bc686f7160a1ca0bfbab42368dad284` 的库在 `getRectByRef` 返回前松手时丢失 commit，迟到回调仍能开始拖动；真实控制器夹具中旧库 3 项失败、补丁后 4 项通过。API 34 实际测量缓存填充条宽度为 0，显示值和刻度不能证明填充条或触摸过程正确。证据 `/tmp/songloft-520-slider-{negative,final}-test.log` 与 [#520 记录](docs/project/issue-520.md)。
+- Done right：锁定 source/dist 补丁，覆盖短点按、末次移动、跨手势测量和卸载；内部填充明确宽度并居中。旧 Android `exitApp` 只移后台，JS 新入口同时消费宿主 `androidExitAppStopsPlayback` 能力，旧壳不显示误导入口，不能只看方法名存在。
+- 坐标证据：API 34 中点触摸 x=196.36，但公共边界 helper 传 relativeTo:'' 得到 left=0，比例误为 0.597。原生查询改为 null，与 LynxView 触摸坐标一致；Web clientX 对应 screen。最终控制器 8 项通过，旧库 7 项失败。本机/服务端两端及中间档位实际保存正确，见 `/tmp/songloft-520-coordinate-{tests,negative}-final.log`、`/tmp/songloft-520-lynx-{device,server}-final.json`。
+- 控件补充：ProgressBar 还通过渲染前 dragging 闭包丢弃首个值，与已填入初值的缓存/字号滑块不同。2 项控件回归旧实现失败、修复后通过；API 34 点按 25%/50%/75% 实际跳到对应 30/60/90 秒并继续播放。这是同一事故的补充验收，不增加 Seen。
+- Not run：鸿蒙 4.2 实机；普通 Android 未复现全部鸿蒙触摸症状，不把确定性公共回归视为那台设备已通过。
+- Seen 1× (2026-10-14)。状态：经验；原生/持久化最终证据见本批记录。
+
 ### TEST-001：读取发布产物的测试必须在构建完成后执行
 
 - 范围：Lynx/Web 构建与发布产物闸门。

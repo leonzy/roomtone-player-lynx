@@ -107,6 +107,13 @@ export function getNavigationModule(): NavigationModule {
   return cached
 }
 
+/** Old Android shells only background the task. Hide the new explicit exit
+ * action when a hot-updated bundle runs on such a shell. */
+export function supportsAppExit(): boolean {
+  return readLynxGlobal()?.__globalProps?.androidExitAppStopsPlayback === true
+    && getNavigationModule().available
+}
+
 let listenerInstalled = false
 
 /**

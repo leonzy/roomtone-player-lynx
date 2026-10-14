@@ -50,7 +50,7 @@
 
 | 平台 | tab 首页时 `consumable` | 原因 |
 |---|---|---|
-| Android | `true`，除非退出提示已武装 | 第一次按键要出 toast；第二次由宿主本地 `moveTaskToBack` 执行 |
+| Android | `true`，除非退出提示已武装 | 第一次按键要出 toast；第二次由宿主本地 `AppExit` 停止播放和服务并退出 |
 | Web | 恒 `false` | 浏览器返回离开页面才是 web 用户的预期；且没有 sentinel ⇒ worker 卡死也能离开 |
 
 ### 为什么这个设计能扛住 JS 卡死
@@ -161,7 +161,7 @@ useBackHandler(open, () => { setOpen(false); return true })
 - **注册也要写**：Kotlin 在 `SongloftApplication` 的 `registerModule`。iOS 刻意**不注册** —— 那个宿主没有返回键可拦（无 `UINavigationController`，连边缘滑动都没有），TS facade 在那里降级为惰性桩
 - **`@LynxMethod` 跑在 BTS 线程**，碰 Activity/View 必须 `Handler(Looper.getMainLooper()).post`，否则 `CalledFromWrongThreadException` 会被静默吞掉
 - **事件名逐字一致**：`BACK_PRESSED_EVENT` = `'SongloftNavigation.backPressed'`，Android 与 Web 两侧都由闸门核对
-- **`exitApp` 用 `moveTaskToBack(true)` 而非 `finish()`**：这是音乐播放器，`finish()` 会销毁 LynxView，下次启动变成冷启动、整个 UI 状态重建；`moveTaskToBack` 也与 Android 12+ 根 Activity 的系统默认行为一致。`moveTaskToBack` 拒绝时（非 task root）回落 `finish()`
+- **Android `exitApp` 与首页第二次返回共用 `AppExit`**：先停止音频和播放/悬浮歌词服务，再 `finishAndRemoveTask()`，生命周期回调完成后释放进程。设置页提供相同的「退出应用」入口，保留登录状态；普通 Home/切到后台继续播放。退出后下一次打开是冷启动。不要把 `moveTaskToBack(true)` 当作停止运行。
 - **原生方法不返回 Promise**：Promise 化必须在 TS 适配层做，禁止把原生模块直接强转成 Promise 接口（DLNA 就是这样整页崩的，AGENTS.md §4）
 
 ### 不需要处理的一层

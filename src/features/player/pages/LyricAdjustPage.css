@@ -115,9 +115,11 @@
 }
 
 .lyric-adjust__indicator {
+  width: 100%;
   position: absolute;
   left: 0;
-  top: 0;
+  top: 50%;
+  transform: translateY(-50%);
   height: 4px;
   border-radius: var(--radius-pill);
   background-color: var(--accent);

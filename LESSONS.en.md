@@ -10,6 +10,17 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### UI-002: Slider release and bounds measurement must belong to one gesture
+
+- Scope: shared lynx-ui 3.135.4 sliders and older native-shell capabilities, songloft-org/songloft#520.
+- Rule: Release must be recorded even before value updates begin, then commit the same gesture's last position after its bounds arrive. Reject earlier gestures/unmounted callbacks and measure rail/fill separately.
+- Evidence: On 2026-10-14, the library at baseline `992eb4930bc686f7160a1ca0bfbab42368dad284` lost commit when release preceded `getRectByRef`, while a late callback could start dragging. The actual-controller fixture fails three tests with the original library and passes four after patching. API 34 measured cache-fill width as zero; displayed labels/ticks do not prove the fill or gesture works. Evidence: `/tmp/songloft-520-slider-{negative,final}-test.log`, [#520 record](docs/en/project/issue-520.md).
+- Done right: Lock source/dist patches covering short taps, the final move, interleaved measurements and unmount. Give the inner fill explicit width/centering. Older Android `exitApp` only backgrounds, so the new JS entry consumes host capability `androidExitAppStopsPlayback` and stays hidden on old shells; method existence alone is insufficient.
+- Coordinate evidence: API 34 touch x=196.36 and measured left=0 yielded ratio 0.597 for the visible midpoint. The common helper passed relativeTo:'', returning local bounds despite LynxView-relative touches. Use null for native bounds and screen for Web clientX. The final controller suite passes 8 tests; the original fails 7. Actual device/server endpoints and midpoint values persist correctly. See `/tmp/songloft-520-coordinate-{tests,negative}-final.log` and `/tmp/songloft-520-lynx-{device,server}-final.json`.
+- Wrapper follow-up: ProgressBar also discarded its first value through a pre-render dragging closure, unlike the size/font sliders that seed their preview. Two wrapper regressions fail before the fix and pass after; API 34 taps at 25%/50%/75% reach the matching 30/60/90-second positions without stopping playback. This is follow-up validation of the same incident, not an extra Seen event.
+- Not run: HarmonyOS 4.2 hardware. Standard Android did not reproduce all reported touch symptoms; deterministic shared regressions do not accept that device.
+- Seen 1× (2026-10-14). Status: lesson; final native/persistence evidence is in the batch record.
+
 ### TEST-001: Run artifact-reading tests after builds finish
 
 - Scope: Lynx/Web builds and release artifact gates.

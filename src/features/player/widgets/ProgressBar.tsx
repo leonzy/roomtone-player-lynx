@@ -18,7 +18,7 @@ function formatMs(ms: number): string {
 
 /**
  * Seek bar: a lynx-ui `Slider` bound to the player progress. While dragging it
- * shows the drag position (and previews the time); on commit it seeks the mock
+ * shows the drag position (and previews the time); on commit it seeks the
  * audio, which then drives `currentTime` back through the store.
  */
 export function ProgressBar() {
@@ -65,9 +65,14 @@ export function ProgressBar() {
           <SliderRoot
             className='player-progress__slider'
             value={value}
-            onDragging={() => setDragging(true)}
+            onDragging={(v: number) => {
+              setDragValue(v)
+              setDragging(true)
+            }}
             onValueChange={(v: number) => {
-              if (dragging) setDragValue(v)
+              // The first update shares the start event's pre-render closure.
+              // Keep it so controlled sync cannot reset a stationary tap to 0.
+              setDragValue(v)
             }}
             onValueCommit={(v: number) => {
               setDragging(false)

@@ -3,6 +3,8 @@ import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { appConfig } from '../../../core/config/app-config.js'
+import { getNavigationModule, supportsAppExit } from '../../../native/navigation.js'
+import { getPlatformTarget } from '../../../native/platform-target.js'
 import { logInfo } from '../../../core/logging/client-logger.js'
 import { readNativeModules } from '../../../native/native-modules.js'
 import { getPlatformCapabilities } from '../../../native/platform-capabilities.js'
@@ -98,6 +100,9 @@ export function SettingsPage() {
    */
   const [serverFormId, setServerFormId] = useState<string | undefined>(undefined)
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
+  const [showExitDialog, setShowExitDialog] = useState(false)
+  const target = getPlatformTarget()
+  const canExit = target === 'android' && supportsAppExit()
 
   const serverText = serverDisplay(appConfig.baseUrl, appConfig.isEmbedded, {
     embedded: t('settings.serverEmbedded'),
@@ -363,6 +368,13 @@ export function SettingsPage() {
                 onTap={() => setShowLogoutDialog(true)}
                 testId='settings-logout'
               />
+              {canExit && <SettingsRow
+                icon='logout'
+                title={t('settings.exitApp')}
+                subtitle={t('settings.exitAppSubtitle')}
+                onTap={() => setShowExitDialog(true)}
+                testId='settings-exit'
+              />}
             </SettingsSection>
           </view>
         </scroll-view>
@@ -395,6 +407,16 @@ export function SettingsPage() {
         onCancel={() => setShowLogoutDialog(false)}
         testId='logout-dialog'
         confirmTestId='logout-confirm'
+      />
+      <ConfirmDialog
+        show={showExitDialog}
+        title={t('settings.exitApp')}
+        message={t('settings.exitAppSubtitle')}
+        confirmLabel={t('settings.exitApp')}
+        onConfirm={() => { setShowExitDialog(false); getNavigationModule().exitApp() }}
+        onCancel={() => setShowExitDialog(false)}
+        testId='exit-dialog'
+        confirmTestId='exit-confirm'
       />
     </view>
   )

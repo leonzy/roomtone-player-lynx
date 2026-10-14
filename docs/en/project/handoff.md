@@ -1,5 +1,11 @@
 # Handoff (2026-10-14)
 
+## 2026-10-14 · #520 Exit and Cache Follow-up
+
+Android explicit exit and Home double-back now stop native playback/services and release the process, preserving login. Shared sliders use matching coordinate spaces, retain quick-release commits and render their fill correctly; actual endpoint/midpoint taps persist expected device/server bytes. All 3516 tests, 77 release checks, type checks, production builds and Android Debug build pass; settings exit, double back and notification Stop were exercised on API 34. The user authorized commits, pushes and an Issue reply on 2026-10-15; Git/CI determine the final SHAs and development packages. A complete APK is required; HarmonyOS 4.2 hardware remains Not run. Details and working-tree evidence: [#520 record](issue-520.md).
+
+Progress-bar stationary taps also preserve their first position; wrapper regressions and native 25%/50%/75% seeking pass.
+
 ## Four-component plugin date versions (2026-10-14)
 
 GitHub discovery now compares daily revision components; full tests and builds pass, with native application version rules retained. The current session's automatic-release task synchronizes both clients and parent gitlinks, without creating stable client tags. Evidence and historical-client boundaries: [batch record](plugin-date-version.md).

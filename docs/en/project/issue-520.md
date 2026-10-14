@@ -1,6 +1,23 @@
-# Keep Screen On for Lyrics · songloft-org/songloft#520
+# Keep Screen On for Lyrics, Exit and Cache · songloft-org/songloft#520
 
-2026-10-14. This batch implements only the screen-awake preference; exit behavior is deferred at the user's request.
+2026-10-14. The first batch implemented only the screen-awake preference. Follow-up exit/cache changes appear below; earlier validation objects remain preserved.
+
+## Follow-up: Android Exit and Shared Sliders
+
+Final delivery checks completed on 2026-10-15; investigation/implementation span October 14–15.
+
+Baseline `992eb4930bc686f7160a1ca0bfbab42368dad284` plus the uncommitted working tree. Source SHA-256 `91081db04d46ca624cef095ea5498c52f81e0c55bb0fbfd7fe75b53519776d9e` (algorithm/scope in the validation JSON).
+
+- Android Settings Exit app and the second root back press share native `AppExit`: stop the player, playback service and floating-lyrics service, remove the task and release the process. Home/ordinary backgrounding continues playback; notification X still stops playback/removes the active notification. Sign-in/preferences remain, with a cold launch next time.
+- The Android host reports `androidExitAppStopsPlayback=true` in initial/updated globalProps. An old shell exposing `exitApp` does not imply shutdown. A hot-updated bundle hides the new entry on old shells; full behavior requires the new APK. This batch adds no explicit exit entry on iOS/Web/HarmonyOS.
+- A source/distribution patch for locked `@lynx-js/lynx-ui-slider@3.135.4` waits for pending bounds after release and commits the last position, rejects earlier gestures/unmounted callbacks, and ignores hover moves. The shared fix covers cache, font size, lyric adjustment and progress controls.
+- Android measurements showed the old fill width was zero. The inner fill now spans the progress wrapper and centers on the rail. Both cache sliders select across the full track; byte limits still persist to device preferences/server config on release.
+- Native touch detail.x is LynxView-relative, but the common helper's relativeTo:'' returned local left=0 on Android, making the visible midpoint ratio 0.597. The patch calls boundingClientRect directly: relativeTo:null on native and relativeTo:'screen' on Web, matching coordinate spaces.
+- Progress-bar taps: its first onDragging/onValueChange callbacks share a pre-render closure. Ignoring the initial value made controlled sync reset a stationary tap to zero. Seed the preview on start and consume every gesture value. Both new wrapper tests fail on the old code and pass after fixing; API 34 taps at 25%/50%/75% of a 120-second track yield approximately 30/60/90 seconds with playback still running. Evidence: `/tmp/songloft-520-progress-wrapper-{negative,fixed}.log`, `/tmp/songloft-520-progress-native-taps.json`.
+- Linux / Node 22.17.1 / pnpm 11.15.1: type checks, final production Lynx/Web builds, all 328 files/3516 tests and 77 release-tool checks pass. The Debug native APK contains the final bundle and exit capability; assembleDebug passes. Logs: `/tmp/songloft-520-progress-{types,prod,web,tests,release}-final.log`, `/tmp/songloft-520-progress-native-android.log`. Working-tree identities, APK hashes and acceptance checklist: `/tmp/songloft-520-push-validation.json`.
+- The same fixture executes the actual shipped controller: 8 pass with the patch, 7 fail on target behavior without it. Old navigation sources fail the new exit wiring gate. Evidence: `/tmp/songloft-520-coordinate-negative-final.log`, `/tmp/songloft-520-exit-old-native.log`.
+- Android API 34 emulator, 1080×1920/density 440, explicit --abi arm64-v8a/native bridge (SVG package has no x86_64 library): device cache left/mid/right persist 100 MB/2 GB/10 GB; server cache persists 100 MB/5 GB/100 GB. Notification X stops playback and clears active notification/foreground mode while keeping the app. Settings exit and double back at Home remove PID, active services and notification; relaunch preserves login. Evidence: `/tmp/songloft-520-lynx-{device,server,exit,back-before,back-after,stop-before,stop-after}-final.json`. The fixture uses an isolated server/database and synthetic audio.
+- The test container once exited due to host memory pressure; acceptance was completed after recovery, and the interruption does not count as a pass. Not run: HarmonyOS 4.2 hardware, iOS/HAP builds and their touch behavior, exit with floating lyrics actually enabled. Android emulator/controller regressions do not prove that HarmonyOS device passed. On 2026-10-15 the user authorized commits, pushes and an Issue reply. Final SHAs, development packages and CI status are determined by Git and workflows for the same SHA; no stable tag is created. Full exit requires a new APK: hot updates hide the Settings entry on old shells, while existing double-back behavior remains implemented by those shells.
 
 ## Implementation and Boundaries
 

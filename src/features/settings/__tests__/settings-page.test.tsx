@@ -28,6 +28,13 @@ const { navigateSpy, logoutSpy } = vi.hoisted(() => ({
   logoutSpy: vi.fn(),
 }))
 
+const exitHost = vi.hoisted(() => ({ target: 'web', available: true, supportsExit: true, exit: vi.fn() }))
+vi.mock('../../../native/platform-target.js', () => ({ getPlatformTarget: () => exitHost.target }))
+vi.mock('../../../native/navigation.js', () => ({
+  getNavigationModule: () => ({ available: exitHost.available, exitApp: exitHost.exit }),
+  supportsAppExit: () => exitHost.available && exitHost.supportsExit,
+}))
+
 vi.mock('react-i18next', async () =>
   (await import('../../../__tests__/_render-mocks.js')).mockReactI18next(),
 )
@@ -285,4 +292,44 @@ test('log out shows dialog, confirm calls auth logout then routes to /login', as
   })
   expect(logoutSpy).toHaveBeenCalledTimes(1)
   expect(navigateSpy).toHaveBeenCalledWith({ to: '/login' })
+})
+
+test('Android exit asks for confirmation, then exits without logging out', async () => {
+  exitHost.target = 'android'
+  try {
+    render(<SettingsPage />)
+    await act(async () => {})
+    const q = getQueriesForElement(elementTree.root!)
+    await act(async () => { fireEvent.tap(q.getByTestId('settings-exit')) })
+    expect(exitHost.exit).not.toHaveBeenCalled()
+    await act(async () => { fireEvent.tap(q.getByTestId('exit-confirm')) })
+    expect(exitHost.exit).toHaveBeenCalledTimes(1)
+    expect(logoutSpy).not.toHaveBeenCalled()
+    expect(navigateSpy).not.toHaveBeenCalled()
+  } finally {
+    exitHost.target = 'web'
+    exitHost.exit.mockClear()
+  }
+})
+
+test('Web and iOS do not offer an unsupported exit action', async () => {
+  for (const target of ['web', 'ios']) {
+    exitHost.target = target
+    render(<SettingsPage />)
+    await act(async () => {})
+    expect(getQueriesForElement(elementTree.root!).queryByTestId('settings-exit')).toBeNull()
+  }
+  exitHost.target = 'web'
+})
+
+test('a hot-updated bundle on an older Android shell hides explicit exit', async () => {
+  exitHost.target = 'android'
+  exitHost.supportsExit = false
+  try {
+    const q = await renderPage()
+    expect(q.queryByTestId('settings-exit')).toBeNull()
+  } finally {
+    exitHost.target = 'web'
+    exitHost.supportsExit = true
+  }
 })
