@@ -4,6 +4,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { act, fireEvent, getQueriesForElement, render } from '@lynx-js/react/testing-library'
 import { createMemoryStorage } from '../../../core/storage/memory-storage.js'
 import { setSongloftStorage } from '../../../core/storage/index.js'
+import { lyricsScreenAwake, PREF_LYRICS_KEEP_SCREEN_ON } from '../data/lyrics-screen-awake.js'
 import { getSongTitleScrolling, PREF_SONG_TITLE_SCROLLING, songTitleScrolling } from '../../../shared/ui/scrolling-text-preference.js'
 
 const {
@@ -243,11 +244,23 @@ test('the normalize toggle writes all three destinations', async () => {
 
 // ── Lyrics (merged in from the former /settings/lyrics page) ──────────────────
 
-test('the two always-available lyric toggles render', async () => {
+test('the always-available lyric toggles render', async () => {
   const { queryByTestId } = await renderPage()
 
   expect(queryByTestId('settings-auto-enter-lyrics')).toBeInTheDocument()
   expect(queryByTestId('settings-notification-lyric-title')).toBeInTheDocument()
+  expect(queryByTestId('settings-lyrics-keep-screen-on')).toBeInTheDocument()
+})
+
+test('the lyrics screen-awake switch updates and persists the device-local choice', async () => {
+  const storage = createMemoryStorage()
+  setSongloftStorage(storage)
+  lyricsScreenAwake.setState({ enabled: false })
+  const { getByTestId } = await renderPage()
+  await tapSwitch(getByTestId('settings-lyrics-keep-screen-on'))
+  expect(lyricsScreenAwake.getState().enabled).toBe(true)
+  expect(await storage.prefs.get(PREF_LYRICS_KEEP_SCREEN_ON)).toBe('true')
+  lyricsScreenAwake.setState({ enabled: false })
 })
 
 test('the floating-lyric toggle is absent without a host that can draw an overlay', async () => {

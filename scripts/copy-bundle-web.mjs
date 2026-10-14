@@ -191,6 +191,7 @@ if (existsSync(htmlSrc)) {
 const HOST_SCRIPTS = [
   'app_icon.png',
   'audio-host.js',
+  'screen-awake-host.js',
   'file-transfer-host.js',
   'playback-keyboard-host.js',
   'hls.min.js',

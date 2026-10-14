@@ -341,18 +341,23 @@ export function mockLynxUiSheet() {
  */
 export function mockLynxUiSwiper() {
   const swipeTo = vi.fn()
+  let change: ((index: number) => void) | undefined
   return {
     swipeTo,
+    changeIndex: (index: number) => change?.(index),
     Swiper: forwardRef((
       {
         data,
         children,
+        onChange,
       }: {
         data: unknown[]
         children: (p: { item: unknown; index: number }) => unknown
+        onChange?: (index: number) => void
       },
       ref: unknown,
     ) => {
+      change = onChange
       const handle = { swipeTo }
       if (typeof ref === 'function') (ref as (r: unknown) => void)(handle)
       else if (ref && typeof ref === 'object') (ref as { current: unknown }).current = handle

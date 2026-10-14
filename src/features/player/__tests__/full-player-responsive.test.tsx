@@ -29,11 +29,15 @@ import { PLAYER_METRICS } from '../domain/player-layout.js'
  * env exercises the env, not the page.
  */
 
-const { breakpointHook, navigateSpy, autoEnterHook } = vi.hoisted(() => ({
+const { breakpointHook, navigateSpy, autoEnterHook, screenAwakeSpy, routePath } = vi.hoisted(() => ({
   breakpointHook: vi.fn(),
   navigateSpy: vi.fn(),
   autoEnterHook: vi.fn(async () => false),
+  screenAwakeSpy: vi.fn(),
+  routePath: { value: '/player' },
 }))
+
+vi.mock('../widgets/use-lyrics-screen-awake.js', () => ({ useLyricsScreenAwake: screenAwakeSpy }))
 
 vi.mock('react-i18next', async () =>
   (await import('../../../__tests__/_render-mocks.js')).mockReactI18next(),
@@ -41,7 +45,7 @@ vi.mock('react-i18next', async () =>
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigateSpy,
   // See full-player.test.tsx — the song-info entry reads the pathname here.
-  useRouterState: () => '/player',
+  useRouterState: () => routePath.value,
 }))
 vi.mock('../../../shared/responsive/useBreakpoint.js', async () => {
   const actual = await vi.importActual<typeof import('../../../shared/responsive/useBreakpoint.js')>(
@@ -119,6 +123,7 @@ const { FullPlayerPage } = await import('../pages/FullPlayerPage.js')
 afterEach(() => {
   vi.clearAllMocks()
   autoEnterHook.mockResolvedValue(false)
+  routePath.value = '/player'
 })
 
 /** Render at a given viewport, as the mocked hook would report it. */
@@ -155,6 +160,27 @@ async function renderAtRaw(width: number, height: number, breakpoint: string) {
 
 /** Tall enough that the height budget never binds, so the table value is what shows. */
 const TALL = 2000
+
+test('only a measured, visible lyrics layout requests screen-awake policy', async () => {
+  await renderAt(0, 0, 'desktop')
+  expect(screenAwakeSpy).toHaveBeenLastCalledWith(false)
+  await renderAt(390, 844, 'mobile')
+  expect(screenAwakeSpy).toHaveBeenLastCalledWith(false)
+  await renderAt(1200, TALL, 'desktop')
+  expect(screenAwakeSpy).toHaveBeenLastCalledWith(true)
+  routePath.value = '/player/eq'
+  await renderAt(1200, TALL, 'desktop')
+  expect(screenAwakeSpy).toHaveBeenLastCalledWith(false)
+})
+
+test('auto-entering the narrow lyrics view requests the policy after the swipe completes', async () => {
+  autoEnterHook.mockResolvedValue(true)
+  await renderAt(390, 844, 'mobile')
+  await act(async () => { swiperMock.changeIndex(1) })
+  expect(screenAwakeSpy).toHaveBeenLastCalledWith(true)
+  await act(async () => { swiperMock.changeIndex(0) })
+  expect(screenAwakeSpy).toHaveBeenLastCalledWith(false)
+})
 
 describe('layout shape per screen class', () => {
   test('mobile swipes between cover and lyrics, with dots to say so', async () => {

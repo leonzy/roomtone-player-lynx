@@ -32,6 +32,7 @@ vi.mock('react-i18next', async () =>
 )
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigateSpy,
+  useRouterState: () => '/player',
 }))
 // Persisting the default play mode moved here from the (now removed) Settings →
 // Playback section, so this is where the round-trip is asserted.

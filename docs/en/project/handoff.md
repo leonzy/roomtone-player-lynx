@@ -1,5 +1,9 @@
 # Handoff (2026-10-14)
 
+## Keep Screen On for Lyrics · songloft-org/songloft#520 (2026-10-14)
+
+Flutter and Lynx implement a local playback preference, off by default and active only while foreground lyrics are visible. Exit behavior is deferred at the user's request. Lynx JS/Android builds, full tests and Web toggle persistence passed; local iOS/HAP builds and native screen-sleep acceptance were not run. The user authorized commits, pushes and an Issue reply: commit clients first, then update actual parent gitlinks. Git/workflows for the same SHA determine final commits and CI status. No stable tag is created in this batch. Object, logs and boundaries: [batch record](issue-520.md).
+
 ## Playlist Browsing · songloft-org/songloft#518 (2026-10-14)
 
 This batch completes both clients’ home layouts, song counts and title initials, Lynx grid dimensions and a scrollbar, and a home radio visibility switch in both clients. The user authorized local client commits and parent gitlinks; Git records the actual results. Scope, evidence and device boundaries are in the [batch record](issue-518.md). No pushes, releases or Issue writes; native devices remain unverified. Older snapshots follow.

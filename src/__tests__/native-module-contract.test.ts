@@ -69,9 +69,15 @@ test('iOS scene activity reaches the current root after first-screen readiness a
 
 test('HarmonyOS ability and current root attach/readiness/disposal are wired to the tested lifecycle controller', () => {
   const ability = read('harmony/entry/src/main/ets/entryability/EntryAbility.ets')
-  expect(ability).toMatch(/onForeground\(\): void \{ AppLifecycle\.enterForeground\(\) \}/)
-  expect(ability).toMatch(/onBackground\(\): void \{ AppLifecycle\.enterBackground\(\) \}/)
-  expect(ability).toMatch(/onDestroy\(\): void \{\s*AppLifecycle\.reset\(\)/)
+  const foreground = ability.match(/onForeground\(\): void \{([\s\S]*?)\n  \}/)?.[1]
+  const background = ability.match(/onBackground\(\): void \{([\s\S]*?)\n  \}/)?.[1]
+  const destroy = ability.match(/onDestroy\(\): void \{([\s\S]*?)\n  \}/)?.[1]
+  expect(foreground).toContain('AppLifecycle.enterForeground()')
+  expect(foreground).toContain('SongloftPlatformModule.setForeground(true)')
+  expect(background).toContain('AppLifecycle.enterBackground()')
+  expect(background).toContain('SongloftPlatformModule.setForeground(false)')
+  expect(destroy).toContain('AppLifecycle.reset()')
+  expect(destroy).toContain('SongloftPlatformModule.setHostWindow(null)')
   const index = read('harmony/entry/src/main/ets/pages/Index.ets')
   expect(index).toContain('new SongloftUpdateLifecycle(this.context), this.lifecycleClient')
   expect(index).toMatch(/onCreate: \(context: LynxContext\) => \{\s*this\.lifecycleClient\.attach\(context\)/)

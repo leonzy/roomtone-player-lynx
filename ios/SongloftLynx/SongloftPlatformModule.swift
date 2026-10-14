@@ -16,6 +16,7 @@ final class SongloftPlatformModule: NSObject, LynxModule {
 
   @objc static var methodLookup: [String: String] {
     [
+      "setKeepScreenOn": NSStringFromSelector(#selector(SongloftPlatformModule.setKeepScreenOn(_:))),
       "openURL": NSStringFromSelector(#selector(SongloftPlatformModule.openURL(_:))),
       "pickAndUploadFile": NSStringFromSelector(
         #selector(SongloftPlatformModule.pickAndUploadFile(_:fieldName:mimeType:callback:))
@@ -50,6 +51,31 @@ final class SongloftPlatformModule: NSObject, LynxModule {
   private static let entryBackend = "backend.log"
   private static let entryBackendError = "backend-error.txt"
   private static let entryFrontend = "frontend.log"
+
+  private static var screenAwakeRequested = false
+  private static var sceneActive = false
+
+  @objc func setKeepScreenOn(_ enabled: Bool) {
+    DispatchQueue.main.async {
+      Self.screenAwakeRequested = enabled
+      Self.applyScreenAwake()
+    }
+  }
+
+  static func setSceneActive(_ active: Bool) {
+    sceneActive = active
+    applyScreenAwake()
+  }
+
+  static func resetScreenAwake() {
+    screenAwakeRequested = false
+    sceneActive = false
+    applyScreenAwake()
+  }
+
+  private static func applyScreenAwake() {
+    UIApplication.shared.isIdleTimerDisabled = screenAwakeRequested && sceneActive
+  }
 
   /**
    * Enable or disable trust-all certificate validation (self-signed servers).

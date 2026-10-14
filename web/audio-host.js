@@ -1064,6 +1064,9 @@
 
   /** Main-thread half of `SongloftPlatform`: this is where the DOM lives. */
   var platformHandlers = {
+    setKeepScreenOn: function (args) {
+      if (window.__SONGLOFT_SCREEN_AWAKE__) window.__SONGLOFT_SCREEN_AWAKE__.setEnabled(args[0])
+    },
     setPlaybackShortcuts: function (args) {
       if (window.__SONGLOFT_KEYBOARD__) window.__SONGLOFT_KEYBOARD__.configure(args[0])
     },

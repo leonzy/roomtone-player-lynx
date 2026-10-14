@@ -4,6 +4,8 @@ Songloft Player 的 Lynx 客户端，从 Flutter 版整体重写为 ReactLynx + 
 
 了解底层技术：[Lynx 官网](https://lynxjs.org/) · [ReactLynx 官方文档](https://lynxjs.org/react/)。
 
+「设置 → 播放设置 → 歌词页屏幕常亮」默认关闭、仅保存到本机。开启后在歌词可见时保持亮屏（宽屏为并列歌词），暂停播放仍生效；返回封面、离开播放器或切到后台后恢复自动熄屏。Android/iOS/HarmonyOS 需要包含新亮屏接口的原生安装包，旧壳安全降级；Web 取决于浏览器 Screen Wake Lock 支持与权限，拒绝请求不影响播放。
+
 ## 当前状态
 
 当前定位为**预览版**。核心播放、曲库/歌单、歌词、插件、主题、多服务器和管理设置已有实现。关于页已分开提供客户端检查更新和服务器更新：dev 仅检查 dev，正式版仅检查最新正式发布；三端原生 bundle 更新器已接入源码，Android 已完成本地界面下载/取消/冷启动验证，iOS/HarmonyOS 编译与设备验收仍开放。正式更新签名密钥尚未配置，旧壳或不兼容更新提供本通道安装包入口，详见[客户端更新协议](docs/reference/client-updates.md)。原生桌面客户端与 Bundle 本地后端不在本轮范围。

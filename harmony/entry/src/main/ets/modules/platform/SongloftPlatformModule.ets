@@ -6,10 +6,47 @@ import { util } from '@kit.ArkTS'
 import { zlib, pasteboard, BusinessError } from '@kit.BasicServicesKit'
 import { http } from '@kit.NetworkKit'
 import { LynxModule, LynxContext } from '@lynx/lynx'
+import { window } from '@kit.ArkUI'
 import { InsecureTls } from '../../net/InsecureTls'
 import { ClientFileLog } from './ClientFileLog'
 
 export class SongloftPlatformModule extends LynxModule {
+  private static hostWindow: window.Window | null = null
+  private static screenAwakeRequested: boolean = false
+  private static foreground: boolean = false
+  private static screenAwakeWrites: Promise<void> = Promise.resolve()
+
+  static setHostWindow(hostWindow: window.Window | null): void {
+    const previous = SongloftPlatformModule.hostWindow
+    SongloftPlatformModule.screenAwakeRequested = false
+    SongloftPlatformModule.hostWindow = hostWindow
+    if (previous) {
+      SongloftPlatformModule.screenAwakeWrites = SongloftPlatformModule.screenAwakeWrites.then(async (): Promise<void> => {
+        await previous.setWindowKeepScreenOn(false)
+      }).catch(() => {})
+    }
+    SongloftPlatformModule.applyScreenAwake()
+  }
+
+  static setForeground(foreground: boolean): void {
+    SongloftPlatformModule.foreground = foreground
+    SongloftPlatformModule.applyScreenAwake()
+  }
+
+  public setKeepScreenOn(enabled: boolean): void {
+    SongloftPlatformModule.screenAwakeRequested = enabled
+    SongloftPlatformModule.applyScreenAwake()
+  }
+
+  private static applyScreenAwake(): void {
+    // Serialize window writes and consult the latest request after each completion.
+    SongloftPlatformModule.screenAwakeWrites = SongloftPlatformModule.screenAwakeWrites.then(async (): Promise<void> => {
+      const hostWindow = SongloftPlatformModule.hostWindow
+      if (!hostWindow) return
+      await hostWindow.setWindowKeepScreenOn(SongloftPlatformModule.screenAwakeRequested && SongloftPlatformModule.foreground)
+    }).catch(() => {})
+  }
+
   private abilityContext: common.UIAbilityContext
 
   constructor(context: LynxContext, param?: Object) {

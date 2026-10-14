@@ -8,12 +8,14 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.view.WindowManager
 import android.provider.OpenableColumns
 import android.util.Base64
 import androidx.core.content.FileProvider
 import com.lynx.jsbridge.LynxModule
 import com.lynx.react.bridge.Callback
 import com.lynx.jsbridge.LynxMethod
+import com.lynx.tasm.behavior.LynxContext
 import org.songloft.lynx.net.InsecureTls
 import java.io.BufferedOutputStream
 import java.io.File
@@ -38,6 +40,16 @@ class SongloftPlatformModule(context: Context) : LynxModule(context) {
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    /** Window-scoped; Android suspends this policy when the Activity is backgrounded. */
+    @LynxMethod
+    fun setKeepScreenOn(enabled: Boolean) {
+        mainHandler.post {
+            val activity = (mContext as? LynxContext)?.getContext() as? Activity ?: return@post
+            if (enabled) activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            else activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     @LynxMethod
     fun openURL(url: String) {

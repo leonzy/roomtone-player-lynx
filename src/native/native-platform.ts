@@ -2,6 +2,7 @@ import { readNativeModules } from './native-modules.js'
 import { isWebEnvironment, webOpenURL, webPickAndUploadFile } from './web-platform.js'
 
 interface SongloftPlatformNative {
+  setKeepScreenOn(enabled: boolean): void
   openURL(url: string): void
   pickAndUploadFile(
     uploadUrl: string,

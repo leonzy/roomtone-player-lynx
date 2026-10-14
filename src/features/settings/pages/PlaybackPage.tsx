@@ -8,6 +8,7 @@ import { useLyricStore } from '../../player/store/lyric-store.js'
 import { webShortcuts } from '../../player/data/web-shortcuts.js'
 import { hasPlaybackKeys } from '../../../native/web-playback-keys.js'
 import { getSettingsApi } from '../api/index.js'
+import { changeLyricsScreenAwake, loadLyricsScreenAwake, lyricsScreenAwake } from '../data/lyrics-screen-awake.js'
 import {
   type AudioQuality,
   type FloatingLyricFontSize,
@@ -71,6 +72,8 @@ export function PlaybackPage() {
   }, [])
   const { t } = useTranslation()
   const songTitleScrolling = useSyncExternalStore(subscribeSongTitleScrolling, getSongTitleScrolling)
+  const lyricsKeepScreenOn = useSyncExternalStore(lyricsScreenAwake.subscribe, () => lyricsScreenAwake.getState().enabled)
+  useEffect(() => { void loadLyricsScreenAwake() }, [])
 
   // ── Playback state ───────────────────────────────────────────────────────
   const [audioQuality, setAudioQuality] = useState<AudioQuality>('original')
@@ -211,6 +214,14 @@ export function PlaybackPage() {
           checked={autoEnterLyrics}
           onChange={(next) => { setAutoEnterLyrics(next); void writeAutoEnterLyrics(next) }}
           testId='settings-auto-enter-lyrics'
+        />
+        <SwitchRow
+          icon='music'
+          title={t('settings.lyricsKeepScreenOn')}
+          subtitle={t('settings.lyricsKeepScreenOnSubtitle')}
+          checked={lyricsKeepScreenOn}
+          onChange={next => { void changeLyricsScreenAwake(next) }}
+          testId='settings-lyrics-keep-screen-on'
         />
         <SwitchRow
           icon='music'

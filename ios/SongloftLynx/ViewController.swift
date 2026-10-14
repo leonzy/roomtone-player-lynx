@@ -95,6 +95,7 @@ class ViewController: UIViewController {
   }
 
   func setSceneActive(_ active: Bool) {
+    SongloftPlatformModule.setSceneActive(active)
     guard sceneActive != active else { return }
     sceneActive = active
     resumePending = active
@@ -109,6 +110,7 @@ class ViewController: UIViewController {
   }
 
   deinit {
+    SongloftPlatformModule.resetScreenAwake()
     for observer in accessibilityObservers {
       NotificationCenter.default.removeObserver(observer)
     }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from '@lynx-js/react'
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { Swiper, SwiperItem, type SwiperRef } from '@lynx-js/lynx-ui-swiper'
@@ -20,6 +20,7 @@ import { formatSleepRemaining } from '../domain/sleep-timer.js'
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { usePlayerStore } from '../store/index.js'
 import { LyricsView } from '../widgets/LyricsView.js'
+import { useLyricsScreenAwake } from '../widgets/use-lyrics-screen-awake.js'
 import { PageDots } from '../widgets/PageDots.js'
 import { PlayControls } from '../widgets/PlayControls.js'
 import { PlayerBackdrop } from '../widgets/PlayerBackdrop.js'
@@ -186,6 +187,8 @@ export function FullPlayerPage() {
    * write.
    */
   const [swiperIndex, setSwiperIndex] = useState(0)
+  const playerVisible = useRouterState({ select: s => s.location.pathname }) === '/player'
+  useLyricsScreenAwake(playerVisible && !!song && layout.measured && (isWide || swiperIndex === 1))
 
   /*
    * On the lyrics screen, back returns to the cover first. Only on the narrow

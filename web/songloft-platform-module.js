@@ -22,6 +22,7 @@
 
 export default function (_nativeModules, call) {
   return {
+    setKeepScreenOn(enabled) { void call('setKeepScreenOn', [enabled]).catch(() => {}) },
     setPlaybackShortcuts(state) { void call('setPlaybackShortcuts', [state]).catch(() => {}) },
     pickTextFile(options, callback) {
       call('pickTextFile', [options]).then(

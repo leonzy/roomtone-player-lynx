@@ -10,6 +10,14 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### TEST-001: Run artifact-reading tests after builds finish
+
+- Scope: Lynx/Web builds and release artifact gates.
+- Rule: builds clean `dist/`; tests reading `dist/main.lynx.bundle` must not run concurrently with a build. Complete the dual build and Web packaging before the full test suite.
+- Failure: on 2026-10-14, songloft-org/songloft#520 ran builds and tests concurrently in the uncommitted worktree based on `a69a45f4c3048171ddbc1f0f33c9922fa3af74d8`. `release-build.test.ts` failed with `ENOENT`; log: `/tmp/songloft-520-lynx-tests.log`. This is a verification orchestration failure, not a source regression or grounds to skip the gate.
+- Done right: sequential execution after building passed 3494 tests in `/tmp/songloft-520-lynx-tests-final.log`. Final verification after adding lyrics visibility cases is recorded in [#520](docs/en/project/issue-520.md).
+- Seen 1× (2026-10-14). Status: lesson.
+
 ### UI-001: Verify scroll hints against visible songs and host callback shapes
 
 - Scope: virtual-list positioning, initials and numeric hints (songloft-org/songloft#518).

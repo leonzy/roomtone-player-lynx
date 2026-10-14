@@ -4,6 +4,8 @@ A ReactLynx + TypeScript rewrite of the Songloft Flutter client, targeting Andro
 
 Learn about the underlying technology: [Lynx official website](https://lynxjs.org/) · [ReactLynx documentation](https://lynxjs.org/react/).
 
+Settings → Playback → Keep screen on for lyrics is off by default and saved only on this device. When enabled, it keeps the display awake while lyrics are visible (beside the cover on wide screens), even while playback is paused. Returning to the cover, leaving the player, or backgrounding the app restores automatic sleep. Android/iOS/HarmonyOS require a native package with the new screen policy method; older shells safely degrade. Web depends on browser Screen Wake Lock support and permission; denied requests do not interrupt playback.
+
 ## Current status
 
 This is a **preview client**. Playback, library/playlists, lyrics, plugins, themes, multiple servers, and administrative settings are implemented. About now separates client checks from server upgrades: dev checks only dev, while stable checks only the latest stable release. All three native bundle updaters are integrated in source; Android has local UI download/cancel/cold-start evidence, while iOS/HarmonyOS compilation and device acceptance remain open. Production update signing is unconfigured. Older shells and incompatible updates provide same-channel installation links; see [Client updates](docs/en/reference/client-updates.md). Native desktop clients and a bundled local backend remain outside this work.

@@ -7,6 +7,7 @@ import { SongloftHttpService } from '../net/SongloftHttpService'
 import { SystemAppearance } from '../modules/system/SystemAppearance'
 import { SongloftVideoModule } from '../modules/video/SongloftVideoModule'
 import { AppLifecycle } from '../modules/system/AppLifecycle'
+import { SongloftPlatformModule } from '../modules/platform/SongloftPlatformModule'
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
@@ -17,12 +18,15 @@ export default class EntryAbility extends UIAbility {
   }
 
   onDestroy(): void {
+    SongloftPlatformModule.setForeground(false)
+    SongloftPlatformModule.setHostWindow(null)
     AppLifecycle.reset()
     SongloftVideoModule.setHostWindow(null)
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
     const mainWindow = windowStage.getMainWindowSync()
+    SongloftPlatformModule.setHostWindow(mainWindow)
     // The video module needs a window handle for orientation locks — same wire
     // Android's SongloftVideoModule.setActivity provides, and iOS's
     // setHostController on ViewController.
@@ -39,11 +43,20 @@ export default class EntryAbility extends UIAbility {
     })
   }
 
-  onWindowStageDestroy(): void { AppLifecycle.reset() }
+  onWindowStageDestroy(): void {
+    SongloftPlatformModule.setHostWindow(null)
+    AppLifecycle.reset()
+  }
 
-  onForeground(): void { AppLifecycle.enterForeground() }
+  onForeground(): void {
+    SongloftPlatformModule.setForeground(true)
+    AppLifecycle.enterForeground()
+  }
 
-  onBackground(): void { AppLifecycle.enterBackground() }
+  onBackground(): void {
+    SongloftPlatformModule.setForeground(false)
+    AppLifecycle.enterBackground()
+  }
 
   /**
    * Push `SongloftVideo.orientationChanged` whenever the window resizes —

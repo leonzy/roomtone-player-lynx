@@ -127,11 +127,12 @@ HarmonyOS 的两个 EQ 方法仍无 DSP 实现：新增 `equalizer` 能力位为
 
 **闸门锁住的不变量**：5 个方法两侧齐备；`"secure"` 拼写在两个宿主里逐字一致（写错会让 token 落进非敏感区，而 `secure.get` 一直读空的那个）。
 
-### 2.3 `SongloftPlatform`（9 方法）
+### 2.3 `SongloftPlatform`（10 方法）
 
 | 方法 | Kotlin 签名 | iOS 选择器 | 形状 |
 |---|---|---|---|
 | `openURL` | `openURL(url: String)` | `openURL(_:)` | 写 |
+| `setKeepScreenOn` | `setKeepScreenOn(enabled: Boolean)` | `setKeepScreenOn(_:)` | 写；ArkTS 同名 boolean 参数，Web 经主线程桥接 |
 | `setClipboard` | `setClipboard(text: String)` | `setClipboard(_:)` | 写 |
 | `setClipboardWithResult` | `setClipboardWithResult(text: String, callback: Callback)` | `setClipboardWithResult(_:callback:)` | Callback `(error)`，仅 null 确认成功 |
 | `pickAndUploadFile` | `pickAndUploadFile(uploadUrl: String, fieldName: String, mimeType: String, callback: Callback)` | `pickAndUploadFile(_:fieldName:mimeType:callback:)` | Callback `(error, responseBody)` |
@@ -140,6 +141,8 @@ HarmonyOS 的两个 EQ 方法仍无 DSP 实现：新增 `equalizer` 能力位为
 | `logRead` | `logRead(callback: Callback)` | `logRead(_:)` | Callback `(error, content)` |
 | `shareFile` | `shareFile(base64: String, fileName: String, mimeType: String, callback: Callback)` | `shareFile(_:fileName:mimeType:callback:)` | Callback `(error)` |
 | `shareLogArchive` | `shareLogArchive(backendLogUrl: String, authHeader: String, fileName: String, callback: Callback)` | `shareLogArchive(_:authHeader:fileName:callback:)` | Callback `(error, resultJson)` |
+
+`setKeepScreenOn` 由歌词页常亮偏好消费（本机 key `player_lyrics_keep_screen_on`，默认 false）。JS 只在当前 `/player` 的歌词可见时请求，返回封面/进入子路由/卸载即释放。Android 在主线程设置 Activity 的 `FLAG_KEEP_SCREEN_ON`（系统在后台不保持屏幕）；iOS 将请求与 scene 活跃状态合并，在 scene 失活及根控制器销毁时清理；HarmonyOS 将请求与 Ability 前台状态合并，串行调用 `setWindowKeepScreenOn`，窗口销毁后释放。Web 的 Worker 方法转交 `web/screen-awake-host.js`，只在页面可见时请求 Screen Wake Lock，隐藏时释放、恢复可见时重获；尚未完成的请求在关闭后返回也会立即释放。浏览器不支持/拒绝和旧原生壳缺方法均安全降级。源码接线与单元测试不替代各端实际熄屏验收。
 
 - **平台差异**：Web 的 worker 侧模块（`web/songloft-platform-module.js`）实现 `openURL` / `setClipboard` / `setInsecureTls`（no-op，浏览器自己管证书信任）/ `pickAndUploadFile` / `shareFile`（走浏览器下载而非分享面板）；另有 Web 专属 `pickTextFile(options, callback)`、`saveTextFile(options, callback)` 与 `cancelTextFile()`，由 `src/native/web-files.ts` Promise 化并委托主线程 `web/file-transfer-host.js`。新文本桥只负责选择/保存，不传服务器地址或 token；歌单 JSON 认证 HTTP 在 Worker 复用共享客户端。三个方法齐备才开放 Web 数据管理，未改变原生 ABI。**没有 `logWrite` / `logRead` / `shareLogArchive`**，所以 `appendClientLog()` 在 Web 返回 `false`（调用方回落到内存缓冲），日志导出也留在 JS 打包路径上。文件上限、用户激活降级和验证边界见 [Web 部署](../guides/web-deployment.md#歌单-json-导入与导出)。
 
@@ -167,7 +170,7 @@ P6a 新增四端 `setClipboardWithResult`，共享 `copyToClipboard` 返回 Prom
 - `pickAndUploadFile` 的桥接签名保持原样；三端对 `/api/v1/jsplugins/upload` 的文件上传单独允许 4 分钟，其他上传沿用原策略。Web 上传原本没有较短的宿主超时。
 - 原生超时修复需要重新构建客户端壳；只替换 JS bundle 无法修复旧壳的底层期限。
 
-**闸门锁住的不变量**：8 个方法**三端**齐备（HarmonyOS 此前整个不在这个循环里，正是 `logWrite`/`logRead`/`shareFile` 在那端以桩形式发布的原因）；`setInsecureTls` 已纳入主循环，不再豁免。另有一组只在设备上才会暴露的不变量：三端都不为归档做 base64、都用原生 zip、都用 `ClientFileLog.copyTo` 而不是 `logRead`、后端日志流式落盘、后端下载尊重 InsecureTls、staging 目录每次运行前清空、`resultJson` 键名与 TS 解析一致。
+**闸门锁住的不变量**：10 个方法**三端**齐备（HarmonyOS 此前整个不在这个循环里，正是 `logWrite`/`logRead`/`shareFile` 在那端以桩形式发布的原因）；`setInsecureTls` 已纳入主循环，不再豁免。另有一组只在设备上才会暴露的不变量：三端都不为归档做 base64、都用原生 zip、都用 `ClientFileLog.copyTo` 而不是 `logRead`、后端日志流式落盘、后端下载尊重 InsecureTls、staging 目录每次运行前清空、`resultJson` 键名与 TS 解析一致。
 
 ### 2.4 `SongloftDlna`（5 方法）
 

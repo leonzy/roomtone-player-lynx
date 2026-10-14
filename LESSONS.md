@@ -10,6 +10,14 @@
 
 ## 条目
 
+### TEST-001：读取发布产物的测试必须在构建完成后执行
+
+- 范围：Lynx/Web 构建与发布产物闸门。
+- 规则：构建会清理 `dist/`；依赖 `dist/main.lynx.bundle` 的测试不能与构建并发。先完成双产物构建和 Web 打包，再运行完整测试。
+- 失败：2026-10-14，songloft-org/songloft#520，基线 `a69a45f4c3048171ddbc1f0f33c9922fa3af74d8` 的未提交工作树中并发运行构建与测试，`release-build.test.ts` 报 `ENOENT`；日志 `/tmp/songloft-520-lynx-tests.log`。这是验证编排问题，不能计为源码回归或跳过闸门。
+- Done right：构建完成后顺序执行，`/tmp/songloft-520-lynx-tests-final.log` 的 3494 项通过；随后增加歌词可见性用例的最终验证记录见 [#520](docs/project/issue-520.md)。
+- Seen 1× (2026-10-14)。状态：经验。
+
 ### UI-001：滚动提示要核对实际可见歌曲和各宿主的回调形态
 
 - 范围：虚拟列表定位、首字母和序号提示（songloft-org/songloft#518）。
