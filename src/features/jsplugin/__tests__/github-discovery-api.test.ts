@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from 'vitest'
 
 import type { Transport, TransportResponse } from '../../../core/network/http-client.js'
 import { GithubDiscoveryApi } from '../api/github-discovery-api.js'
-import { discoveryHasUpdate, hostCompatibility, installedFromRepository, isRepositoryMetadataUrl, parseGithubPluginManifest, releaseDownload } from '../domain/github-plugin-validation.js'
+import { comparePluginVersions, discoveryHasUpdate, hostCompatibility, installedFromRepository, isRepositoryMetadataUrl, parseGithubPluginManifest, releaseDownload } from '../domain/github-plugin-validation.js'
 import { parseJSPlugin } from '../../../models/jsplugin.js'
 
 const repo = {
@@ -14,6 +14,18 @@ const manifest = {
   name: '音乐插件', version: '2026.10.8', entryPath: 'music', main: 'main.js', permissions: [],
   entryHash: 'a'.repeat(64), zipHash: 'b'.repeat(64), download_url: download,
 }
+
+test('plugin date revisions compare numerically without relaxing native host versions', () => {
+  expect(comparePluginVersions('2026.10.15.1', '2026.10.15')).toBe(1)
+  expect(comparePluginVersions('2026.10.15.10', '2026.10.15.9')).toBe(1)
+  expect(comparePluginVersions('2026.10.16.0', '2026.10.15.99')).toBe(1)
+  expect(comparePluginVersions('2026.10.15.0', '2026.10.15')).toBe(0)
+  expect(comparePluginVersions('2026.10.15', '2026.10.15.1')).toBe(-1)
+  for (const version of ['2026.10.15.01', '2026.10.15.1.2', '2026.10.15.dev']) {
+    expect(comparePluginVersions(version, '2026.10.15')).toBeNull()
+  }
+  expect(hostCompatibility('2.13.1', '2.13.1.1')).toBe('unknown')
+});
 const release = {
   draft: false, prerelease: false, tag_name: 'v2026.10.8', published_at: '2026-10-08T00:00:00Z',
   assets: [{ name: 'music.jsplugin.zip', browser_download_url: download, size: 1234, state: 'uploaded' }],

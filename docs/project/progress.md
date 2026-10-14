@@ -1,5 +1,9 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-14 · 四段插件日期版本
+
+GitHub 发现页使用插件专用三/四段比较，最低宿主和原生应用版本协议保留。完整 3498 项测试、类型检查、Lynx/Web 构建通过；旧页面新增交互回归按目标行为失败。验证与历史客户端边界见 [本批记录](plugin-date-version.md) / [English](../en/project/plugin-date-version.md)。
+
 ## 2026-10-14 · songloft-org/songloft#520 歌词页屏幕常亮
 
 新增默认关闭的本机常亮开关及三端原生/Web 宿主接口，歌词可见性、前后台、窗口释放、持久化与异步竞态有回归。完整对象、3496 项测试、Android 构建、真实 Web 交互与未执行平台闸门见 [#520 记录](issue-520.md) / [English](../en/project/issue-520.md)。用户随后授权提交、推送和回复 Issue；最终 SHA/开发包状态以 Git/同一 SHA 的工作流为准，本批不打正式版 tag，退出问题暂缓。

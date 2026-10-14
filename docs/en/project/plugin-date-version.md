@@ -1,0 +1,9 @@
+# Four-component plugin date versions (2026-10-14)
+
+At baseline `9a92929f5f33efdefecc1a01632cb8270ebdc59b`, GitHub discovery uses the native application's three-component comparison, treating four-component plugin versions as unknown and showing reinstall. Catalogs already compare each component. A plugin-specific comparator accepts three/four components, treating a missing revision as zero, handling `.9 → .10` and day rollover, and keeping malformed versions unknown. Minimum-host and native application update rules retain three components.
+
+Linux / Node 22.17.1 / pnpm 11.15.1: `pnpm exec tsc -b`, `pnpm run build` (Lynx/Web), `pnpm run build:web`, and full `pnpm test` passed: **324 files / 3498 tests**. The new page regression requires an update from installed `2026.10.15` to `2026.10.15.1`, followed by confirmation and the matching download URL/overwrite request. Running the new page test against isolated old source produced **1 failure / 14 passes**: Reinstall lacks the update version. Logs: `/tmp/miot-version-lynx-{types-final,build,web-build,full,old-final}.log`.
+
+Docker Chromium 121.0.6167.85 opened the full production Web artifact, entered GitHub discovery through the store, and showed a `2026.10.15.1` update over an installed three-component version. After confirmation, an isolated HTTP fixture recorded the matching download URL with `overwrite: true`; page errors were empty. GitHub/install endpoints were fixtures; no actual plugin package was installed. Evidence: `/tmp/miot-version-lynx-browser.{json,png}`.
+
+Not run: physical Android/iOS/HarmonyOS and the historical client release matrix. This batch changes plugin comparisons and tests, with no native host or application version-protocol changes. Updating plugin CI does not automatically change older clients' discovery comparisons. [Chinese](../../project/plugin-date-version.md).

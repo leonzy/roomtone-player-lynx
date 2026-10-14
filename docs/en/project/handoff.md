@@ -1,5 +1,9 @@
 # Handoff (2026-10-14)
 
+## Four-component plugin date versions (2026-10-14)
+
+GitHub discovery now compares daily revision components; full tests and builds pass, with native application version rules retained. The current session's automatic-release task synchronizes both clients and parent gitlinks, without creating stable client tags. Evidence and historical-client boundaries: [batch record](plugin-date-version.md).
+
 ## Keep Screen On for Lyrics · songloft-org/songloft#520 (2026-10-14)
 
 Flutter and Lynx implement a local playback preference, off by default and active only while foreground lyrics are visible. Exit behavior is deferred at the user's request. Lynx JS/Android builds, full tests and Web toggle persistence passed; local iOS/HAP builds and native screen-sleep acceptance were not run. The user authorized commits, pushes and an Issue reply: commit clients first, then update actual parent gitlinks. Git/workflows for the same SHA determine final commits and CI status. No stable tag is created in this batch. Object, logs and boundaries: [batch record](issue-520.md).

@@ -138,6 +138,21 @@ test('an already-installed matching repository/version is shown as installed', a
   expect(h.install).not.toHaveBeenCalled()
 })
 
+test('four-part plugin release shows an update and installs its matching package', async () => {
+  const downloadUrl = 'https://github.com/alice/music/releases/download/v2026.10.15.1/music.jsplugin.zip'
+  h.plugins = [{ ...plugin, downloadUrl, manifest: { ...plugin.manifest, version: '2026.10.15.1' } }]
+  h.installed = [parseJSPlugin({ id: 3, name: plugin.manifest.name, entry_path: 'music', version: '2026.10.15', update_url: 'https://raw.githubusercontent.com/alice/music/main/plugin.json' })]
+  await page()
+  await tap('github-plugin-1')
+  const text = getQueriesForElement(elementTree.root!).getByTestId('github-plugin-install').textContent
+  expect(text).toContain('2026.10.15.1')
+  expect(text).toContain('Update')
+  await tap('github-plugin-install')
+  expect(h.install).not.toHaveBeenCalled()
+  await tap('github-install-confirm')
+  expect(h.install).toHaveBeenCalledWith({ downloadUrl, githubProxy: undefined, overwrite: true }, expect.anything())
+})
+
 test('dev server skips minimum-version checks but still requires installation confirmation', async () => {
   h.host = 'dev'
   h.plugins = [{ ...plugin, manifest: { ...plugin.manifest, minHostVersion: '999.0.0' } }]

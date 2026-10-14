@@ -118,6 +118,19 @@ export function hostCompatibility(minimum: string, current: string | undefined):
   return comparison == null ? 'unknown' : comparison < 0 ? 'incompatible' : 'compatible'
 }
 
+/** Plugin revisions are separate from the native application's stable version protocol. */
+export function comparePluginVersions(a: string, b: string): number | null {
+  const pattern = /^(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})(?:\.(0|[1-9][0-9]{0,8}))?$/
+  const left = a.replace(/^v/, ''), right = b.replace(/^v/, '')
+  if (!pattern.test(left) || !pattern.test(right)) return null
+  const first = left.split('.').map(Number), second = right.split('.').map(Number)
+  for (let i = 0; i < Math.max(first.length, second.length); i++) {
+    const delta = (first[i] ?? 0) - (second[i] ?? 0)
+    if (delta) return Math.sign(delta)
+  }
+  return 0
+}
+
 /** Never infer repository identity from a self-declared author/homepage. */
 export function occupiedPlugin(plugin: GithubPlugin, installed: readonly JSPlugin[]): JSPlugin | undefined {
   return installed.find(item => item.entryPath === plugin.manifest.entryPath)
@@ -130,5 +143,5 @@ export function installedFromRepository(plugin: GithubPlugin, installed: JSPlugi
 
 export function discoveryHasUpdate(plugin: GithubPlugin, installed: JSPlugin | undefined): boolean {
   return installedFromRepository(plugin, installed)
-    && (compareStableVersions(plugin.manifest.version, installed?.version ?? '') ?? 0) > 0
+    && (comparePluginVersions(plugin.manifest.version, installed?.version ?? '') ?? 0) > 0
 }
