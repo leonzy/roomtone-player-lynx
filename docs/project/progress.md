@@ -1,5 +1,16 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-14 · songloft-org/songloft-player-lynx#11 后端更新请求
+
+- 用户已授权本批本地提交：先提交 Lynx 修复，再在父仓库提交子模块指针。提交前核对源码工作树标识与验证对象一致、12 个文件均属本批，差异与编码检查通过。实际提交结果以 Git 记录为准；下方未提交描述为验证阶段快照，推送、发布和 Issue 写操作未授权。
+
+- [Issue #11](https://github.com/songloft-org/songloft-player-lynx/issues/11) 只有 Android 截图、无评论，截图报「无效的版本类型，必须是 stable 或 dev」。本地与远端 main 基线均为 `0651222b87b5a97daebef7e48c5d497c32a7e71a`；旧 `UpgradeSection` 发送空 `{}`，与后端 `StartUpgrade` 的必填 `version_type` 契约不符。后端在线升级禁止跨通道，检查响应以 `updates[current_channel]` 为准，不能使用另一通道的扁平摘要。
+- 更新 API 封装进入 `SettingsApi`，页面不再强转访问私有 client。解析当前通道及对应版本/`release_notes`；旧扁平响应可回退 `release_notes` / `changelog`，缺失通道时从当前 `dev` 版本推导。`is_docker` 未明确为 true 时不显示在线更新动作。点击发送 `{version_type: 当前通道}`，重试清除旧错误，重复点击只发一次，启动请求接受前不轮询进度；原有暂时断联容忍保留。
+- Linux / Node 22.17.1 / pnpm 11.15.1：`pnpm test` 完整 **317 文件 / 3467 项**通过；最终补充重复点击用例、格式化后，`pnpm test src/features/settings/__tests__/{about-page.test.tsx,settings-api.test.ts,upgrade-model.test.ts}` 的 **3 文件 / 36 项**通过，`pnpm exec tsc -b` 通过。生产 `pnpm run build` 同时生成 Lynx/Web；`pnpm run build:web` 生成部署产物。已知 touch-action 构建警告保留。隔离副本只换回基线 `UpgradeSection` 后 **5 项失败 / 7 项通过**：stable/dev 请求体、非 Docker 动作、旧错误清除、重复点击保护；不是依赖或环境失败。
+- Docker Chromium 121.0.6167.85 的完整关于页使用隔离 HTTP 夹具：中文 dev 首次拒绝后重试、英文 stable 成功、中文非 Docker 分别记录 2 / 1 / 0 个 POST；所有请求体仅含正确的 `version_type`，通道说明为 Markdown，旧错误消失，进度完成，页面异常为空。截图与请求结果在 `/tmp/lynx-issue11-browser-*`；未下载或替换任何实际服务端二进制，不能据此声称实际升级成功。
+- 最终源码验证对象：基线 + 工作树 SHA-256 `faec7a428a9675dc1d3e5c98191d963555b8616c409e93658daae6f651e8389b`，算法为 `git diff -- src` + 两个新增源码文件路径与内容，元数据 `/tmp/lynx-issue11-validation.json`。日志 `/tmp/lynx-issue11-{tests,focused-final,types-final,build-final,web-build-final,old-tests,browser}.log`。自审核对后端通道校验、解析兼容、请求体、拒绝重试、重复点击与轮询，格式化、差异及 UTF-8 检查通过。
+- **Not run**：Android 真机/E2E（adb 无已连接设备）、真实 Docker 升级下载/替换/重启、iOS/HarmonyOS 设备、同 SHA 云端 CI（未推送）。本批未修改原生宿主或后端，不追加 Gradle/Xcode/HAP 编译；Web 证据不替代 Android 宿主验收。未提交、推送、发布或操作 Issue；父仓库仍为原 gitlink，子模块 dirty。
+
 ## 2026-10-13 · AI 开发流程整顿
 
 - 与父仓库统一连续调查、实现、验证、自审和交付，移除逐阶段确认；提交、推送、正式发布和 Issue 写操作仍分别按本次会话授权。旧批次的授权与验收记录不授权新任务。

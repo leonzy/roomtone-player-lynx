@@ -2,6 +2,7 @@ import '../../../shims/router-env.js'
 import '@testing-library/jest-dom'
 import { afterEach, expect, test, vi } from 'vitest'
 import { act, fireEvent, getQueriesForElement, render } from '@lynx-js/react/testing-library'
+import { SettingsApi } from '../api/settings-api.js'
 
 const { navigateSpy, getVersionSpy, openURLSpy } = vi.hoisted(() => ({
   navigateSpy: vi.fn(),
@@ -25,8 +26,12 @@ const checkResponse = {
   current_version: '2.1.0',
   latest_version: '2.1.0',
   changelog: undefined as string | undefined,
+  is_docker: true,
+  current_channel: 'stable',
+  updates: undefined as Record<string, { version: string; release_notes: string }> | undefined,
 }
 let progressGet: () => Promise<{ data: Record<string, unknown> }>
+const post = vi.fn(async () => ({ data: {} }))
 
 const get = vi.fn(async (url: string) => {
   if (url.endsWith('/upgrade/progress')) return progressGet()
@@ -34,10 +39,14 @@ const get = vi.fn(async (url: string) => {
 })
 
 vi.mock('../api/index.js', () => ({
-  getSettingsApi: () => ({
-    getVersion: getVersionSpy,
-    client: { get, post: vi.fn(async () => ({ data: {} })) },
-  }),
+  getSettingsApi: () =>
+    Object.assign(
+      new SettingsApi({
+        get,
+        post,
+      } as unknown as import('../../../core/network/http-client.js').HttpClient),
+      { getVersion: getVersionSpy },
+    ),
 }))
 
 const { AboutPage } = await import('../pages/AboutPage.js')
@@ -47,13 +56,21 @@ afterEach(() => {
   vi.clearAllMocks()
   checkResponse.has_update = false
   checkResponse.changelog = undefined
+  checkResponse.is_docker = true
+  checkResponse.current_channel = 'stable'
+  checkResponse.current_version = '2.1.0'
+  checkResponse.latest_version = '2.1.0'
+  checkResponse.updates = undefined
+  post.mockReset().mockResolvedValue({ data: {} })
   vi.useRealTimers()
 })
 
 async function renderPage(props: { onOpenLicenses?: () => void } = {}) {
   render(<AboutPage {...props} />)
   // Let the version read and the upgrade check promises resolve.
-  await act(async () => { await new Promise((r) => setTimeout(r, 10)) })
+  await act(async () => {
+    await new Promise(r => setTimeout(r, 10))
+  })
   return getQueriesForElement(elementTree.root!)
 }
 
@@ -70,7 +87,9 @@ test('shows the client version and the backend version once it resolves', async 
 test('the licenses row routes when rendered as its own page', async () => {
   const { queryByTestId } = await renderPage()
 
-  await act(async () => { fireEvent.tap(queryByTestId('settings-licenses')!) })
+  await act(async () => {
+    fireEvent.tap(queryByTestId('settings-licenses')!)
+  })
 
   expect(navigateSpy).toHaveBeenCalledWith({ to: '/settings/licenses' })
 })
@@ -82,7 +101,9 @@ test('the licenses row defers to onOpenLicenses inside the settings pane', async
   const onOpenLicenses = vi.fn()
   const { queryByTestId } = await renderPage({ onOpenLicenses })
 
-  await act(async () => { fireEvent.tap(queryByTestId('settings-licenses')!) })
+  await act(async () => {
+    fireEvent.tap(queryByTestId('settings-licenses')!)
+  })
 
   expect(onOpenLicenses).toHaveBeenCalledTimes(1)
   expect(navigateSpy).not.toHaveBeenCalled()
@@ -90,17 +111,106 @@ test('the licenses row defers to onOpenLicenses inside the settings pane', async
 
 // ── Backend update (merged in from the former /settings/upgrade page) ─────────
 
+test.each(['stable', 'dev'])(
+  'starts the %s backend update with the advertised channel and notes',
+  async channel => {
+    checkResponse.has_update = true
+    checkResponse.current_channel = channel
+    checkResponse.current_version = channel === 'dev' ? 'dev' : '2.1.0'
+    checkResponse.latest_version = 'wrong-flat-version'
+    checkResponse.updates = {
+      [channel]: {
+        version: channel === 'dev' ? 'dev' : '2.2.0',
+        release_notes: '## Correct channel notes',
+      },
+    }
+    const queries = await renderPage()
+    const notesVisible = queries.queryByText('Correct channel notes') != null
+    const displayedText = elementTree.root!.textContent
+    await act(async () => {
+      fireEvent.tap(queries.getByTestId('upgrade-start'))
+    })
+    expect(post).toHaveBeenCalledExactlyOnceWith('/api/v1/upgrade/start', {
+      version_type: channel,
+    })
+    expect(notesVisible).toBe(true)
+    expect(displayedText).not.toContain('wrong-flat-version')
+  },
+)
+
+test('non-Docker backends explain the limitation and have no online update action', async () => {
+  checkResponse.has_update = true
+  checkResponse.is_docker = false
+  const queries = await renderPage()
+  expect(queries.queryByTestId('upgrade-start')).not.toBeInTheDocument()
+  expect(
+    queries.queryByText('Online backend updates are only available for Docker deployments.'),
+  ).toBeInTheDocument()
+  expect(post).not.toHaveBeenCalled()
+})
+
+test('retrying a rejected update clears its old error and sends the channel again', async () => {
+  checkResponse.has_update = true
+  post.mockRejectedValueOnce(new Error('Upgrade rejected'))
+  const queries = await renderPage()
+  await act(async () => {
+    fireEvent.tap(queries.getByTestId('upgrade-start'))
+    await new Promise(resolve => setTimeout(resolve, 10))
+  })
+  expect(queries.queryByText(/Upgrade rejected/)).toBeInTheDocument()
+  await act(async () => {
+    fireEvent.tap(queries.getByTestId('upgrade-start'))
+    await new Promise(resolve => setTimeout(resolve, 10))
+  })
+  expect(queries.queryByText(/Upgrade rejected/)).not.toBeInTheDocument()
+  expect(post).toHaveBeenNthCalledWith(2, '/api/v1/upgrade/start', {
+    version_type: 'stable',
+  })
+})
+
+test('rapid taps send one start request and polling waits until it is accepted', async () => {
+  checkResponse.has_update = true
+  let accept!: () => void
+  post.mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        accept = () => resolve({ data: {} })
+      }),
+  )
+  progressGet = vi.fn(async () => ({ data: { status: 'completed', progress: 100 } }))
+  vi.useFakeTimers()
+  render(<AboutPage />)
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(10)
+  })
+  const queries = getQueriesForElement(elementTree.root!)
+  await act(async () => {
+    const button = queries.getByTestId('upgrade-start')
+    fireEvent.tap(button)
+    fireEvent.tap(button)
+  })
+  expect(post).toHaveBeenCalledTimes(1)
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(4000)
+  })
+  expect(progressGet).not.toHaveBeenCalled()
+  await act(async () => {
+    accept()
+  })
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(2000)
+  })
+  expect(progressGet).toHaveBeenCalledTimes(1)
+  expect(queries.queryByText('Update complete')).toBeInTheDocument()
+})
+
 test('renders backend release Markdown inside About and keeps links and the upgrade action usable', async () => {
   checkResponse.has_update = true
   checkResponse.changelog =
     '## 更新内容\n\n- **修复**说明显示\n\n[详情](https://example.com/release)\n\n| 平台 | 状态 |\n| --- | --- |\n| Android | 已修复 |'
   const queries = await renderPage()
-  expect(
-    queries.getByText('更新内容').closest('.markdown__heading--2'),
-  ).toBeInTheDocument()
-  expect(
-    queries.getByText('修复').closest('.markdown__strong'),
-  ).toBeInTheDocument()
+  expect(queries.getByText('更新内容').closest('.markdown__heading--2')).toBeInTheDocument()
+  expect(queries.getByText('修复').closest('.markdown__strong')).toBeInTheDocument()
   const notes = elementTree.root!.querySelector('.upgrade-page__changelog')!
   expect(notes.querySelector('.markdown__table-scroll')).toHaveAttribute(
     'scroll-orientation',
@@ -111,9 +221,7 @@ test('renders backend release Markdown inside About and keeps links and the upgr
   await act(async () => {
     fireEvent.tap(queries.getByText('详情'))
   })
-  expect(openURLSpy).toHaveBeenCalledExactlyOnceWith(
-    'https://example.com/release',
-  )
+  expect(openURLSpy).toHaveBeenCalledExactlyOnceWith('https://example.com/release')
 })
 
 test('shows up-to-date when no update available', async () => {

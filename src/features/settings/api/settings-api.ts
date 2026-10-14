@@ -3,6 +3,11 @@ import type { HttpClient, RequestOptions } from '../../../core/network/http-clie
 import { coerceLogLevel, type LogLevel } from '../domain/log-level.js'
 import type { ProxySettings } from '../domain/proxy-model.js'
 import { parseTabConfig, type TabConfig } from '../../jsplugin/data/tab-config.js'
+import {
+  parseUpgradeCheck,
+  type UpgradeChannel,
+  type UpgradeCheck,
+} from '../domain/upgrade-model.js'
 
 /**
  * Settings backend API (Diagnostics slice only — batch 15). Mirrors the
@@ -19,23 +24,39 @@ import { parseTabConfig, type TabConfig } from '../../jsplugin/data/tab-config.j
 export class SettingsApi {
   constructor(private readonly client: HttpClient) {}
 
-  async getGithubDiscoveryToken({ serverBaseUrl, assertCurrent }: {
-    serverBaseUrl?: string; assertCurrent?: RequestOptions['assertCurrent']
+  async getGithubDiscoveryToken({
+    serverBaseUrl,
+    assertCurrent,
+  }: {
+    serverBaseUrl?: string
+    assertCurrent?: RequestOptions['assertCurrent']
   } = {}): Promise<string> {
     const res = await this.client.get<{ token: string }>(
-      `${serverBaseUrl ?? ''}${apiPrefix}/settings/github-discovery-token`, { assertCurrent },
+      `${serverBaseUrl ?? ''}${apiPrefix}/settings/github-discovery-token`,
+      { assertCurrent },
     )
-    if (typeof res.data?.token !== 'string') throw new Error('Invalid GitHub token setting response')
+    if (typeof res.data?.token !== 'string')
+      throw new Error('Invalid GitHub token setting response')
     return res.data.token
   }
 
-  async updateGithubDiscoveryToken(token: string, { serverBaseUrl, assertCurrent }: {
-    serverBaseUrl?: string; assertCurrent?: RequestOptions['assertCurrent']
-  } = {}): Promise<string> {
+  async updateGithubDiscoveryToken(
+    token: string,
+    {
+      serverBaseUrl,
+      assertCurrent,
+    }: {
+      serverBaseUrl?: string
+      assertCurrent?: RequestOptions['assertCurrent']
+    } = {},
+  ): Promise<string> {
     const res = await this.client.put<{ token: string }>(
-      `${serverBaseUrl ?? ''}${apiPrefix}/settings/github-discovery-token`, { token: token.trim() }, { assertCurrent },
+      `${serverBaseUrl ?? ''}${apiPrefix}/settings/github-discovery-token`,
+      { token: token.trim() },
+      { assertCurrent },
     )
-    if (typeof res.data?.token !== 'string') throw new Error('Invalid GitHub token setting response')
+    if (typeof res.data?.token !== 'string')
+      throw new Error('Invalid GitHub token setting response')
     return res.data.token
   }
 
@@ -54,9 +75,27 @@ export class SettingsApi {
     return String(data.version ?? data.app_version ?? '')
   }
 
+  async checkUpgrade(): Promise<UpgradeCheck> {
+    const res = await this.client.get<unknown>(`${apiPrefix}/upgrade/check`)
+    return parseUpgradeCheck(res.data)
+  }
+
+  async startUpgrade(channel: UpgradeChannel): Promise<void> {
+    await this.client.post(`${apiPrefix}/upgrade/start`, {
+      version_type: channel,
+    })
+  }
+
+  async getUpgradeProgress(): Promise<Record<string, unknown>> {
+    const res = await this.client.get<Record<string, unknown>>(`${apiPrefix}/upgrade/progress`)
+    return res.data ?? {}
+  }
+
   /** Raw (already backend-sanitized) log text; empty string if the body is empty. */
   async exportLogs(): Promise<string> {
-    const res = await this.client.get<string>(`${apiPrefix}/logs/export`, { parseJson: false })
+    const res = await this.client.get<string>(`${apiPrefix}/logs/export`, {
+      parseJson: false,
+    })
     return typeof res.data === 'string' ? res.data : ''
   }
 
@@ -67,14 +106,17 @@ export class SettingsApi {
 
   async updateTabConfig(
     config: TabConfig,
-    { serverBaseUrl, assertCurrent }: {
+    {
+      serverBaseUrl,
+      assertCurrent,
+    }: {
       serverBaseUrl?: string
       assertCurrent?: RequestOptions['assertCurrent']
     } = {},
   ): Promise<TabConfig> {
     const body = {
       show_library: config.showLibrary,
-      plugin_tabs: config.pluginTabs.map((t) => ({
+      plugin_tabs: config.pluginTabs.map(t => ({
         plugin_id: t.pluginId,
         entry_path: t.entryPath,
         name: t.name,
@@ -190,10 +232,18 @@ export class SettingsApi {
 
   async updateProxySettings(settings: ProxySettings): Promise<void> {
     await Promise.all([
-      this.client.put(`${apiPrefix}/settings/http-proxy`, { proxy: settings.httpProxy }),
-      this.client.put(`${apiPrefix}/settings/github-proxy`, { proxy: settings.githubProxy }),
-      this.client.put(`${apiPrefix}/settings/hls-proxy`, { enabled: settings.hlsEnabled }),
-      this.client.put(`${apiPrefix}/settings/proxy-private-allowlist`, { allowlist: settings.allowlist }),
+      this.client.put(`${apiPrefix}/settings/http-proxy`, {
+        proxy: settings.httpProxy,
+      }),
+      this.client.put(`${apiPrefix}/settings/github-proxy`, {
+        proxy: settings.githubProxy,
+      }),
+      this.client.put(`${apiPrefix}/settings/hls-proxy`, {
+        enabled: settings.hlsEnabled,
+      }),
+      this.client.put(`${apiPrefix}/settings/proxy-private-allowlist`, {
+        allowlist: settings.allowlist,
+      }),
     ])
   }
 }

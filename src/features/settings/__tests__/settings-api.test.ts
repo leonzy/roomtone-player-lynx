@@ -12,11 +12,23 @@ function client(transport: Transport) {
   return createPublicClient({ transport, getBaseUrl: () => 'http://api.test' })
 }
 
+test.each(['stable', 'dev'] as const)(
+  'backend %s updates send version_type through the real HTTP client',
+  async channel => {
+    const cap = capture(200, '{}')
+    await new SettingsApi(client(cap.transport)).startUpgrade(channel)
+    expect(cap.url()).toBe(`http://api.test${apiPrefix}/upgrade/start`)
+    expect(cap.method()).toBe('POST')
+    expect(JSON.parse(cap.body()!)).toEqual({ version_type: channel })
+  },
+)
+
 test('GitHub discovery credentials are read, saved, and cleared through the business endpoint', async () => {
   let token = ''
   const transport = vi.fn<Transport>(async request => {
     expect(request.url).toBe(`http://api.test${apiPrefix}/settings/github-discovery-token`)
-    if (request.method === 'PUT') token = (JSON.parse(request.body ?? '{}') as { token: string }).token
+    if (request.method === 'PUT')
+      token = (JSON.parse(request.body ?? '{}') as { token: string }).token
     return { status: 200, headers: {}, body: JSON.stringify({ token }) }
   })
   const api = new SettingsApi(client(transport))
@@ -29,12 +41,21 @@ test('GitHub discovery credentials are read, saved, and cleared through the busi
 test('GitHub token writes cannot switch servers while authentication is pending', async () => {
   let current = true
   let release!: () => void
-  const pendingAuth = new Promise<void>(resolve => { release = resolve })
+  const pendingAuth = new Promise<void>(resolve => {
+    release = resolve
+  })
   const transport = vi.fn<Transport>()
-  const api = new SettingsApi(new HttpClient({ transport, interceptor: { onRequest: () => pendingAuth } }))
+  const api = new SettingsApi(
+    new HttpClient({
+      transport,
+      interceptor: { onRequest: () => pendingAuth },
+    }),
+  )
   const pending = api.updateGithubDiscoveryToken('ghp_secret', {
     serverBaseUrl: 'http://first.test/music',
-    assertCurrent: () => { if (!current) throw new Error('Server changed') },
+    assertCurrent: () => {
+      if (!current) throw new Error('Server changed')
+    },
   })
   current = false
   release()
@@ -42,29 +63,46 @@ test('GitHub token writes cannot switch servers while authentication is pending'
   expect(transport).not.toHaveBeenCalled()
 })
 
-function capture(status: number, body: string): { transport: Transport; url: () => string; method: () => string; body: () => string | undefined } {
+function capture(
+  status: number,
+  body: string,
+): {
+  transport: Transport
+  url: () => string
+  method: () => string
+  body: () => string | undefined
+} {
   let seenUrl = ''
   let seenMethod = ''
   let seenBody: string | undefined
-  const transport: Transport = async (req) => {
+  const transport: Transport = async req => {
     seenUrl = req.url
     seenMethod = req.method
     seenBody = req.body
     return { status, headers: {}, body }
   }
-  return { transport, url: () => seenUrl, method: () => seenMethod, body: () => seenBody }
+  return {
+    transport,
+    url: () => seenUrl,
+    method: () => seenMethod,
+    body: () => seenBody,
+  }
 }
 
 test('navigation save pins its server and subpath while authentication is pending', async () => {
   let baseUrl = 'http://first.test'
   let release!: () => void
-  const authentication = new Promise<void>(resolve => { release = resolve })
+  const authentication = new Promise<void>(resolve => {
+    release = resolve
+  })
   const cap = capture(200, JSON.stringify({ show_library: false, plugin_tabs: [] }))
-  const api = new SettingsApi(new HttpClient({
-    transport: cap.transport,
-    getBaseUrl: () => baseUrl,
-    interceptor: { onRequest: () => authentication },
-  }))
+  const api = new SettingsApi(
+    new HttpClient({
+      transport: cap.transport,
+      getBaseUrl: () => baseUrl,
+      interceptor: { onRequest: () => authentication },
+    }),
+  )
   const pending = api.updateTabConfig(
     { showLibrary: false, pluginTabs: [] },
     { serverBaseUrl: 'http://first.test/music' },
@@ -79,16 +117,29 @@ test('navigation save pins its server and subpath while authentication is pendin
 test('navigation save does not send after its session changes during authentication', async () => {
   let current = true
   let release!: () => void
-  const authentication = new Promise<void>(resolve => { release = resolve })
-  const transport = vi.fn<Transport>(async () => ({ status: 200, headers: {}, body: '{}' }))
-  const api = new SettingsApi(new HttpClient({
-    transport,
-    interceptor: { onRequest: () => authentication },
-  }))
-  const pending = api.updateTabConfig({ showLibrary: false, pluginTabs: [] }, {
-    serverBaseUrl: 'http://first.test',
-    assertCurrent: () => { if (!current) throw new Error('Server changed') },
+  const authentication = new Promise<void>(resolve => {
+    release = resolve
   })
+  const transport = vi.fn<Transport>(async () => ({
+    status: 200,
+    headers: {},
+    body: '{}',
+  }))
+  const api = new SettingsApi(
+    new HttpClient({
+      transport,
+      interceptor: { onRequest: () => authentication },
+    }),
+  )
+  const pending = api.updateTabConfig(
+    { showLibrary: false, pluginTabs: [] },
+    {
+      serverBaseUrl: 'http://first.test',
+      assertCurrent: () => {
+        if (!current) throw new Error('Server changed')
+      },
+    },
+  )
   current = false
   release()
   await expect(pending).rejects.toThrow('Server changed')
@@ -98,24 +149,37 @@ test('navigation save does not send after its session changes during authenticat
 test('late navigation 401 does not refresh or replay using a new session', async () => {
   let current = true
   let release!: () => void
-  const response = new Promise<void>(resolve => { release = resolve })
+  const response = new Promise<void>(resolve => {
+    release = resolve
+  })
   const tokens = new TokenStore(createMemoryStorage().secure)
   await tokens.saveTokens({
-    accessToken: 'old-access', refreshToken: 'old-refresh', expiresIn: 3600, tokenType: 'Bearer',
+    accessToken: 'old-access',
+    refreshToken: 'old-refresh',
+    expiresIn: 3600,
+    tokenType: 'Bearer',
   })
   const transport = vi.fn<Transport>(async () => {
     await response
     return { status: 401, headers: {}, body: '{"error":"expired"}' }
   })
   const { client } = createApiClient({ transport, tokens })
-  const pending = new SettingsApi(client).updateTabConfig({ showLibrary: false, pluginTabs: [] }, {
-    serverBaseUrl: 'http://first.test',
-    assertCurrent: () => { if (!current) throw new Error('Server changed') },
-  })
+  const pending = new SettingsApi(client).updateTabConfig(
+    { showLibrary: false, pluginTabs: [] },
+    {
+      serverBaseUrl: 'http://first.test',
+      assertCurrent: () => {
+        if (!current) throw new Error('Server changed')
+      },
+    },
+  )
   await vi.waitFor(() => expect(transport).toHaveBeenCalledTimes(1))
   current = false
   await tokens.saveTokens({
-    accessToken: 'new-access', refreshToken: 'new-refresh', expiresIn: 3600, tokenType: 'Bearer',
+    accessToken: 'new-access',
+    refreshToken: 'new-refresh',
+    expiresIn: 3600,
+    tokenType: 'Bearer',
   })
   release()
   await expect(pending).rejects.toThrow('Server changed')
@@ -126,17 +190,28 @@ test('late navigation 401 does not refresh or replay using a new session', async
 test('navigation auth replay checks the session again after asynchronous recovery', async () => {
   let current = true
   let release!: () => void
-  const recovery = new Promise<void>(resolve => { release = resolve })
-  const transport = vi.fn<Transport>(async () => ({ status: 401, headers: {}, body: '{}' }))
+  const recovery = new Promise<void>(resolve => {
+    release = resolve
+  })
+  const transport = vi.fn<Transport>(async () => ({
+    status: 401,
+    headers: {},
+    body: '{}',
+  }))
   const onError = vi.fn(async (_ctx, _res, resend) => {
     await recovery
     return resend({ Authorization: 'Bearer new-access' })
   })
   const api = new SettingsApi(new HttpClient({ transport, interceptor: { onError } }))
-  const pending = api.updateTabConfig({ showLibrary: false, pluginTabs: [] }, {
-    serverBaseUrl: 'http://first.test',
-    assertCurrent: () => { if (!current) throw new Error('Server changed') },
-  })
+  const pending = api.updateTabConfig(
+    { showLibrary: false, pluginTabs: [] },
+    {
+      serverBaseUrl: 'http://first.test',
+      assertCurrent: () => {
+        if (!current) throw new Error('Server changed')
+      },
+    },
+  )
   await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(1))
   current = false
   release()

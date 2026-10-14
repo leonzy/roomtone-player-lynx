@@ -1,4 +1,10 @@
-# Handoff (2026-10-13)
+# Handoff (2026-10-14)
+
+## Backend Update Request · songloft-org/songloft-player-lynx#11 (2026-10-14)
+
+The user authorized local commits for this Lynx fix and the parent submodule pointer. The source identifier still matches the validated worktree; all 12 files belong to this batch, and diff/encoding checks pass. Git records the actual results. Uncommitted descriptions below are validation-stage snapshots; pushes, releases, and Issue writes are not authorized.
+
+Fixed the empty body causing the invalid version-type error. SettingsApi sends the running channel as `version_type`; checks read that channel's `updates` and `release_notes`. Non-Docker deployments have no online action; retries clear old errors, repeated taps are guarded, and polling waits for the start request. Baseline `0651222`; source worktree SHA-256 `faec7a428a9675dc1d3e5c98191d963555b8616c409e93658daae6f651e8389b`. Detailed evidence is in [progress](../../project/progress.md). The full suite passed 317 files / 3467 tests; after final regression additions and formatting, 3 files / 36 tests, types, production Lynx/Web bundles, and the Web deployment build passed. Five regressions fail as expected with the isolated old widget. Full About-page checks in Docker Chromium cover dev rejection/retry, stable success, and zero POSTs outside Docker, with no page errors and visually reviewed screenshots. Update endpoints are fixtures; no real server was replaced. Not run: Android (no connected device), iOS/HarmonyOS devices, actual upgrades, and cloud CI. Self-review, formatting, diff, and UTF-8 checks pass. No commits, pushes, releases, or Issue writes; parent gitlink unchanged. Historical snapshots below do not authorize external actions for this batch.
 
 ## AI Workflow Reorganization (2026-10-13)
 
