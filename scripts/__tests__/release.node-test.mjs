@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
   cpSync,
@@ -233,10 +233,12 @@ function releaseRepo(t, name = 'repo') {
   git(['commit', '-m', 'test: baseline'])
   git(['remote', 'add', 'origin', remote])
   git(['push', '-u', 'origin', 'main'])
-  const run = (args) =>
+  const run = (args, options = {}) =>
     spawnSync(process.execPath, ['scripts/bump-version.mjs', ...args], {
       cwd: repo,
       encoding: 'utf8',
+      timeout: 10000,
+      ...options,
     })
   const runShell = (args) =>
     spawnSync(join(repo, 'scripts/bump-version.sh'), args, {
@@ -259,8 +261,9 @@ test('shell release entry works outside a repository with spaces and preserves d
   })
   const result = runShell(['0.2.0-beta.1', '--dry-run', '--no-push'])
   assert.equal(result.status, 0, result.error?.message ?? result.stderr)
-  assert.match(result.stdout, /0\.1\.0 → 0\.2\.0-beta\.1/)
-  assert.match(result.stdout, /Push: disabled/)
+  assert.match(result.stderr, /0\.1\.0 → 0\.2\.0-beta\.1/)
+  assert.match(result.stderr, /Push: disabled/)
+  assert.equal(result.stdout, 'v0.2.0-beta.1\n')
   // 统一发布契约：stdout 末行输出新版本号（带 v 前缀）
   assert.equal(result.stdout.trim().split('\n').pop(), 'v0.2.0-beta.1')
   assert.equal(git(['rev-parse', 'HEAD']), before)
@@ -329,6 +332,64 @@ test('release dry-run changes neither files, tags, HEAD nor remote refs', (t) =>
     remoteBefore,
   )
 })
+
+test('captured stdout leaves the plan and prompt visible before confirmation', async (t) => {
+  const { repo, git } = releaseRepo(t)
+  const result = await new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      ['scripts/bump-version.mjs', 'minor', '--no-push'],
+      { cwd: repo, timeout: 10000 },
+    )
+    let stdout = ''
+    let stderr = ''
+    let confirmed = false
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk
+    })
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk
+      if (!confirmed && stderr.includes('Release v0.2.0? [y/N] ')) {
+        confirmed = true
+        child.stdin.end('yes\n')
+      }
+    })
+    child.on('error', reject)
+    child.on('close', (status) =>
+      resolve({ status, stdout, stderr, confirmed }),
+    )
+  })
+  assert.equal(result.confirmed, true, result.stderr)
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(result.stderr, /0\.1\.0 → 0\.2\.0/)
+  assert.equal(result.stdout, 'v0.2.0\n')
+  assert.equal(git(['rev-parse', 'v0.2.0^{}']), git(['rev-parse', 'HEAD']))
+})
+
+for (const [label, input] of [
+  ['Enter', '\n'],
+  ['no', 'n\n'],
+  ['EOF', ''],
+]) {
+  test(`release cancellation via ${label} fails without changing files, tags or refs`, (t) => {
+    const { remote, git, run } = releaseRepo(t)
+    const before = git(['rev-parse', 'HEAD'])
+    const remoteBefore = execFileSync('git', ['--git-dir', remote, 'show-ref'], {
+      encoding: 'utf8',
+    })
+    const result = run(['minor', '--no-push'], { input })
+    assert.equal(result.status, 1, result.stderr)
+    assert.match(result.stderr, /Release cancelled/)
+    assert.equal(result.stdout, '')
+    assert.equal(git(['rev-parse', 'HEAD']), before)
+    assert.equal(git(['status', '--porcelain']), '')
+    assert.equal(git(['tag']), '')
+    assert.equal(
+      execFileSync('git', ['--git-dir', remote, 'show-ref'], { encoding: 'utf8' }),
+      remoteBefore,
+    )
+  })
+}
 
 test('release CLI synchronizes native versions and atomically publishes only main and its tag', (t) => {
   const { repo, remote, git, run } = releaseRepo(t)

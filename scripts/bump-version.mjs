@@ -48,7 +48,7 @@ try {
     }).status === 0
   )
     throw new Error(`Tag ${tag} already exists`)
-  console.log(
+  console.error(
     `${pkg.version} → ${next}\nFiles: package.json, harmony/AppScope/app.json5, ios/SongloftLynx.xcodeproj/project.pbxproj\nCommit: chore(release): 发布 ${next}\nTag: ${tag}\nPush: ${flags.has('--no-push') ? 'disabled' : 'main + tag (atomic)'}`,
   )
   if (flags.has('--dry-run')) {
@@ -82,11 +82,18 @@ try {
   if (!flags.has('--yes')) {
     const prompt = createInterface({
       input: process.stdin,
-      output: process.stdout,
+      output: process.stderr,
     })
-    const answer = await prompt.question(`Release ${tag}? [y/N] `)
-    prompt.close()
-    if (!/^y(es)?$/i.test(answer.trim())) process.exit(0)
+    let answer
+    try {
+      const answers = prompt[Symbol.asyncIterator]()
+      process.stderr.write(`Release ${tag}? [y/N] `)
+      answer = (await answers.next()).value ?? ''
+    } finally {
+      prompt.close()
+    }
+    if (!/^y(es)?$/i.test(answer.trim()))
+      throw new Error('Release cancelled; no files or tags changed')
   }
   // Validate/sync native files before changing package.json.
   syncNativeVersions(root, next)

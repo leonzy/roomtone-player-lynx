@@ -10,6 +10,14 @@
 
 ## 条目
 
+### RELEASE-001：确认提示走 stderr，取消必须返回失败
+
+- 范围：`scripts/bump-version.mjs` 及父仓库一键发布的命令替换调用。
+- 规则：stdout 留给成功版本结果；计划与确认提示实时写 stderr。空回车、拒绝与 EOF 均取消并返回非零，避免编排继续执行；交互读取须能在 EOF 正常结束。
+- 证据：2026-10-15，基线 `0de993ff272ee29df96c8401b46df56256646438` 在父脚本捕获 stdout 时隐藏提示，回车退出 0；新增 5 项相关回归在旧实现全失败，修复后通过。完整记录及 Not run 见 [本批进展](docs/project/progress.md#2026-10-15--发布确认交互)。
+- Done right：发布工具 81 项通过；PTY 实际命令替换在输入前显示版本与提示，回车退出 1 且无写入，yes 只创建预期本地提交/tag，夹具远程保持不变。证据 `/tmp/songloft-release-terminal-result.json`。
+- Seen 1× (2026-10-15)。状态：经验；本次未提交、推送或正式发布。
+
 ### UI-003：颜色 getter 正确不代表常驻 SVG 已更新
 
 - 范围：内置配色、服务器主题包与常驻导航，songloft-org/songloft#523。

@@ -93,6 +93,8 @@ pnpm run release release       # 去掉当前版本的 prerelease 后缀
 
 `--dry-run` 打印版本与命令，不改文件、不提交、不联网或推送；可以在 dirty 工作树中预览。实际发布要求：`main`、干净工作树、新版本高于当前版本、tag 本地及远程都不存在、本地 main 包含远程 main。脚本先检查这些前提，再询问确认。
 
+版本计划与确认提示写到 stderr，即使 stdout 被一键发布脚本捕获也会实时显示；成功时 stdout 只输出 `v<版本>`。确认只接受 `y` / `yes`（不区分大小写）；直接回车、拒绝或输入结束均返回非零退出码，取消本仓库并停止一键发布后续步骤。此前已完成的其他仓库发布不会回滚。
+
 实际操作依次为：同步 `package.json` 与 iOS/HarmonyOS 原生版本 → 创建中文 Conventional Commit → 创建 annotated `v*` tag → 用 `git push --atomic` 一次推送 main 与该 tag。tag 推送触发 CI。Android 默认值从 package.json/构建元数据读取，不维护第五份版本常量。
 
 可用 `--yes` 跳过脚本自己的交互确认，`--no-push` 只创建本地 commit/tag。网络预检仍会执行。已发布版本不覆盖；失败后保留本地结果供检查，不会删除 tag、reset 或自动回滚。

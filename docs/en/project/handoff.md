@@ -1,5 +1,9 @@
 # Handoff (2026-10-14)
 
+## 2026-10-15 · Release Confirmation
+
+The uncommitted worktree fixes hidden Lynx version/confirmation prompts during command substitution and successful exits on Enter cancellation. Plans/prompts use stderr, cancellation/EOF exits nonzero, and the parent validates all three version results. Baseline: `0de993ff272ee29df96c8401b46df56256646438`; all 5 new relevant checks fail against the original implementation. On Linux amd64 / Node 22.17.1, production Lynx/Web bundle builds and all 81 release-tool tests pass; existing unsupported touch-action warnings remain. A PTY with actual command substitution verifies visible prompts before input, Enter exiting 1 without writes, and yes creating only local release commits/tags; fixture remote refs remain unchanged. Logs: `/tmp/songloft-release-lynx-{before,after,build,suite}.log`; evidence and final diff fingerprints: `/tmp/songloft-release-{terminal-result,validation}.json`. Not run: shared TS/Vitest, native/device checks (standalone Node tooling changes), actual publication/CI (unauthorized). This task has not committed, pushed or changed the parent gitlink. Chinese full record: [progress](../../project/progress.md#2026-10-15--发布确认交互).
+
 2026-10-15: The user authorized #523 commits, pushes and an Issue reply. Commit both clients before synchronizing parent gitlinks; no stable tag or Issue closure. Uncommitted states below for this batch are validation snapshots; Git/CI and the Issue comment determine final delivery.
 
 ## 2026-10-15 · #523 Lyric Backgrounds and Built-in Palettes

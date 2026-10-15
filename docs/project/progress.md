@@ -1,5 +1,13 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-15 · 发布确认交互
+
+基线 `0de993ff272ee29df96c8401b46df56256646438` + 本次未提交工作树：修复父脚本命令替换捕获 stdout 导致 Lynx 版本/确认提示不可见，以及空回车取消却退出成功。计划/提示改写 stderr，stdout 成功时只输出 tag；回车、n 与 EOF 均退出 1，让父流程停止。父仓库同时校验三个版本结果，阻止无结果/提示文字被误当作成功版本。
+
+2026-10-15，Linux amd64 / Node 22.17.1：旧实现新增 5 项流/取消回归全失败；修复后目标文件 15 项、`pnpm run build` 的 Lynx/Web 双产物、其后 `pnpm run test:release` 全部 81 项通过。构建保留既有 touch-action 不支持告警。PTY 真终端执行 `out=$(./scripts/bump-version.sh minor --no-push)`，在输入前验证版本/提示可见，回车无写入且退出 1，yes 创建预期本地提交/tag；两种情形远程引用均不变。验证日志 `/tmp/songloft-release-lynx-{before,after,build,suite}.log`、`/tmp/songloft-release-terminal-result.json`；最终差异指纹 `/tmp/songloft-release-validation.json`。
+
+Not run：共享 TS 类型/Vitest、原生构建及设备验收（仅修改独立 Node 发布工具与文档）；真实网络发布与 CI（本次无提交/推送/发版授权）。父 gitlink 保留用户状态，未由本次任务更新。英文验证快照见 [handoff](../en/project/handoff.md#2026-10-15--release-confirmation)。
+
 2026-10-15：用户随后授权 #523 的提交、推送与回复 Issue；实际交付状态以 Git/CI 和评论为准，下方未提交描述保留为验证阶段快照。不打正式版 tag，不关闭 Issue。
 
 ## 2026-10-15 · songloft-org/songloft#523 歌词背景与六种配色

@@ -93,6 +93,8 @@ pnpm run release release       # Remove the current prerelease suffix
 
 `--dry-run` prints the version and operations without editing, committing, connecting to the network, or pushing; a dirty working tree is allowed for previewing. Actual releases require `main`, a clean tree, a newer version, an unused local/remote tag, and local main containing remote main. The script checks these prerequisites before asking for confirmation.
 
+Version plans and confirmation prompts go to stderr and remain visible when the one-command release script captures stdout. On success, stdout contains only `v<version>`. Confirmation accepts only `y` / `yes` (case-insensitive); Enter, rejection, or end of input returns a nonzero exit code, cancelling this repository and stopping subsequent release steps. Releases already completed in other repositories are preserved.
+
 It synchronizes package.json and native iOS/HarmonyOS versions, makes a Chinese Conventional Commit, creates an annotated `v*` tag, then pushes main and that exact tag using `git push --atomic`. Pushing the tag starts CI. Android reads defaults from package.json/build metadata instead of maintaining another version constant.
 
 `--yes` skips the script's interactive prompt. `--no-push` creates the local commit/tag only; remote preflight still runs. Published versions are immutable. Failures preserve local results for inspection; the script never deletes tags, resets, or automatically rolls back.

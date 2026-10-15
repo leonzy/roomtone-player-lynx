@@ -10,6 +10,14 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### RELEASE-001: Send confirmation prompts to stderr and fail on cancellation
+
+- Scope: `scripts/bump-version.mjs` and command substitution in the parent release orchestrator.
+- Rule: reserve stdout for the successful version result; send plans/prompts to stderr immediately. Enter, rejection and EOF must cancel with a nonzero exit so orchestration stops; input handling must terminate cleanly on EOF.
+- Evidence: on 2026-10-15, baseline `0de993ff272ee29df96c8401b46df56256646438` hid prompts when the parent captured stdout and returned 0 on Enter. All 5 new relevant checks failed against the original implementation and pass after the fix. Full record and Not run: [handoff](docs/en/project/handoff.md#2026-10-15--release-confirmation).
+- Done right: all 81 release-tool tests pass. A PTY with actual command substitution shows the version and prompt before input; Enter exits 1 without writes, and yes creates only the expected local commit/tag, preserving fixture remote refs. Evidence: `/tmp/songloft-release-terminal-result.json`.
+- Seen 1× (2026-10-15). Status: lesson; no commits, pushes or actual releases performed by this task.
+
 ### UI-003: A correct color getter does not update persistent SVGs
 
 - Scope: built-in palettes, server packs and persistent navigation, songloft-org/songloft#523.
