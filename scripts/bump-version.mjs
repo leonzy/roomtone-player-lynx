@@ -51,7 +51,11 @@ try {
   console.log(
     `${pkg.version} → ${next}\nFiles: package.json, harmony/AppScope/app.json5, ios/SongloftLynx.xcodeproj/project.pbxproj\nCommit: chore(release): 发布 ${next}\nTag: ${tag}\nPush: ${flags.has('--no-push') ? 'disabled' : 'main + tag (atomic)'}`,
   )
-  if (flags.has('--dry-run')) process.exit(0)
+  if (flags.has('--dry-run')) {
+    // 统一发布契约：stdout 末行输出新版本号（带 v 前缀），方便链式调用。
+    console.log(tag)
+    process.exit(0)
+  }
   if (git(['status', '--porcelain']))
     throw new Error(
       'Working tree must be clean; commit or preserve your changes first',
@@ -105,9 +109,11 @@ try {
       'HEAD:refs/heads/main',
       `refs/tags/${tag}`,
     ])
-  console.log(
+  console.error(
     `Prepared ${tag}${flags.has('--no-push') ? ' locally' : ': https://github.com/songloft-org/songloft-player-lynx/releases/tag/' + tag}`,
   )
+  // 统一发布契约：stdout 末行输出新版本号（带 v 前缀），方便链式调用。
+  console.log(tag)
 } catch (error) {
   console.error(`[release] ${error.message}`)
   process.exitCode = 1

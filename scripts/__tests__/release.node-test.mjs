@@ -261,6 +261,8 @@ test('shell release entry works outside a repository with spaces and preserves d
   assert.equal(result.status, 0, result.error?.message ?? result.stderr)
   assert.match(result.stdout, /0\.1\.0 → 0\.2\.0-beta\.1/)
   assert.match(result.stdout, /Push: disabled/)
+  // 统一发布契约：stdout 末行输出新版本号（带 v 前缀）
+  assert.equal(result.stdout.trim().split('\n').pop(), 'v0.2.0-beta.1')
   assert.equal(git(['rev-parse', 'HEAD']), before)
   assert.equal(git(['status', '--porcelain']), '')
   assert.equal(git(['tag']), '')
@@ -332,6 +334,8 @@ test('release CLI synchronizes native versions and atomically publishes only mai
   const { repo, remote, git, run } = releaseRepo(t)
   const result = run(['minor', '--yes'])
   assert.equal(result.status, 0, result.stderr)
+  // 统一发布契约：stdout 末行输出新版本号（带 v 前缀）
+  assert.equal(result.stdout.trim().split('\n').pop(), 'v0.2.0')
   assert.equal(
     JSON.parse(readFileSync(join(repo, 'package.json'))).version,
     '0.2.0',
