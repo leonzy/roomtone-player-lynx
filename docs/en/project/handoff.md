@@ -1,5 +1,9 @@
 # Handoff (2026-10-14)
 
+## 2026-10-15 · #524 Playlist Sorting
+
+The playlist sort label is now “歌曲名称 / Song name”, retaining the `title` parameter. The parent fixes shared pinyin ordering for pages, playback-position IDs and permanent name sorting. Lynx type checks, all 3516 tests, both bundles/Web deployment builds and bilingual 390px browser checks pass: ascending/descending names, artist sorting, saved preferences and re-entry restoration, with no page exceptions. Object: baseline `2698e2eb1d85990f8c1433261e430697aaf3b33d` plus this working tree; see progress and `/tmp/songloft-524/{lynx-browser,validation}.json`. Not run: local native builds/hardware; polyphones use dictionary default readings. The user authorized commits, pushes and a reply to #524. Fast-forward to changelog-only `e73afc82b40501902b93a1d91476e98279e8bc40`, commit clients before parent gitlinks, and check actual SHAs/CI/comment in delivery records. No stable tag or Issue closure.
+
 ## 2026-10-14 · #520 Exit and Cache Follow-up
 
 Android explicit exit and Home double-back now stop native playback/services and release the process, preserving login. Shared sliders use matching coordinate spaces, retain quick-release commits and render their fill correctly; actual endpoint/midpoint taps persist expected device/server bytes. All 3516 tests, 77 release checks, type checks, production builds and Android Debug build pass; settings exit, double back and notification Stop were exercised on API 34. The user authorized commits, pushes and an Issue reply on 2026-10-15; Git/CI determine the final SHAs and development packages. A complete APK is required; HarmonyOS 4.2 hardware remains Not run. Details and working-tree evidence: [#520 record](issue-520.md).
