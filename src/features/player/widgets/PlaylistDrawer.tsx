@@ -1,6 +1,10 @@
+import { useRef, useState, useSyncExternalStore } from '@lynx-js/react'
+import type { ScrollEvent } from '@lynx-js/types'
 import { useTranslation } from 'react-i18next'
 
-import { VirtualList } from '../../library/widgets/VirtualList.js'
+import type { Song } from '../../../models/song.js'
+import { useBreakpoint } from '../../../shared/responsive/useBreakpoint.js'
+import { getFontScaleNumber, subscribeFontScale } from '../../../shared/theme/font-scale-model.js'
 import { usePlayerStore } from '../store/index.js'
 import { useBackHandler } from '../../../shared/nav/use-back-handler.js'
 import { ModalMaterial } from '../../../shared/ui/ModalMaterial.js'
@@ -15,6 +19,7 @@ export function PlaylistDrawer() {
   const show = usePlayerStore((s) => s.showPlaylistDrawer)
   const playlist = usePlayerStore((s) => s.playlist)
   const currentIndex = usePlayerStore((s) => s.currentIndex)
+  const fontScale = useSyncExternalStore(subscribeFontScale, getFontScaleNumber)
 
   useBackHandler(show, () => {
     usePlayerStore.getState().closePlaylistDrawer()
@@ -48,18 +53,62 @@ export function PlaylistDrawer() {
             )}
           </text>
         </view>
-        {/* The queue renders in the native `<list>` (VirtualList), i.e.
-            virtualized. The previous SortableRoot/ScrollView mounted every row
-            eagerly — each a main-thread DraggableRoot with a layoutchange
-            listener and a drag overlay — which froze the app on 500+ song
-            queues (songloft-org/songloft-player-lynx#4). Trade-off: drag to
-            reorder is gone; rows still tap to play and ✕ to remove. */}
-        <VirtualList
-          className='drawer__list drawer__list--queue'
-          items={playlist}
-          itemKey={(song, index) => `${song.id}:${index}`}
-          renderItem={(song, index) => (
+        <QueueRows key={fontScale} playlist={playlist} currentIndex={currentIndex} fontScale={fontScale} />
+      </view>
+    </view>
+  )
+}
+
+/**
+ * Native <list> defers native layout, but mapping the whole queue still mounts
+ * every React row and its marquee effects (songloft-org/songloft#525). Keep the
+ * JS child set bounded too. The scroller contains only a viewport plus overscan;
+ * two spacers preserve the full queue's scroll range on native and Web.
+ */
+function QueueRows({ playlist, currentIndex, fontScale }: {
+  playlist: readonly Song[]
+  currentIndex: number
+  fontScale: number
+}) {
+  // 12px padding on each side of a >=44px control/two-line metadata block.
+  // The same height sizes rows and offsets; large type expands both together.
+  const rowHeight = 24 + 44 * Math.max(1, fontScale)
+  const initialIndex = useRef(Math.max(0, Math.min(currentIndex, playlist.length - 1))).current
+  const initialLength = useRef(playlist.length).current
+  const [firstVisible, setFirstVisible] = useState(initialIndex)
+  const { height, onLayoutChange } = useBreakpoint(0, '.drawer__list--queue')
+  const viewport = height || 600
+  // Android defers this attribute until offset + viewport <= content height.
+  // Clamp the tail on mount, then refine once the actual viewport is measured.
+  // Snapshot queue length so deletion cannot reset a user's browsing position.
+  const initialOffset = Math.max(0, Math.min(initialIndex * rowHeight, initialLength * rowHeight - viewport))
+  const visibleCount = Math.ceil(viewport / rowHeight) + 1
+  const first = Math.min(firstVisible, Math.max(0, playlist.length - visibleCount))
+  const start = Math.max(0, first - 8)
+  const end = Math.min(playlist.length, first + visibleCount + 8)
+
+  const onScroll = (event: ScrollEvent) => {
+    const offset = event.detail.scrollTop
+    if (Number.isFinite(offset)) setFirstVisible(Math.max(0, Math.floor(offset / rowHeight)))
+  }
+
+  return (
+    <scroll-view
+      id='player-queue-list'
+      className='drawer__list drawer__list--queue'
+      scroll-orientation='vertical'
+      initial-scroll-offset={initialOffset}
+      bindlayoutchange={onLayoutChange}
+      bindscroll={onScroll}
+    >
+      <view className='drawer__window'>
+        <view className='drawer__spacer' style={{ height: `${start * rowHeight}px` }} />
+        {playlist.slice(start, end).map((song, offset) => {
+          const index = start + offset
+          return (
             <view
+              key={`${song.type}:${song.id}:${index}`}
+              style={{ height: `${rowHeight}px` }}
               className={index === currentIndex
                 ? 'drawer__row drawer__row--active'
                 : 'drawer__row'}
@@ -83,9 +132,10 @@ export function PlaylistDrawer() {
                 <text className='drawer__row-remove-glyph'>✕</text>
               </view>
             </view>
-          )}
-        />
+          )
+        })}
+        <view className='drawer__spacer' style={{ height: `${(playlist.length - end) * rowHeight}px` }} />
       </view>
-    </view>
+    </scroll-view>
   )
 }

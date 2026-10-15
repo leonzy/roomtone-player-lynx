@@ -22,8 +22,12 @@ const PREF_PLAYBACK_CONTEXT = 'playback_context'
 const PREF_PLAYBACK_SOURCE_PLAYLIST = 'playback_source_playlist'
 
 let writes: Promise<void> = Promise.resolve()
+// Store queues are immutable. Position/index updates must not re-encode or send
+// tens of thousands of unchanged songs through the native bridge every 10s.
+let savedQueue: { storage: SongloftStorage, playlist: Song[], offline: boolean } | null = null
 export function clearSavedPlaybackState(storage: SongloftStorage = getSongloftStorage()): Promise<void> {
   writes = writes.catch(() => {}).then(async () => {
+    savedQueue = null
     // PrimJS on native does not provide Promise.allSettled.
     await Promise.all([PREF_PLAYBACK_QUEUE, PREF_OFFLINE_PLAYBACK_QUEUE, PREF_PLAYBACK_INDEX, PREF_PLAYBACK_POSITION,
       PREF_PLAYBACK_CONTEXT, PREF_PLAYBACK_SOURCE_PLAYLIST].map(key => storage.prefs.remove(key).catch(() => {})))
@@ -89,10 +93,12 @@ export async function loadPlaybackState(): Promise<SavedPlaybackState | null> {
     if (playlist.length === 0) return null
 
     const currentIndex = Math.min(
-      Math.max(0, offline?.index ?? (indexStr ? parseInt(indexStr, 10) || 0 : 0)),
+      Math.max(0, indexStr != null ? parseInt(indexStr, 10) || 0 : offline?.index ?? 0),
       playlist.length - 1,
     )
-    const positionMs = Math.max(0, offline?.position ?? (posStr ? parseInt(posStr, 10) || 0 : 0))
+    // New offline saves share the small progress keys; version-1 envelopes from
+    // older bundles still supply the fallback, and contain no remote URLs.
+    const positionMs = Math.max(0, posStr != null ? parseInt(posStr, 10) || 0 : offline?.position ?? 0)
     // Falls back to the legacy playlist-only key for one upgrade.
     const context = offline ? undefined : parseSavedContext(contextJson)
       ?? playlistContext(playlistIdStr ? parseInt(playlistIdStr, 10) || 0 : 0)
@@ -119,11 +125,30 @@ export function savePlaybackState(params: SavePlaybackStateParams): Promise<void
   writes = writes.catch(() => {}).then(() => writePlaybackState(params))
   return writes
 }
+
+async function encodeQueue(playlist: readonly Song[]): Promise<{ json: string, offline: boolean }> {
+  const chunks: string[] = []
+  let offline = false
+  for (let start = 0; start < playlist.length; start += 256) {
+    const batch = playlist.slice(start, start + 256).map(song => {
+      const identity = cachedSongIdentity(song)
+      if (!identity) return songToJson(song)
+      offline = true
+      return { ...songToJson(snapshotCachedSong(song, identity)), device_cache: identity }
+    })
+    chunks.push(JSON.stringify(batch).slice(1, -1))
+    // Yield to input, progress and store updates while preparing a large queue.
+    if (start + 256 < playlist.length) await new Promise<void>(resolve => setTimeout(resolve, 0))
+  }
+  return { json: `[${chunks.join(',')}]`, offline }
+}
+
 async function writePlaybackState(params: SavePlaybackStateParams): Promise<void> {
   const { playlist, currentIndex, positionMs, context } = params
   try {
     const storage = getSongloftStorage()
     if (playlist.length === 0) {
+      savedQueue = null
       await Promise.all([
         storage.prefs.remove(PREF_PLAYBACK_QUEUE),
         storage.prefs.remove(PREF_OFFLINE_PLAYBACK_QUEUE),
@@ -134,31 +159,30 @@ async function writePlaybackState(params: SavePlaybackStateParams): Promise<void
       ])
       return
     }
-    const queueJson = JSON.stringify(playlist.map(song => {
-      const identity = cachedSongIdentity(song)
-      return { ...songToJson(identity ? snapshotCachedSong(song, identity) : song), ...(identity && { device_cache: identity }) }
-    }))
-    // Older bundles do not understand deviceCache. Keeping local queues separate means rollback
-    // sees an empty remote queue instead of trying to stream a snapshot with no remote URL.
-    if (playlist.some(song => cachedSongIdentity(song) !== null)) {
-      await Promise.all([
-        storage.prefs.set(PREF_OFFLINE_PLAYBACK_QUEUE, JSON.stringify({ version: 1, queue: JSON.parse(queueJson), index: currentIndex, position: Math.round(positionMs) })),
-        ...[PREF_PLAYBACK_QUEUE, PREF_PLAYBACK_INDEX, PREF_PLAYBACK_POSITION, PREF_PLAYBACK_CONTEXT, PREF_PLAYBACK_SOURCE_PLAYLIST].map(key => storage.prefs.remove(key)),
-      ])
-      return
+    let offline = savedQueue?.offline ?? false
+    if (savedQueue?.playlist !== playlist || savedQueue.storage !== storage) {
+      const encoded = await encodeQueue(playlist)
+      offline = encoded.offline
+      // Preserve the version-1 offline envelope for older bundles; current
+      // progress lives separately so subsequent ticks only write small keys.
+      await storage.prefs.set(offline ? PREF_OFFLINE_PLAYBACK_QUEUE : PREF_PLAYBACK_QUEUE,
+        offline
+          ? `{"version":1,"queue":${encoded.json},"index":${JSON.stringify(currentIndex)},"position":${JSON.stringify(Math.round(positionMs))}}`
+          : encoded.json)
+      await storage.prefs.remove(offline ? PREF_PLAYBACK_QUEUE : PREF_OFFLINE_PLAYBACK_QUEUE)
     }
     await Promise.all([
-      storage.prefs.remove(PREF_OFFLINE_PLAYBACK_QUEUE),
-      storage.prefs.set(PREF_PLAYBACK_QUEUE, queueJson),
       storage.prefs.set(PREF_PLAYBACK_INDEX, String(currentIndex)),
       storage.prefs.set(PREF_PLAYBACK_POSITION, String(Math.round(positionMs))),
-      context != null
+      !offline && context != null
         ? storage.prefs.set(PREF_PLAYBACK_CONTEXT, JSON.stringify(context))
         : storage.prefs.remove(PREF_PLAYBACK_CONTEXT),
       // The legacy key is never written again; drop whatever an older build left.
       storage.prefs.remove(PREF_PLAYBACK_SOURCE_PLAYLIST),
     ])
+    savedQueue = { storage, playlist, offline }
   } catch {
+    savedQueue = null // A partial/failed write must be retried in full.
     // best-effort
   }
 }

@@ -58,6 +58,7 @@
 }
 
 .drawer__handle-wrap {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -74,6 +75,7 @@
 }
 
 .drawer__header {
+  flex-shrink: 0;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -96,19 +98,22 @@
   flex: 1;
 }
 
-/*
- * The queue drawer's body is the native `<list>` (VirtualList), while the
- * sleep-timer sheet shares `.drawer__list` on a `<scroll-view>` — so the
- * `<list>`-specific shape lives on a modifier: the same column flex the other
- * `<list>` consumers declare (`.category-songs__list`, `.playlist-detail__list`),
- * resolving its height from the fixed-footprint panel (`height: 70%`).
- */
 .drawer__list--queue {
+  min-height: 0;
+}
+
+.drawer__window {
   display: flex;
   flex-direction: column;
 }
 
+.drawer__spacer {
+  flex-shrink: 0;
+}
+
 .drawer__row {
+  box-sizing: border-box;
+  flex-shrink: 0;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -128,6 +133,7 @@
 }
 
 .drawer__row-meta {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -136,6 +142,7 @@
 .drawer__row-title {
   color: var(--label);
   font-size: var(--font-body);
+  line-height: 1.4;
 }
 
 .drawer__row--active .drawer__row-title {
@@ -161,9 +168,14 @@
   color: var(--secondary-label);
   font-size: var(--font-caption1);
   margin-top: var(--space-half);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .drawer__row-remove {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;

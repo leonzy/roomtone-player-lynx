@@ -10,6 +10,14 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### LIST-001: Delegating to a virtual list does not establish large-queue runtime performance
+
+- Scope: playback queues, shared `VirtualList`, Web and native runtimes, songloft-org/songloft#525.
+- Evidence: on 2026-10-15, all 80 relevant tests pass at baseline `e924f05a334254b6eb754927b2808f87a7943302`; the 500-song test mocks the list and verifies delegation. An actual 30,000-song queue causes Web query timeouts after clicking and hits the native bridge's 15-second deadline on Android 34 with ARM64 translation, while its media session continues playing the same song.
+- Rule: component names, native layout virtualization and mocked structural assertions do not prove that background JS processes only visible rows. Check JS construction, layout, measurement, interaction and media progress at the actual scale. Passing at 100/500 songs does not establish 30,000 songs.
+- Done right: bound row creation to the viewport and keep font-scaled sizing/offsets aligned. Progress saves update small keys; queue changes encode in batches. The final 3,543-test suite, four Web cases and native Android 30,000-song opening/tail/removal/navigation checks pass. During automatic saving, 20 UI probes respond within 35ms. See the [#525 record](docs/en/project/issue-525.md) for objects, baseline failures, final evidence and Not run.
+- Seen 1× (2026-10-15). Status: lesson; the fix is uncommitted and this incident does not increment Seen. Hardware and other native platforms remain unverified.
+
 ### RELEASE-001: Send confirmation prompts to stderr and fail on cancellation
 
 - Scope: `scripts/bump-version.mjs` and command substitution in the parent release orchestrator.

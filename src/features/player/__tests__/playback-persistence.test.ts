@@ -1,17 +1,19 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 const mockStorage = new Map<string, string>()
-vi.mock('../../../core/storage/index.js', () => ({
-  getSongloftStorage: () => ({
+vi.mock('../../../core/storage/index.js', () => {
+  const storage = {
     prefs: {
       get: vi.fn((key: string) => Promise.resolve(mockStorage.get(key) ?? null)),
       set: vi.fn((key: string, value: string) => { mockStorage.set(key, value); return Promise.resolve() }),
       remove: vi.fn((key: string) => { mockStorage.delete(key); return Promise.resolve() }),
     },
     secure: { get: vi.fn(), set: vi.fn(), remove: vi.fn() },
-  }),
-}))
+  }
+  return { getSongloftStorage: () => storage }
+})
 
+import { getSongloftStorage } from '../../../core/storage/index.js'
 import type { Song } from '../../../models/song.js'
 import { clearSavedPlaybackState, loadPlaybackState, savePlaybackState } from '../data/playback-persistence.js'
 import { cacheIdentity, cacheNamespace } from '../domain/cache-identity.js'
@@ -75,7 +77,73 @@ const SONG_JSON = {
 }
 
 describe('playback-persistence', () => {
-  beforeEach(() => { mockStorage.clear() })
+  beforeEach(async () => {
+    await clearSavedPlaybackState()
+    mockStorage.clear()
+    vi.clearAllMocks()
+  })
+
+  const queueWrites = (key = 'playback_queue') =>
+    vi.mocked(getSongloftStorage().prefs.set).mock.calls.filter(([name]) => name === key)
+
+  test('progress and index saves leave the unchanged queue untouched', async () => {
+    const playlist = [SONG, { ...SONG, id: 2, title: 'Second' }]
+    await savePlaybackState({ playlist, currentIndex: 0, positionMs: 0 })
+    await savePlaybackState({ playlist, currentIndex: 1, positionMs: 12345 })
+    expect(queueWrites()).toHaveLength(1)
+    expect(await loadPlaybackState()).toMatchObject({ currentIndex: 1, positionMs: 12345 })
+  })
+
+  test('a changed queue is written again, including removal and metadata edits', async () => {
+    const playlist = [SONG, { ...SONG, id: 2 }]
+    await savePlaybackState({ playlist, currentIndex: 0, positionMs: 0 })
+    await savePlaybackState({ playlist: [{ ...SONG, title: 'Edited' }], currentIndex: 0, positionMs: 1 })
+    expect(queueWrites()).toHaveLength(2)
+    expect((await loadPlaybackState())?.playlist.map(song => song.title)).toEqual(['Edited'])
+  })
+
+  test('clearing revokes the queue cache even if the same array is saved again', async () => {
+    const playlist = [SONG]
+    await savePlaybackState({ playlist, currentIndex: 0, positionMs: 0 })
+    await clearSavedPlaybackState()
+    await savePlaybackState({ playlist, currentIndex: 0, positionMs: 9 })
+    expect(queueWrites()).toHaveLength(2)
+    expect((await loadPlaybackState())?.positionMs).toBe(9)
+  })
+
+  test('a failed queue write is retried instead of cached as saved', async () => {
+    const playlist = [SONG]
+    vi.mocked(getSongloftStorage().prefs.set).mockRejectedValueOnce(new Error('disk full'))
+    await savePlaybackState({ playlist, currentIndex: 0, positionMs: 0 })
+    await savePlaybackState({ playlist, currentIndex: 0, positionMs: 20 })
+    expect(queueWrites()).toHaveLength(2)
+    expect((await loadPlaybackState())?.positionMs).toBe(20)
+  })
+
+  test('large saves yield to input tasks before finishing and retain the full queue', async () => {
+    const playlist = Array.from({ length: 3000 }, (_, i) => ({ ...SONG, id: i + 1 }))
+    let finished = false
+    const save = savePlaybackState({ playlist, currentIndex: 1500, positionMs: 10 }).then(() => { finished = true })
+    const finishedAtInput = await new Promise<boolean>(resolve => setTimeout(() => resolve(finished), 0))
+    await save
+    expect(finishedAtInput).toBe(false)
+    expect((await loadPlaybackState())?.playlist).toHaveLength(3000)
+  })
+
+  test('offline progress uses small keys without rewriting its safe queue envelope', async () => {
+    const namespace = cacheNamespace({ profile: 'one', server: 'http://server', username: 'alice' })
+    const identity = cacheIdentity({ namespace, song: SONG, variant: { track: null, quality: 'original', normalize: false }, format: 'mp3' })
+    const playlist = [{ ...SONG, deviceCache: identity }, { ...SONG, deviceCache: identity }]
+    await savePlaybackState({ playlist, currentIndex: 0, positionMs: 0 })
+    await savePlaybackState({ playlist, currentIndex: 1, positionMs: 456 })
+    expect(queueWrites('device_cache_playback_queue_v1')).toHaveLength(1)
+    expect(await loadPlaybackState()).toMatchObject({ currentIndex: 1, positionMs: 456 })
+    expect(mockStorage.get('device_cache_playback_queue_v1')).not.toMatch(/secret|\/music|\/stream/)
+    // Pre-upgrade envelopes did not have separate progress keys.
+    mockStorage.delete('playback_index')
+    mockStorage.delete('playback_position')
+    expect(await loadPlaybackState()).toMatchObject({ currentIndex: 0, positionMs: 0 })
+  })
 
   test('local queue round-trips its precise variant, strips remote URLs, and rejects corrupt local identity', async () => {
     const namespace = cacheNamespace({ profile: 'one', server: 'http://server', username: 'alice' })
