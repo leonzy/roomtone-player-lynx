@@ -25,6 +25,8 @@ import { getActiveThemePack, subscribeActiveThemePack } from './theme-pack-model
 import { themePackToStyleVars } from './theme-pack-mapping.js'
 import { resolveMaterialTokens, resolveMenuMaterialFill } from './material-tokens.js'
 import './tokens.css'
+import { getBuiltInPalette, subscribeBuiltInPalette } from './built-in-palette-model.js'
+import { playerColorVars, resolvePlayerColors } from './player-colors.js'
 
 export interface ThemeProviderProps {
   children?: ReactNode
@@ -65,6 +67,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const surface = useSurfaceAppearance()
   const { theme, reduceMotion, increaseContrast } = surface
   const [pack, setPack] = useState(() => getActiveThemePack())
+  const [palette, setPalette] = useState(getBuiltInPalette)
   const [material, setMaterial] = useState(() => getMaterialVariant())
   const [, setFontScale] = useState(() => getFontScaleNumber())
   const [insets, setInsets] = useState(() => getSafeAreaInsets())
@@ -81,6 +84,13 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     () => subscribeActiveThemePack(() => setPack(getActiveThemePack())),
     [],
   )
+
+  useEffect(() => {
+    const update = () => setPalette(getBuiltInPalette())
+    const stop = subscribeBuiltInPalette(update)
+    update()
+    return stop
+  }, [])
 
   useEffect(
     () => subscribeMaterialVariant(() => setMaterial(getMaterialVariant())),
@@ -104,8 +114,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     [],
   )
 
-  const vars = {
-    ...themePackToStyleVars(pack?.data, theme),
+  const vars: Record<string, string> = {
+    ...themePackToStyleVars(pack?.data, theme, palette),
     ...resolveMaterialTokens({
       variant: material,
       theme,
@@ -122,6 +132,10 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     }),
     ...safeAreaStyleVars(insets),
   }
+  Object.assign(vars, playerColorVars(resolvePlayerColors({
+    theme, accent: vars['--accent']!, background: vars['--system-background']!,
+    opaque: surface.reduceTransparency || surface.increaseContrast,
+  })))
   const style = vars as Record<string, string> & CSSProperties
 
   // Built here rather than inline so the state-driven classes read as a set:

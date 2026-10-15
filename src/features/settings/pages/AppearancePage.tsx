@@ -46,6 +46,7 @@ import { SegmentedControl } from '../widgets/SegmentedControl.js'
 import { FontScaleSlider } from '../widgets/FontScaleSlider.js'
 import { SwitchRow } from '../widgets/SwitchRow.js'
 import { ThemeAppearancePicker } from '../widgets/ThemeAppearancePicker.js'
+import { BuiltInPalettePicker } from '../widgets/BuiltInPalettePicker.js'
 import { SubPageShell } from '../widgets/SubPageShell.js'
 import { ThemePacksSection } from '../widgets/ThemePacksSection.js'
 import { HomeLayoutSettings } from '../widgets/HomeLayoutSettings.js'
@@ -237,6 +238,8 @@ export function AppearancePage({ onOpenCatalog }: { onOpenCatalog?: () => void }
           />
         </view>
       </SettingsSection>
+
+      <BuiltInPalettePicker />
 
       <SettingsSection title={t('settings.materialSection')}>
         <view className='settings-section__padded'>

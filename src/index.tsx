@@ -42,6 +42,7 @@ import { applySavedReduceTransparency } from './shared/theme/reduce-transparency
 import { applySavedRailCollapsed } from './shared/layouts/rail-collapse.js'
 import { applySavedMaterial } from './shared/theme/material-model.js'
 import { applySavedTheme } from './shared/theme/theme-model.js'
+import { applySavedBuiltInPalette } from './shared/theme/built-in-palette-model.js'
 import {
   applyActiveThemePack,
   setActiveThemePack,
@@ -114,6 +115,7 @@ void (async () => {
     initSafeArea()
     await applySavedLanguage()
     await applySavedTheme()
+    await applySavedBuiltInPalette()
     await applySavedMaterial()
     await applySavedFontScale()
     await applySavedSongTitleScrolling()

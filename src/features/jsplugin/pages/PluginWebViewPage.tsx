@@ -34,6 +34,7 @@ import {
   type PluginThemeAppearance,
 } from '../domain/plugin-theme-appearance.js'
 import { pluginColorSchemeMap } from '../domain/plugin-color-scheme.js'
+import { getBuiltInPalette, subscribeBuiltInPalette } from '../../../shared/theme/built-in-palette-model.js'
 import { getJSPluginApi } from '../api/index.js'
 import { usePluginsQuery } from '../data/jsplugin-query.js'
 import { isWebPlatform } from '../../../native/web-platform.js'
@@ -114,7 +115,7 @@ function buildThemeMessage(): {
   return {
     type: 'songloft-theme',
     theme: resolved,
-    colors: pluginColorSchemeMap(pack, resolved),
+    colors: pluginColorSchemeMap(pack, resolved, getBuiltInPalette()),
     appearance: pluginThemeAppearance(pack, resolved),
   }
 }
@@ -123,6 +124,7 @@ function buildThemeMessage(): {
 function subscribePluginAppearance(push: () => void): () => void {
   const stops = [
     subscribeAppTheme(push), subscribeActiveThemePack(push),
+    subscribeBuiltInPalette(push),
     subscribeSurfacePolicy(push), subscribeMaterialVariant(push),
   ]
   return () => stops.forEach(stop => stop())

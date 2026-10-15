@@ -35,7 +35,7 @@
 
 .player-lyrics__tool-text {
   font-size: var(--font-caption1);
-  color: var(--secondary-label);
+  color: var(--player-secondary);
 }
 
 .player-lyrics {
@@ -66,11 +66,11 @@
 
 .player-lyrics__refetch-text {
   font-size: var(--font-footnote);
-  color: var(--accent);
+  color: var(--player-lyric-active);
 }
 
 .player-lyrics__state-text {
-  color: var(--secondary-label);
+  color: var(--player-secondary);
   font-size: var(--font-footnote);
 }
 
@@ -82,14 +82,14 @@
 }
 
 .player-lyrics__line {
-  color: var(--secondary-label);
+  color: var(--player-secondary);
   font-size: var(--font-callout);
   text-align: center;
   padding: var(--space-2) 0;
 }
 
 .player-lyrics__line--active {
-  color: var(--accent);
+  color: var(--player-lyric-active);
   font-size: var(--font-title3);
   font-weight: var(--weight-bold);
 }
@@ -118,28 +118,28 @@
 }
 
 .player-lyrics__word {
-  color: var(--secondary-label);
+  color: var(--player-secondary);
   font-size: var(--font-callout);
 }
 
 .player-lyrics__word--active {
-  color: var(--accent);
+  color: var(--player-lyric-active);
   font-weight: var(--weight-bold);
 }
 
 .player-lyrics__word--past {
-  color: var(--label);
+  color: var(--player-lyric-active);
 }
 
 .player-lyrics__translation {
-  color: var(--secondary-label);
+  color: var(--player-secondary);
   font-size: var(--font-footnote);
   text-align: center;
   margin-top: var(--space-1);
 }
 
 .player-lyrics__romanization {
-  color: var(--secondary-label);
+  color: var(--player-secondary);
   font-size: var(--font-caption1);
   text-align: center;
   margin-bottom: var(--space-1);
@@ -164,4 +164,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.player-lyrics__line-group--active .player-lyrics__translation,
+.player-lyrics__line-group--active .player-lyrics__romanization {
+  color: var(--player-lyric-active);
 }

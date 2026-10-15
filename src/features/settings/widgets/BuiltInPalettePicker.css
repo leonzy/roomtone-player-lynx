@@ -1,0 +1,54 @@
+.palette-picker {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.palette-picker__description {
+  color: var(--secondary-label);
+  font-size: var(--font-footnote);
+}
+
+.palette-picker__choices {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.palette-choice {
+  min-height: var(--tap-target);
+  min-width: 90px;
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-md);
+}
+
+.palette-choice--selected {
+  border-color: var(--accent);
+  background-color: var(--tint-fill);
+}
+
+.palette-choice--disabled { opacity: 0.5; }
+
+.palette-choice__swatch {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.palette-choice__label {
+  color: var(--label);
+  font-size: var(--font-footnote);
+  font-weight: var(--weight-medium);
+}

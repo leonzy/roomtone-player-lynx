@@ -3,6 +3,8 @@ import { getIncreaseContrast } from './increase-contrast-model.js'
 import { getSystemAppearance } from '../../native/system-appearance.js'
 import { getMaterialVariant } from './material-model.js'
 import { MATERIAL_TOKENS } from './material-tokens.js'
+import { BUILT_IN_PALETTES, type BuiltInPalette } from './built-in-palette-model.js'
+import { foregroundOn, readableColor } from './color-contrast.js'
 
 /**
  * Theme-pack → Apple-semantic token mapping (pure functions).
@@ -44,12 +46,9 @@ import { MATERIAL_TOKENS } from './material-tokens.js'
  * is not a widening of what a pack can reach: the same two colours already
  * reached these surfaces under the former `--canvas`/`--paper` pair.
  *
- * The label / fill / separator tiers and `--player-scrim-*` stay at their
- * baseline: the pack schema has no field for them, and the baseline is the
- * implicit contrast floor (`contrast.test.ts` gates it). The scrim alphas in
- * `tokens.css` are *computed* against the baseline page colour — repainting
- * them with a pack colour would break that derivation, so they are never
- * overridden.
+ * Label / fill / separator tiers remain at the Apple baseline. The player's
+ * independent foregrounds and scrim are computed by player-colors.ts and emitted
+ * by ThemeProvider, so a vivid cover does not dictate global control colours.
  *
  * Because the former Muse names survive in `tokens.css` only as thin aliases
  * (`--primary: var(--accent)`), a pack MUST set the Apple name: the aliases are
@@ -262,13 +261,33 @@ export const CONTRAST_ACCENT: Record<'light' | 'dark', { accent: string; accentC
 export function themePackToStyleVars(
   pack: ThemePackData | null | undefined,
   resolved: 'light' | 'dark',
+  palette: BuiltInPalette = 'blue',
 ): Record<string, string> {
   const colors = pack ? (resolved === 'light' ? pack.light : pack.dark) : undefined
   const vars: Record<string, string> = { ...PACK_OVERRIDABLE_BASELINE[resolved] }
+  const increaseContrast = getIncreaseContrast() || getSystemAppearance().increaseContrast === true
+
+  // A server pack replaces the built-in palette as a whole, including when its
+  // optional fields are absent. Clearing it resumes the saved device choice.
+  if (!pack && palette !== 'blue') {
+    let accent = BUILT_IN_PALETTES[palette][resolved]
+    if (increaseContrast) {
+      accent = readableColor({
+        preferred: accent, foreground: resolved === 'light' ? '#000000' : '#ffffff',
+        backgrounds: resolved === 'light' ? ['#ffffff', '#f2f2f7'] : ['#000000', '#1c1c1e'], minimum: 7,
+      })
+    }
+    vars['--accent'] = accent
+    vars['--accent-content'] = foregroundOn(accent)
+    vars['--tint-fill'] = hexToRgba(accent, resolved === 'light' ? 0.1 : 0.18)
+    vars['--material-glow'] = accent
+    vars['--material-glow-faint'] = hexToRgba(accent, resolved === 'light' ? 0.1 : 0.14)
+    vars['--material-sheen'] = hexToRgba(accent, resolved === 'light' ? 0.12 : 0.07)
+  }
 
   // Increase Contrast goes in BEFORE the pack fields on purpose — see
   // CONTRAST_ACCENT: the pack is the explicit choice and keeps the accent.
-  if (getIncreaseContrast() || getSystemAppearance().increaseContrast === true) {
+  if (increaseContrast && (pack || palette === 'blue')) {
     const contrast = CONTRAST_ACCENT[resolved]
     vars['--accent'] = contrast.accent
     vars['--accent-content'] = contrast.accentContent

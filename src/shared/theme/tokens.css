@@ -468,25 +468,16 @@
   --backdrop: rgba(0, 0, 0, 0.55);
   --backdrop-heavy: rgba(0, 0, 0, 0.78);
 
-  /*
-   * Veil over the full player's blurred cover. Same colour as
-   * --system-background, so everything drawn on top keeps using the ordinary
-   * label tokens — no parallel "text on scrim" palette to keep in sync.
-   *
-   * RE-DERIVED for the Apple palette (the veil colour itself moved from #0f0f11
-   * to pure black, which changes the composite). The alphas are computed, not
-   * tuned: a translucent veil lets the cover shift the effective background
-   * anywhere between the veil and the cover's own colour, so the only honest
-   * test is the worst case — a pure black and a pure white cover.
-   *
-   * Dark's dangerous extreme is a BRIGHT cover, and the binding pair is
-   * `--system-red` over a veiled white cover against its 3.0 floor. The new lower
-   * bound is 0.75 (it was 0.83 under the former palette). The shipped 0.85 is
-   * kept: it clears the bound with `--system-red` at 4.39 and `--accent` at 4.66,
-   * and lowering it to show more artwork is a separate visual decision, not a
-   * consequence of this migration. */
-  --player-scrim-from: rgba(0, 0, 0, 0.85);
-  --player-scrim-to: rgba(0, 0, 0, 0.92);
+  /* First-paint defaults. ThemeProvider emits the full player palette from
+     player-colors.ts, including cover bounds and accessibility preferences. */
+  --player-background: #000000;
+  --player-fallback-from: #000b14;
+  --player-fallback-to: #000408;
+  --player-content: #ffffff;
+  --player-secondary: #9e9e9e;
+  --player-lyric-active: #ffffff;
+  --player-scrim-from: rgba(0, 0, 0, 0.82);
+  --player-scrim-to: rgba(0, 0, 0, 0.9);
 
   /* shadows — never colored */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -633,22 +624,16 @@
   --backdrop: rgba(0, 0, 0, 0.35);
   --backdrop-heavy: rgba(0, 0, 0, 0.5);
 
-  /*
-   * Veil over the full player's blurred cover — same colour as
-   * --system-background, so the ordinary label tokens keep working on top.
-   *
-   * RE-DERIVED for the Apple palette. Light's dangerous extreme is a DARK cover,
-   * and the binding pair is now `--accent` over a veiled black cover against its
-   * 3.0 floor: the lower bound is 0.93 (it was 0.91 under the former palette,
-   * where the binding pair was secondary ink at 4.5).
-   *
-   * The shipped 0.94 is kept, but note the margin is thinner than it was: accent
-   * lands at 3.08 against a 3.0 floor, i.e. under a tenth of a point, where the old
-   * derivation had three. Lowering these alphas to show more artwork is no longer
-   * nearly free — `contrast.test.ts` re-derives the bound from whatever ships and
-   * will turn red. */
-  --player-scrim-from: rgba(255, 255, 255, 0.94);
-  --player-scrim-to: rgba(255, 255, 255, 0.99);
+  /* First-paint defaults. ThemeProvider emits the full player palette from
+     player-colors.ts, including cover bounds and accessibility preferences. */
+  --player-background: #ffffff;
+  --player-fallback-from: #ebf5ff;
+  --player-fallback-to: #f7fbff;
+  --player-content: #000000;
+  --player-secondary: #616161;
+  --player-lyric-active: #004a8c;
+  --player-scrim-from: rgba(255, 255, 255, 0.86);
+  --player-scrim-to: rgba(255, 255, 255, 0.94);
 
   /* shadows — plain black at low alpha, following the label colour to #000 */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);

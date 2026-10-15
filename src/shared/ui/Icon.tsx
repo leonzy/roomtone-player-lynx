@@ -1,7 +1,8 @@
 import { getFontScaleNumber } from '../theme/font-scale-model.js'
 import { getAppTheme, resolveTheme, type ResolvedTheme } from '../theme/theme-model.js'
 import { getActiveThemePack } from '../theme/theme-pack-model.js'
-import { isHexColor } from '../theme/theme-pack-mapping.js'
+import { themePackToStyleVars } from '../theme/theme-pack-mapping.js'
+import { getBuiltInPalette } from '../theme/built-in-palette-model.js'
 import { buildSvg, type IconName } from './icons.js'
 
 /**
@@ -45,9 +46,9 @@ const PALETTES: Record<ResolvedTheme, {
 /**
  * Icon color constants. Reads the *current* theme on every property access
  * (a `Proxy`, not a snapshot), so `ICON_COLORS.primary` etc. always reflect
- * the live theme without requiring any of the ~20 call sites across the
- * codebase to change — they already re-render top-to-bottom whenever
- * `ThemeProvider`'s state flips (ordinary, non-memoized React components).
+ * the live theme when a caller renders. Persistent owners such as ShellLayout
+ * subscribe to appearance changes explicitly: a provider updating inherited
+ * CSS variables alone does not rerender unchanged children or their SVG props.
  * `Proxy` is a standard ES2015 language feature, not a browser/DOM API, so it
  * is unaffected by the Lynx no-DOM rules in AGENTS §3.
  */
@@ -55,7 +56,12 @@ export const ICON_COLORS: (typeof PALETTES)['dark'] = new Proxy(
   {} as (typeof PALETTES)['dark'],
   {
     get(_target, prop: keyof (typeof PALETTES)['dark']) {
-      return PALETTES[resolveTheme(getAppTheme())][prop]
+      const theme = resolveTheme(getAppTheme())
+      if (prop === 'primary' || prop === 'primaryContent') {
+        const vars = themePackToStyleVars(getActiveThemePack()?.data, theme, getBuiltInPalette())
+        return vars[prop === 'primary' ? '--accent' : '--accent-content']
+      }
+      return PALETTES[theme][prop]
     },
   },
 )
@@ -66,16 +72,13 @@ export const ICON_COLORS: (typeof PALETTES)['dark'] = new Proxy(
  * A pack's seedColor arrives as inline CSS custom properties (`--accent` etc.),
  * which `<svg content>` markup cannot read (it sits outside the cascade), so
  * the hex must be resolved at render time instead. Falls back to the Apple
- * systemBlue accent — exactly what `--accent` holds without a pack.
+ * built-in palette — exactly what `--accent` holds without a pack.
  *
- * Read per call like the ICON_COLORS proxy above: ThemeProvider's pack
- * subscription re-renders the tree top-to-bottom on activation, so every
- * caller picks up a pack switch without subscribing itself.
+ * Read per call like the ICON_COLORS proxy above. The caller must rerender on
+ * palette/pack changes when it stays mounted across appearance settings.
  */
 export function activeAccentIconColor(): string {
-  const theme = resolveTheme(getAppTheme())
-  const seed = getActiveThemePack()?.data?.[theme]?.seedColor
-  return isHexColor(seed) ? seed : PALETTES[theme].primary
+  return ICON_COLORS.primary
 }
 
 /**

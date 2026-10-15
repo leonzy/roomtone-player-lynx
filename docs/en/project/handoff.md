@@ -1,5 +1,11 @@
 # Handoff (2026-10-14)
 
+2026-10-15: The user authorized #523 commits, pushes and an Issue reply. Commit both clients before synchronizing parent gitlinks; no stable tag or Issue closure. Uncommitted states below for this batch are validation snapshots; Git/CI and the Issue comment determine final delivery.
+
+## 2026-10-15 · #523 Lyric Backgrounds and Built-in Palettes
+
+Lynx now has readable cover-based lyric backgrounds, six device palettes, server-pack precedence and live SVG/plugin synchronization. Type checks, the final 3531-test suite, both bundles/Web deployment and Android Debug build pass. Four actual browser combinations retain 48 screenshots and assert persistence, SVGs and background pixels. See the [#523 record](issue-523.md) and `/home/hanxi/work/songloft-review/issue-523-lynx-20261015/validation.json` for native Android screenshots/installation limits; the same directory's `index.html` is the user review entry, with previous Flutter comparison shots stored separately. The record includes baseline and source fingerprint. Not run: iOS/HarmonyOS builds and hardware, actual outdoor sunlight. No commits, pushes, releases or Issue writes; parent gitlink unchanged. Historical authorizations below do not apply to this batch.
+
 ## 2026-10-15 · #524 Playlist Sorting
 
 The playlist sort label is now “歌曲名称 / Song name”, retaining the `title` parameter. The parent fixes shared pinyin ordering for pages, playback-position IDs and permanent name sorting. Lynx type checks, all 3516 tests, both bundles/Web deployment builds and bilingual 390px browser checks pass: ascending/descending names, artist sorting, saved preferences and re-entry restoration, with no page exceptions. Object: baseline `2698e2eb1d85990f8c1433261e430697aaf3b33d` plus this working tree; see progress and `/tmp/songloft-524/{lynx-browser,validation}.json`. Not run: local native builds/hardware; polyphones use dictionary default readings. The user authorized commits, pushes and a reply to #524. Fast-forward to changelog-only `e73afc82b40501902b93a1d91476e98279e8bc40`, commit clients before parent gitlinks, and check actual SHAs/CI/comment in delivery records. No stable tag or Issue closure.

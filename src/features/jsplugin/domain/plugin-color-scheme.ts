@@ -2,6 +2,8 @@ import type { ThemePackData } from '../../../shared/theme/theme-pack-mapping.js'
 import { CONTRAST_ACCENT, PACK_OVERRIDABLE_BASELINE } from '../../../shared/theme/theme-pack-mapping.js'
 import { getSurfacePolicy } from '../../../shared/theme/surface-policy.js'
 import type { ResolvedTheme } from '../../../shared/theme/theme-model.js'
+import type { BuiltInPalette } from '../../../shared/theme/built-in-palette-model.js'
+import { themePackToStyleVars } from '../../../shared/theme/theme-pack-mapping.js'
 
 /**
  * The `colors` half of the `songloft-theme` push — the host's real palette as
@@ -181,6 +183,7 @@ function mixTowardBlack(hex: string, t: number): string {
 export function pluginColorSchemeMap(
   pack: ThemePackData | null | undefined,
   resolved: ResolvedTheme,
+  palette: BuiltInPalette = 'blue',
 ): PluginColorScheme {
   const out: PluginColorScheme = { ...BASELINE[resolved] }
   if (getSurfacePolicy().increaseContrast) {
@@ -188,7 +191,9 @@ export function pluginColorSchemeMap(
     out.onPrimary = CONTRAST_ACCENT[resolved].accentContent
     if (resolved === 'light') out.error = '#e9152d'
   }
-  const colors = pack ? (resolved === 'light' ? pack.light : pack.dark) : undefined
+  const colors = pack ? (resolved === 'light' ? pack.light : pack.dark)
+    : palette === 'blue' ? undefined
+      : { seedColor: themePackToStyleVars(null, resolved, palette)['--accent'] }
   if (!colors) return out
 
   const seedRaw = typeof colors.seedColor === 'string' ? colors.seedColor : null

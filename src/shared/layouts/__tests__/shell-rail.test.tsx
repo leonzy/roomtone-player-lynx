@@ -1,7 +1,11 @@
 import '../../../shims/router-env.js'
 
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { getQueriesForElement, render } from '@lynx-js/react/testing-library'
+import { act, getQueriesForElement, render } from '@lynx-js/react/testing-library'
+import { changeBuiltInPalette } from '../../theme/built-in-palette-model.js'
+import { changeAppTheme } from '../../theme/theme-model.js'
+import { createMemoryStorage } from '../../../core/storage/memory-storage.js'
+import { setActiveThemePack } from '../../theme/theme-pack-model.js'
 
 import type { PluginTabEntry } from '../../../features/jsplugin/data/tab-config.js'
 
@@ -69,6 +73,25 @@ beforeEach(() => {
 })
 
 describe('the wide rail groups destinations iPadOS-style', () => {
+  test('mounted SVG navigation recolors immediately with the palette and active pack', async () => {
+    const storage = createMemoryStorage()
+    await changeAppTheme('light', storage)
+    await changeBuiltInPalette('blue', storage)
+    const q = renderShell()
+    const glyph = () => q.getByTestId('nav-item-home').querySelector('svg')?.getAttribute('content')
+    expect(glyph()).toContain('#0088ff')
+    await act(async () => { await changeBuiltInPalette('rose', storage) })
+    expect(glyph()).toContain('#984061')
+    await act(async () => { setActiveThemePack({ themeId: 'test', data: {
+      id: 'test', name: 'Test', author: '', description: '', version: '1', schemaVersion: 1,
+      light: { seedColor: '#123456' },
+    } }) })
+    expect(glyph()).toContain('#123456')
+    await act(async () => { setActiveThemePack(null) })
+    expect(glyph()).toContain('#984061')
+    await act(async () => { await changeBuiltInPalette('blue', storage) })
+  })
+
   test('no plugins: the built-in items only, in order', () => {
     shellTabs.data = { showLibrary: true, pluginTabs: [] }
     const q = renderShell()

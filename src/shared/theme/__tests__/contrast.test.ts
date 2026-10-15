@@ -503,98 +503,18 @@ describe('glass overlay stack (ramp + sheen) over the glass fills', () => {
  * derivation had three points — and that is worth knowing before anyone lowers it
  * to show more artwork.
  */
-describe('player scrim over worst-case cover art', () => {
-  const BACKDROP_CSS = readFileSync(
-    resolve(process.cwd(), 'src/features/player/widgets/PlayerBackdrop.css'),
-    'utf8',
-  )
-  const BLACK: Rgb = { r: 0, g: 0, b: 0 }
-  const WHITE: Rgb = { r: 255, g: 255, b: 255 }
-
-  /** Alpha of one scrim token, read from `tokens.css`. */
-  function scrimAlpha(theme: ThemeName, which: 'from' | 'to'): number {
-    const decl = themeBlock(theme).match(
-      new RegExp(`--player-scrim-${which}:\\s*rgba?\\([^)]*?([\\d.]+)\\s*\\)`),
-    )
-    expect(decl, `--player-scrim-${which} missing from theme-${theme}`).not.toBeNull()
-    return parseFloat(decl![1]!)
-  }
-
-  /** Does every token the player draws clear its floor at this veil alpha? */
-  function clearsAt(theme: ThemeName, alpha: number): boolean {
-    const t = THEMES[theme]
-    const veil = t['system-background']!
-    for (const cover of [BLACK, WHITE]) {
-      const bg = over({ ...veil, a: alpha }, cover)
-      for (const token of TEXT_TOKENS) {
-        if (contrastOn(t[token]!, bg) < TEXT_FLOORS[token]!) return false
-      }
-    }
-    return true
-  }
-
-  test('the scrim is applied as a gradient of the two tokens', () => {
-    // If the stylesheet stops using them, the alphas asserted below stop describing
-    // anything that ships.
-    const css = BACKDROP_CSS.replace(/\/\*[\s\S]*?\*\//g, '')
-    expect(css).toContain('var(--player-scrim-from)')
-    expect(css).toContain('var(--player-scrim-to)')
-  })
-
-  test.each(['dark', 'light'] as const)('%s: the veil is the page colour', (theme) => {
-    // Any other hue would need its own foreground palette; using the page colour is
-    // what lets the player keep the ordinary label tokens.
-    const page = THEMES[theme]['system-background']!
-    for (const which of ['from', 'to'] as const) {
-      const rgb = themeBlock(theme).match(
-        new RegExp(`--player-scrim-${which}:\\s*rgba?\\(\\s*(\\d+)[,\\s]+(\\d+)[,\\s]+(\\d+)`),
-      )!
-      expect(
-        { r: +rgb[1]!, g: +rgb[2]!, b: +rgb[3]! },
-        `--player-scrim-${which} must be the --system-background colour`,
-      ).toEqual({ r: page.r, g: page.g, b: page.b })
-    }
-  })
-
-  test.each(['dark', 'light'] as const)('%s: text clears its tier over any cover', (theme) => {
-    // The most transparent end of the gradient is the worst case for every token.
-    const alpha = Math.min(scrimAlpha(theme, 'from'), scrimAlpha(theme, 'to'))
-    const t = THEMES[theme]
-    const veil = t['system-background']!
-    for (const cover of [BLACK, WHITE]) {
-      const bg = over({ ...veil, a: alpha }, cover)
-      const on = `${theme} scrim a${alpha} over ${hexOf(cover)} cover`
-      for (const token of TEXT_TOKENS) {
-        expectReads(t[token]!, bg, `--${token} on ${on}`, TEXT_FLOORS[token]!)
-      }
-    }
-  })
-
-  test.each(['dark', 'light'] as const)('%s: the shipped alpha is derived, not chosen', (theme) => {
-    /*
-     * Find the bound instead of restating it: step up until every pair clears, then
-     * assert the shipped value is at or above that, AND that one step below the
-     * bound genuinely fails. The second half is what stops this from degrading into
-     * "0.94 >= 0.0" — if the palette ever got so forgiving that any alpha worked,
-     * this test would say so rather than quietly passing.
-     */
-    let bound: number | null = null
-    for (let a = 0; a <= 1.0001; a += 0.005) {
-      if (clearsAt(theme, a)) { bound = Math.round(a * 1000) / 1000; break }
-    }
-    expect(bound, `no veil alpha clears the floors in ${theme}`).not.toBeNull()
-
-    const shipped = Math.min(scrimAlpha(theme, 'from'), scrimAlpha(theme, 'to'))
-    expect(
-      shipped,
-      `${theme} veil alpha ${shipped} is below its derived bound ${bound}`,
-    ).toBeGreaterThanOrEqual(bound!)
-
-    expect(
-      bound! > 0 && !clearsAt(theme, bound! - 0.01),
-      `${theme}'s bound ${bound} must be a real bound — one step below it has to fail, `
-      + 'or the veil is unconstrained and this whole derivation is decoration',
-    ).toBe(true)
+// Cover-background bounds and the stronger lyric foregrounds are covered by
+// player-colors.test.ts. Keep the CSS consumption gate here so those computed
+// values cannot silently become unused while the model tests still pass.
+describe('player contrast tokens reach the rendered lyrics', () => {
+  test('background and lyric styles consume the computed player colors directly', () => {
+    const backdrop = readFileSync(resolve(process.cwd(), 'src/features/player/widgets/PlayerBackdrop.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+    const lyrics = readFileSync(resolve(process.cwd(), 'src/features/player/widgets/LyricsView.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(backdrop).toContain('var(--player-scrim-from)')
+    expect(backdrop).toContain('var(--player-scrim-to)')
+    expect(lyrics).toMatch(/\.player-lyrics__line--active\s*\{[^}]*color:\s*var\(--player-lyric-active\)/)
+    expect(lyrics).toMatch(/\.player-lyrics__word--active\s*\{[^}]*color:\s*var\(--player-lyric-active\)/)
+    expect(lyrics).toContain('var(--player-secondary)')
   })
 })
 

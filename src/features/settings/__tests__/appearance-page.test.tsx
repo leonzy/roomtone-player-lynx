@@ -45,6 +45,7 @@ vi.mock('../../../shared/theme/theme-model.js', () => ({
   PREF_THEME: 'app_theme',
   coerceAppTheme: (raw: unknown) => (raw === 'light' || raw === 'dark' ? raw : 'system'),
   getAppTheme: () => 'dark',
+  subscribeAppTheme: () => () => {},
   // Not used by this page, but ThemeProvider sits in the transitive import graph
   // and reads it — omitting it makes the whole module mock throw.
   resolveTheme: (app: string) => (app === 'system' ? 'dark' : app),
@@ -96,10 +97,8 @@ test('renders the theme picker, material segmented, font slider, and language ro
     expect(queryByTestId(id), id).toBeInTheDocument()
   }
 
-  // Only the selected language row keeps a trailing check icon now — the theme
-  // selection is a tile badge and material/font use a segmented/slider, so the
-  // old four-row check count collapses to one.
-  expect(queryAllByTestId('icon-check')).toHaveLength(1)
+  // Selected language and built-in palette each expose a check icon.
+  expect(queryAllByTestId('icon-check')).toHaveLength(2)
 })
 
 test('hosts the theme-pack card with its catalog entry row', async () => {

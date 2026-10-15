@@ -98,13 +98,13 @@
 }
 
 .full-player__empty-title {
-  color: var(--label);
+  color: var(--player-content);
   font-size: var(--font-title3);
   font-weight: var(--weight-bold);
 }
 
 .full-player__empty-subtitle {
-  color: var(--secondary-label);
+  color: var(--player-secondary);
   font-size: var(--font-footnote);
   margin-top: var(--space-2);
 }
@@ -157,7 +157,7 @@
    already directly under the cover there, so a second copy earns nothing. */
 .full-player__eyebrow {
   flex: 1;
-  color: var(--secondary-label);
+  color: var(--player-secondary);
   font-size: var(--font-caption1);
   font-weight: var(--weight-semibold);
   text-align: center;
@@ -165,7 +165,7 @@
 
 .full-player__album {
   flex: 1;
-  color: var(--secondary-label);
+  color: var(--player-secondary);
   font-size: var(--font-footnote);
   text-align: center;
   /* One line: album names run long, and this row must not grow. */
@@ -283,7 +283,7 @@
 }
 
 .full-player__video-badge-text {
-  color: var(--label);
+  color: var(--player-content);
   font-size: var(--font-caption1);
   font-weight: var(--weight-semibold);
   letter-spacing: 0.5px;
@@ -295,7 +295,7 @@
   bottom: var(--space-2);
   left: var(--space-2);
   right: var(--space-2);
-  color: var(--secondary-label);
+  color: var(--player-secondary);
   font-size: var(--font-caption1);
   text-align: center;
 }
@@ -322,7 +322,7 @@
 }
 
 .full-player__title {
-  color: var(--label);
+  color: var(--player-content);
   font-size: var(--font-title2);
   font-weight: var(--weight-bold);
   text-align: center;
@@ -332,7 +332,7 @@
  * in regular weight. Rendered in secondary label colour — it is not currently
  * a tappable link, so accent colour would mislead. */
 .full-player__artist {
-  color: var(--secondary-label);
+  color: var(--player-secondary);
   font-size: var(--font-title2);
   font-weight: var(--weight-regular);
   margin-top: var(--space-1);
@@ -351,4 +351,8 @@
 .full-player__timer-glyph {
   font-size: var(--font-body);
   margin-right: var(--space-1);
+}
+
+.full-player .player-progress__time {
+  color: var(--player-secondary);
 }

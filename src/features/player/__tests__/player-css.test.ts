@@ -35,7 +35,7 @@ test('the full-player cover and meta moved to Apple Music form', () => {
   const artist = ruleFor(FULL, '.full-player__artist')
   expect(artist).toMatch(/font-size:\s*var\(--font-title2\)/)
   expect(artist).toMatch(/font-weight:\s*var\(--weight-regular\)/)
-  expect(artist).toMatch(/color:\s*var\(--secondary-label\)/)
+  expect(artist).toMatch(/color:\s*var\(--player-secondary\)/)
   // Album & eyebrow: footnote / caption1, semibold (not bold) eyebrow.
   expect(ruleFor(FULL, '.full-player__album')).toMatch(/font-size:\s*var\(--font-footnote\)/)
   expect(ruleFor(FULL, '.full-player__eyebrow')).toMatch(/font-weight:\s*var\(--weight-semibold\)/)

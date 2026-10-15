@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom'
+import { playerColorVars, resolvePlayerColors } from '../player-colors.js'
 import { act, render } from '@lynx-js/react/testing-library'
 import { afterEach, expect, test, vi } from 'vitest'
 
@@ -182,6 +183,9 @@ function expectBaselineStyle(resolved: 'light' | 'dark'): Record<string, string>
   for (const [token, basePx] of Object.entries(FONT_SIZE_BASES)) {
     style[token] = `${basePx * fontScale}px`
   }
+  Object.assign(style, playerColorVars(resolvePlayerColors({
+    theme: resolved, accent: style['--accent']!, background: style['--system-background']!, opaque: false,
+  })))
   return style
 }
 

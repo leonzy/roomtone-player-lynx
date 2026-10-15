@@ -279,7 +279,7 @@ export function LyricsView() {
           }
 
           return (
-            <view key={`${index}:${line.timeMs}`} ref={active ? activeLineRef : null} className='player-lyrics__line-group'>
+            <view key={`${index}:${line.timeMs}`} ref={active ? activeLineRef : null} className={active ? 'player-lyrics__line-group player-lyrics__line-group--active' : 'player-lyrics__line-group'}>
               {romanization
                 ? <text className='player-lyrics__romanization'>{romanization}</text>
                 : null}

@@ -10,6 +10,14 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### UI-003: A correct color getter does not update persistent SVGs
+
+- Scope: built-in palettes, server packs and persistent navigation, songloft-org/songloft#523.
+- Rule: ThemeProvider updating inherited CSS variables does not rerender identical children. Native SVGs need their persistent owner to subscribe explicitly. Inspect rendered SVG content and actual icon/text/selection screenshots instead of only calling a color getter.
+- Evidence: On 2026-10-15, this batch's initial screenshot on baseline `4d73b793890494301d44b1a19e9df4dd178429e3` showed Rose text/background with a blue navigation gear, although getter assertions passed. The isolated original ShellLayout fails the rendered `#984061` assertion. Explicit palette/pack subscriptions pass 13 navigation regressions and the final 3531-test suite. See the [batch record](docs/en/project/issue-523.md) for the source fingerprint and retained screenshots.
+- Done right: ShellLayout subscribes to `subscribeBuiltInPalette` / `subscribeActiveThemePack`; the same mounted SVG follows Blue → Rose → pack → restored Rose. Browser checks assert rendered SVGs match the root accent for all six palettes.
+- Seen 1× (2026-10-15). Status: lesson; below the three-date promotion threshold.
+
 ### UI-002: Slider release and bounds measurement must belong to one gesture
 
 - Scope: shared lynx-ui 3.135.4 sliders and older native-shell capabilities, songloft-org/songloft#520.

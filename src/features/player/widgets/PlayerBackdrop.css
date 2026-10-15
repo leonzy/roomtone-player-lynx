@@ -1,17 +1,6 @@
-/*
- * Blurred-cover backdrop for the full player.
- *
- * Three layers under everything else: the cover art blurred to a wash, a saturation
- * boost over it, and a veil in the canvas colour so the page's ordinary text tokens
- * stay readable on top. The veil's alphas live in `tokens.css` and are derived, not
- * tuned — see the comment there before changing them. Dark's veil is deliberately far
- * more transparent than light's; that asymmetry is derived too.
- *
- * `filter: blur()` is supported on every Lynx backend (android/ios since 1.0,
- * harmony 3.4, web_lynx). If it ever silently no-ops on some host, this degrades to
- * "a sharp cover under a 94–99% veil" — ugly, not broken, and still readable. That is
- * why the veil does not depend on the blur working.
- */
+/* Blurred cover with a bounded surface veil. player-colors.ts derives lyric
+   foregrounds against both cover extremes; correctness does not depend on blur.
+   The capture id remains mounted through missing covers and accessibility changes. */
 
 .player-backdrop {
   position: absolute;
@@ -25,7 +14,8 @@
   /* Below `.full-player__layer` (z-index 1), above `.full-player`'s own background.
      Must stay an explicit 0 rather than `auto`: see the note on `__layer`. */
   z-index: 0;
-  background-color: var(--system-background);
+  background-color: var(--player-background);
+  background-image: linear-gradient(to bottom, var(--player-fallback-from), var(--player-fallback-to));
 }
 
 .player-backdrop__vivid {
@@ -39,7 +29,7 @@
    * function per declaration, and the image below already spends its one on blur.
    * Nesting is how you compose them.
    *
-   * Free against the contrast gate: `contrast.test.ts` derives the veil against a
+   * Free against the contrast gate: `player-colors.test.ts` checks the veil against a
    * pure-black and pure-white cover, and saturation cannot push a channel outside
    * [0, 255] — so it cannot widen the worst case the alphas are built on.
    *

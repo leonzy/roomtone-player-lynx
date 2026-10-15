@@ -28,6 +28,8 @@ import { useBreakpoint } from '../responsive/useBreakpoint.js'
 import { BackdropBlur } from '../ui/BackdropBlur.js'
 import { useCapsuleMaterialStyle } from '../ui/capsule-material.js'
 import { Icon, activeAccentIconColor, ICON_COLORS } from '../ui/Icon.js'
+import { getBuiltInPalette, subscribeBuiltInPalette } from '../theme/built-in-palette-model.js'
+import { getActiveThemePack, subscribeActiveThemePack } from '../theme/theme-pack-model.js'
 import './ShellLayout.css'
 
 /**
@@ -42,6 +44,10 @@ import './ShellLayout.css'
  */
 export function ShellLayout() {
   const navigate = useNavigate()
+  // CSS variables inherit automatically; concrete SVG colours need this owner
+  // to render again even when its route/children remain unchanged.
+  useSyncExternalStore(subscribeBuiltInPalette, getBuiltInPalette)
+  useSyncExternalStore(subscribeActiveThemePack, getActiveThemePack)
   const capsuleMaterialStyle = useCapsuleMaterialStyle()
   const { t } = useTranslation()
   // Seed the breakpoint from the shell-width cache so a remount (returning

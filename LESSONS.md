@@ -10,6 +10,14 @@
 
 ## 条目
 
+### UI-003：颜色 getter 正确不代表常驻 SVG 已更新
+
+- 范围：内置配色、服务器主题包与常驻导航，songloft-org/songloft#523。
+- 规则：ThemeProvider 更新继承的 CSS 变量，不会自动重渲染相同 children；原生 SVG 的具体颜色必须由其常驻拥有者显式订阅。测试读取已渲染 SVG 内容，并在真实截图中核对图标、文字和选中背景，而不是只调用颜色 getter。
+- 证据：2026-10-15，基线 `4d73b793890494301d44b1a19e9df4dd178429e3` 的本批初版截图中，玫瑰色文字/背景已更新而底栏齿轮仍是蓝色，getter 断言却通过。旧 ShellLayout 的隔离渲染回归在 `#984061` 断言失败；补齐配色/主题包订阅后 13 项导航回归与最终 3531 项全量通过。修复源码指纹与保留截图见 [本批记录](docs/project/issue-523.md)。
+- Done right：ShellLayout 订阅 `subscribeBuiltInPalette` / `subscribeActiveThemePack`，同一已挂载图标经过蓝色→玫瑰→主题包→恢复玫瑰，实际内容同步；浏览器逐一断言六种配色的当前 SVG 与根强调色一致。
+- Seen 1× (2026-10-15)。状态：经验；未达到三日期升级阈值。
+
 ### UI-002：滑块松手和边界测量要属于同一手势
 
 - 范围：lynx-ui 3.135.4 共享滑块和旧原生壳能力，songloft-org/songloft#520。
