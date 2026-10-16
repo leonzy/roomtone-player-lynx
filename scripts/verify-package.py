@@ -41,7 +41,7 @@ def verify_web(package, metadata, embedded):
         assert ('global-props=\'{"deployMode":"standalone"}\'' in html) != embedded, "Wrong deployment mode"
         references = WebReferences()
         references.feed(html)
-        assert references.bases == (["/"] if embedded else []), "Wrong deployment base"
+        assert references.bases in ([[], ["/"]] if embedded else [[]]), "Wrong deployment base"
         for ref in references.assets:
             if re.match(r"^(?:https?:|data:|#)", ref):
                 continue

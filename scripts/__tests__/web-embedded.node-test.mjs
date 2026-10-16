@@ -39,15 +39,15 @@ function fixture(t) {
   }
   writeFileSync(join(repo, 'dist/web/main.web.bundle'), '// compiled web fixture')
   const out = join(dir, 'output')
-  const copy = embedded => execFileSync(process.execPath,
-    [join(repo, 'scripts/copy-bundle-web.mjs'), ...(embedded ? ['--embedded'] : []), '--out-dir', out],
+  const copy = (embedded, goEmbed = false) => execFileSync(process.execPath,
+    [join(repo, 'scripts/copy-bundle-web.mjs'), ...(embedded ? ['--embedded'] : []), ...(goEmbed ? ['--go-embed'] : []), '--out-dir', out],
     { encoding: 'utf8' })
   return { out, copy }
 }
 
 test('embedded assets resolve from root and BASE_PATH even for legacy SPA bookmarks', t => {
   const { out, copy } = fixture(t)
-  copy(true)
+  copy(true, true)
   const html = readFileSync(join(out, 'index.html'), 'utf8')
   assert.equal((html.match(/<base href="\/">/g) ?? []).length, 1)
   assert.ok(!html.includes('global-props=\'{"deployMode":"standalone"}\''))
@@ -58,7 +58,7 @@ test('embedded assets resolve from root and BASE_PATH even for legacy SPA bookma
     assert.equal(new URL('./main.lynx.bundle', documentBase).pathname, `${prefix}/main.lynx.bundle`)
   }
   writeFileSync(join(out, 'flutter.js'), 'obsolete Flutter file')
-  copy(true)
+  copy(true, true)
   assert.ok(!readdirSync(out).includes('flutter.js'))
 })
 
@@ -70,9 +70,23 @@ test('standalone retains the document directory and server-address control', t =
   assert.ok(html.includes('global-props=\'{"deployMode":"standalone"}\''))
 })
 
-test('the actual embedded archive verifier distinguishes base URLs from assets', t => {
+test('raw embedded archives retain static subdirectory hosting without a Go base rewrite', t => {
   const { out, copy } = fixture(t)
   copy(true)
+  const html = readFileSync(join(out, 'index.html'), 'utf8')
+  assert.ok(!html.includes('<base href="/">'))
+  assert.ok(!html.includes('global-props=\'{"deployMode":"standalone"}\''))
+  assert.equal(new URL('./main.lynx.bundle', 'https://music.test/songloft/').pathname, '/songloft/main.lynx.bundle')
+})
+
+test('Go-specific packaging cannot be requested for standalone mode', t => {
+  const { copy } = fixture(t)
+  assert.throws(() => copy(false, true), /--go-embed requires --embedded/)
+})
+
+test('the actual embedded archive verifier distinguishes base URLs from assets', t => {
+  const { out, copy } = fixture(t)
+  copy(true, true)
   const metadata = join(out, 'version.json')
   writeFileSync(metadata, JSON.stringify({ version: 'dev', git_commit: 'abcdef0' }))
   const archive = join(dirname(out), 'web.tar.gz')

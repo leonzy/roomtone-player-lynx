@@ -4,6 +4,8 @@
 
 Subsequent CI exposed the archive verifier treating the base tag as an empty asset path. HTMLParser now separates document bases from assets; a new test packages actual output, verifies its archive and confirms missing assets still fail. The old verifier fails this case; the fix passes 85 release checks and the exact CI archive command. Old runs are not final acceptance; delivery records subsequent commits/CI.
 
+The base tag is further limited to the parent's `--go-embed` option, preserving subdirectory hosting for raw embedded static archives. New tests separate these modes and reject invalid flag combinations. The final release suite has 87 checks; subsequent commits/CI identify final source and artifacts.
+
 The user accepted the isolated preview and authorized implementation, commits, pushes and dev-package acceptance. Embedded packaging adds the base tag Go replaces, fixing relative assets on legacy SPA bookmark fallbacks. New gates cover actual packaging, stale asset cleanup, standalone mode and asynchronous RPC declarations; bilingual deployment requirements are corrected. Type checks, 3543 tests, dual bundles/Web packaging, 84 release checks and root/subpath browser checks pass; the old script fails the new base regression. Evidence: `/home/hanxi/work/songloft-review/lynx-default-20261016/`. Final commits and CI/dev acceptance are recorded in the delivery. Native devices, Firefox, real Safari, plugins and long background operation are Not run. The parent switches its default build and gitlink after the client commit; no stable tag or Issue operation.
 
 ## 2026-10-16 · #523 White Lyric Background Feedback

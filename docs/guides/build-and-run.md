@@ -122,7 +122,7 @@ pnpm run build:web-embedded  # 同上 + --embedded：供后端嵌入（父仓库
 
 ## 子路径部署
 
-宿主页通过 `webBaseUrl` 在引擎启动前注入页面目录，供 API、Worker、静态资源和插件桥接使用。embedded 输出包含 Go 可替换的 `<base href="/">`；后端通过 `-base-path /xxx` 或 `BASE_PATH=/xxx` 注入前缀。入口 `/xxx` 重定向到 `/xxx/`，应用内部使用内存路由。
+宿主页通过 `webBaseUrl` 在引擎启动前注入页面目录，供 API、Worker、静态资源和插件桥接使用。父仓库打包传入 `--embedded --go-embed`，加入 Go 可替换的 `<base href="/">`；普通 embedded 静态归档不加入该标签，保留静态子目录部署。后端通过 `-base-path /xxx` 或 `BASE_PATH=/xxx` 注入前缀。入口 `/xxx` 重定向到 `/xxx/`，应用内部使用内存路由。
 
 根路径和子路径已在隔离浏览器验证，当前普通 HTTP 核心流程不要求 SAB/隔离头；覆盖边界见 [Web 部署](web-deployment.md)。
 

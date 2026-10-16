@@ -33,7 +33,7 @@ location / {
 
 前端支持根路径和目录子路径，例如 `/songloft/`。宿主页在 web-core 升级元素前注入页面目录，并将 bundle、模块、脚本、样式、WASM 和应用图标定位到该目录；插件子 frame 的桥接模块也从宿主页目录加载。standalone 的服务器地址独立配置，允许与前端目录不同；embedded 的 API 使用同源目录，恢复会话时忽略旧 standalone 的 `server_url`。没有 `location` 的 Web Lynx 主线程通过平台标识读取同一宿主目录，原生资源路径保持原行为。
 
-目录入口必须带尾斜杠，或显式访问目录内的 `index.html`；代理应将 `/songloft` 重定向到 `/songloft/`。应用使用内存路由，不把应用内路由映射成任意服务器目录。embedded 输出包含 Go 可替换的 `<base href="/">`，旧 SPA 书签回退到首页时也从部署根目录加载资源。后端同时配置 `-base-path /songloft`（或 `BASE_PATH=/songloft`），代理保留 API 前缀。以下示例将前端文件放在 `/var/www/songloft/`；安全上下文影响相应浏览器能力，隔离头按宿主需求选择：
+目录入口必须带尾斜杠，或显式访问目录内的 `index.html`；代理应将 `/songloft` 重定向到 `/songloft/`。应用使用内存路由，不把应用内路由映射成任意服务器目录。父仓库以 `--embedded --go-embed` 打包，加入 Go 可替换的 `<base href="/">`，使旧 SPA 书签回退也从部署根目录加载资源。普通 embedded 静态归档不加入该标签，保留下面的静态子目录部署方式。后端同时配置 `-base-path /songloft`（或 `BASE_PATH=/songloft`），代理保留 API 前缀。以下示例将前端文件放在 `/var/www/songloft/`；安全上下文影响相应浏览器能力，隔离头按宿主需求选择：
 
 ```nginx
 location = /songloft {

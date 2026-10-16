@@ -30,6 +30,8 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
 const isEmbedded = process.argv.includes('--embedded')
+const forGoEmbedding = process.argv.includes('--go-embed')
+if (forGoEmbedding && !isEmbedded) throw new Error('--go-embed requires --embedded')
 const outIndex = process.argv.indexOf('--out-dir')
 if (
   outIndex !== -1 &&
@@ -137,11 +139,12 @@ if (existsSync(htmlSrc)) {
       )
     }
     html = html.slice(0, tagIdx) + html.slice(tagIdx + TAG.length)
-    // Go replaces this exact base tag for BASE_PATH deployments. An explicit
-    // base also keeps relative assets at the deployment root when an old SPA
-    // bookmark is served by the backend's index.html fallback.
-    if (!html.includes('<head>')) throw new Error('Missing HTML head')
-    html = html.replace('<head>', '<head>\n  <base href="/">')
+    // Only Go hosting replaces this base for BASE_PATH and SPA fallbacks.
+    // Raw embedded archives must keep their document-directory resolution.
+    if (forGoEmbedding) {
+      if (!html.includes('<head>')) throw new Error('Missing HTML head')
+      html = html.replace('<head>', '<head>\n  <base href="/">')
+    }
     writeFileSync(htmlDest, html, 'utf-8')
     console.log('  ├── deployMode tag stripped (embedded build)')
   }

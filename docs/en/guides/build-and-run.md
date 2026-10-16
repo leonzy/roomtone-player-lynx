@@ -114,7 +114,7 @@ The production web-core entry uses import.meta and must load via `<script type="
 
 ## Subpath deployment
 
-The host supplies its directory through webBaseUrl before engine startup for API, Worker, asset and plugin-bridge URLs. Embedded output includes a `<base href="/">` tag that Go replaces using `-base-path /xxx` or `BASE_PATH=/xxx`. Redirect `/xxx` to `/xxx/`; navigation uses memory history.
+The host supplies its directory through webBaseUrl before engine startup for API, Worker, asset and plugin-bridge URLs. The parent passes `--embedded --go-embed` to add a `<base href="/">` tag that Go replaces using `-base-path /xxx` or `BASE_PATH=/xxx`. Raw embedded static archives omit it to retain static subdirectory hosting. Redirect `/xxx` to `/xxx/`; navigation uses memory history.
 
 Root and subpath deployments have real isolated-browser coverage. Current core flows over ordinary HTTP do not require SAB or isolation headers; see [Web deployment](web-deployment.md) for coverage limits.
 
