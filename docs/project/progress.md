@@ -2,6 +2,8 @@
 
 ## 2026-10-16 · 完整版嵌入 Web 切换
 
+CI 后续：`38883061236` 的 Web embedded 因 `<base href="/">` 被旧归档正则识别为空资源而失败；standalone 被矩阵 fail-fast 取消。HTMLParser 现在单独校验 base，只对真实资源检查入包；新测试直接归档 copy 输出并验证删除资源仍被拦截。旧 verifier 反向失败，最终 85 项发布检查和 CI 同款归档流程通过。修复另提交并更新父指针，旧运行取消/失败不能当成最终通过。
+
 用户已测试预览，授权改好、提交推送并验收 dev 包。基线 `9ced2b895376dfc829895100db70530bf8ac4426`；嵌入打包增加 Go 可替换的 `<base href="/">`，保留 standalone 的目录定位与地址输入，清理旧 Flutter 资源。新增实际打包与 HTTP 异步 RPC 审计闸门；旧 copy 脚本在新 base 断言失败。部署/安装/构建指南双语同步，撤销“无 SAB 必白屏”的错误要求。
 
 类型、3543 项全量 Vitest、双 bundle/Web 部署构建和 84 项发布检查通过。父仓库实际嵌入构建在局域网 HTTP 桌面、localhost 子路径手机分别完成 10/9 项真实媒体和后端状态检查；根/子路径旧书签均启动到登录页，错误与失败请求为空。初次预览另有 HTTPS 对照；本次未运行原生、Firefox、真实 Safari、插件和长后台。最终提交/CI/dev 验收以交付记录为准，证据 `/home/hanxi/work/songloft-review/lynx-default-20261016/`。不打正式版 tag、不操作 Issue。[English handoff](../en/project/handoff.md)。

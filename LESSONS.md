@@ -10,6 +10,13 @@
 
 ## 条目
 
+### WEB-001：HTML 打包改动必须经过实际归档验证器
+
+- 范围：嵌入 Web HTML、`copy-bundle-web.mjs` 与 `verify-package.py`。
+- 证据：2026-10-16，`6edca8561eeaa375c82c725c2cfd097f0ef3f996` 的本地 JS/打包测试与真实浏览器通过，但 CI `38883061236` 的 Web embedded 因新增 `<base href="/">` 被正则当作空资源路径而失败。此前只跑了通用 verifier 夹具，没有把新 copy 输出接入归档验证器。
+- Done right：验证器用 HTMLParser 区分 base 与资源，分别校验 embedded/standalone 的 base；新回归对真实 copy 输出归档并调用验证器，同时删除真实资源确保仍会拒绝缺文件。隔离旧 verifier 时新回归失败，修复后 85 项发布检查和 CI 同款真实归档命令通过。证据 `/home/hanxi/work/songloft-review/lynx-default-20261016/logs/{lynx-ci-web-job,archive-verifier-negative,lynx-release-tests-archive-fix}.log`。
+- Seen 1× (2026-10-16)。状态：经验；修复提交与后续 CI 以本次交付为准，取消的旧构建不算通过。
+
 ### LYRIC-001：封面背景被辅助功能停用时应明确说明
 
 - 范围：Lynx 播放器与外观设置，songloft-org/songloft#523 的 2026-10-16 反馈。

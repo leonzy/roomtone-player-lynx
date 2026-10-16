@@ -10,6 +10,13 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### WEB-001: HTML packaging changes must pass the actual archive verifier
+
+- Scope: embedded Web HTML, copy-bundle-web.mjs and verify-package.py.
+- Evidence: on 2026-10-16, local JS/package tests and real browser checks pass at `6edca8561eeaa375c82c725c2cfd097f0ef3f996`, but run `38883061236` fails Web embedded because its regex treats the new base href as an empty asset path. Generic verifier fixtures had not consumed the changed copy output.
+- Done right: HTMLParser separates base tags from assets and validates embedded/standalone base policies. The regression archives actual copy output and invokes the verifier, then removes a real asset to ensure missing files still fail. The old verifier fails this new regression; the fix passes 85 release checks and the exact CI archive command. Evidence: `logs/{lynx-ci-web-job,archive-verifier-negative,lynx-release-tests-archive-fix}.log` under `/home/hanxi/work/songloft-review/lynx-default-20261016/`.
+- Seen 1× (2026-10-16). Status: lesson; delivery records the fix commit and subsequent CI. Cancelled old builds do not count as passing.
+
 ### LYRIC-001: Explain when accessibility disables cover backgrounds
 
 - Scope: Lynx player and appearance settings; songloft-org/songloft#523 feedback on 2026-10-16.

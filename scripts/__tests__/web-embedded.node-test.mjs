@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -31,6 +31,12 @@ function fixture(t) {
     if (file.isFile()) cpSync(join(root, 'web', file.name), join(repo, 'web', file.name))
   }
   writeFileSync(join(core, 'css/client.css'), '/* fixture */')
+  const html = readFileSync(join(repo, 'web/index.html'), 'utf8')
+  for (const match of html.matchAll(/(?:src|href)=["']\.\/web-core\/static\/([^"']+)["']/g)) {
+    const asset = join(core, match[1])
+    mkdirSync(dirname(asset), { recursive: true })
+    writeFileSync(asset, 'engine fixture')
+  }
   writeFileSync(join(repo, 'dist/web/main.web.bundle'), '// compiled web fixture')
   const out = join(dir, 'output')
   const copy = embedded => execFileSync(process.execPath,
@@ -62,4 +68,22 @@ test('standalone retains the document directory and server-address control', t =
   const html = readFileSync(join(out, 'index.html'), 'utf8')
   assert.ok(!html.includes('<base href="/">'))
   assert.ok(html.includes('global-props=\'{"deployMode":"standalone"}\''))
+})
+
+test('the actual embedded archive verifier distinguishes base URLs from assets', t => {
+  const { out, copy } = fixture(t)
+  copy(true)
+  const metadata = join(out, 'version.json')
+  writeFileSync(metadata, JSON.stringify({ version: 'dev', git_commit: 'abcdef0' }))
+  const archive = join(dirname(out), 'web.tar.gz')
+  const pack = () => execFileSync('tar', ['-czf', archive, '-C', out, '.'])
+  const verify = () => spawnSync('python3', [join(root, 'scripts/verify-package.py'), 'web-embedded', archive, metadata], { encoding: 'utf8' })
+  pack()
+  const valid = verify()
+  assert.equal(valid.status, 0, valid.stderr)
+  rmSync(join(out, 'web-core/static/js/client.js'))
+  pack()
+  const missing = verify()
+  assert.notEqual(missing.status, 0)
+  assert.match(missing.stderr, /Missing HTML asset: web-core\/static\/js\/client.js/)
 })

@@ -9,7 +9,21 @@ import re
 import subprocess
 import tarfile
 import zipfile
+from html.parser import HTMLParser
 from pathlib import Path
+
+
+class WebReferences(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.assets = []
+        self.bases = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "base":
+            self.bases.extend(value for name, value in attrs if name == "href")
+        else:
+            self.assets.extend(value for name, value in attrs if name in ("src", "href") and value)
 
 
 def verify_web(package, metadata, embedded):
@@ -25,7 +39,10 @@ def verify_web(package, metadata, embedded):
         check_production_bundle(files["main.lynx.bundle"])
         html = files["index.html"].decode()
         assert ('global-props=\'{"deployMode":"standalone"}\'' in html) != embedded, "Wrong deployment mode"
-        for ref in re.findall(r'(?:src|href)=["\']([^"\']+)["\']', html):
+        references = WebReferences()
+        references.feed(html)
+        assert references.bases == (["/"] if embedded else []), "Wrong deployment base"
+        for ref in references.assets:
             if re.match(r"^(?:https?:|data:|#)", ref):
                 continue
             name = ref.split("?")[0].split("#")[0].lstrip("/").removeprefix("./")
