@@ -1,0 +1,199 @@
+diff --git a/dist/Input.jsx b/dist/Input.jsx
+index 652879dcd85ece017d21323eaae39fdadb0810d3..61ffb3be213bf8e651dc51bdd0e451806b680bec 100644
+--- a/dist/Input.jsx
++++ b/dist/Input.jsx
+@@ -5,9 +5,18 @@ const Input = memo(forwardRef(InputImpl));
+ function InputImpl(props, ref) {
+     const { id, readonly = false, placeholder, type = 'text', inputFilter, style, className, maxLength = 140, defaultValue, value, confirmType = 'send', showSoftInputOnFocus = true, onFocus, onInput, onConfirm, onBlur, onSelectionChange } = props;
+     const controlled = useRef(void 0 !== value);
++    const lockInput = useRef(controlled.current && (typeof SystemInfo === 'undefined' || String(SystemInfo.platform).toLowerCase() !== 'web'));
++    const pendingInputValues = useRef([]);
+     const inputRef = useRef(null);
+     const { onInputBlurred, onInputFocused } = useContext(KeyboardAwareTriggerContext);
+     useEffect(()=>{
++        const pending = pendingInputValues.current;
++        const echo = pending.indexOf(value ?? '');
++        if (echo !== -1) {
++            pending.splice(0, echo + 1);
++            return;
++        }
++        pending.length = 0;
+         setValue(value ?? '');
+     }, [
+         value
+@@ -92,6 +101,7 @@ function InputImpl(props, ref) {
+         onSelectionChange?.(res.detail.selectionStart, res.detail.selectionEnd);
+     };
+     const sendInputEvent = (value, selectionStart, selectionEnd, isComposing, unlockInteraction = false)=>{
++        if (controlled.current && !lockInput.current) pendingInputValues.current.push(value);
+         onInput?.(value, selectionStart, selectionEnd, isComposing);
+         if (unlockInteraction) setNativePropsByRef(inputRef, {
+             readonly: false
+@@ -99,8 +109,8 @@ function InputImpl(props, ref) {
+     };
+     const onInputContentDidChanged = (res)=>{
+         'main thread';
+-        if (controlled.current) res.currentTarget.setAttribute('readonly', true);
+-        runOnBackground(sendInputEvent)(res.detail.value, res.detail.selectionStart, res.detail.selectionEnd, res.detail.isComposing, controlled.current);
++        if (lockInput.current) res.currentTarget.setAttribute('readonly', true);
++        runOnBackground(sendInputEvent)(res.detail.value, res.detail.selectionStart, res.detail.selectionEnd, res.detail.isComposing, lockInput.current);
+     };
+     useImperativeHandle(ref, ()=>({
+             setValue,
+diff --git a/dist/TextArea.jsx b/dist/TextArea.jsx
+index 492fd95b7785e72426d8b1d2eb22a66fdfebc20c..b7caa6be61896fb3f23e99bf79f31ed38f5487ae 100644
+--- a/dist/TextArea.jsx
++++ b/dist/TextArea.jsx
+@@ -5,9 +5,18 @@ const TextArea = memo(forwardRef(TextAreaImpl));
+ function TextAreaImpl(props, ref) {
+     const { id, readonly = false, placeholder, lineSpacing, bounces = true, maxLines = 40, type = 'text', inputFilter, style, className, maxLength = 140, defaultValue, value, confirmType = 'send', showSoftInputOnFocus = true, onFocus, onInput, onConfirm, onBlur, onSelectionChange } = props;
+     const controlled = useRef(void 0 !== value);
++    const lockInput = useRef(controlled.current && (typeof SystemInfo === 'undefined' || String(SystemInfo.platform).toLowerCase() !== 'web'));
++    const pendingInputValues = useRef([]);
+     const inputRef = useRef(null);
+     const { onInputBlurred, onInputFocused } = useContext(KeyboardAwareTriggerContext);
+     useEffect(()=>{
++        const pending = pendingInputValues.current;
++        const echo = pending.indexOf(value ?? '');
++        if (echo !== -1) {
++            pending.splice(0, echo + 1);
++            return;
++        }
++        pending.length = 0;
+         setValue(value ?? '');
+     }, [
+         value
+@@ -92,6 +101,7 @@ function TextAreaImpl(props, ref) {
+         onSelectionChange?.(res.detail.selectionStart, res.detail.selectionEnd);
+     };
+     const sendInputEvent = (value, selectionStart, selectionEnd, isComposing, unlockInteraction = false)=>{
++        if (controlled.current && !lockInput.current) pendingInputValues.current.push(value);
+         onInput?.(value, selectionStart, selectionEnd, isComposing);
+         if (unlockInteraction) setNativePropsByRef(inputRef, {
+             readonly: false
+@@ -99,8 +109,8 @@ function TextAreaImpl(props, ref) {
+     };
+     const onInputContentDidChanged = (res)=>{
+         'main thread';
+-        if (controlled.current) res.currentTarget.setAttribute('readonly', true);
+-        runOnBackground(sendInputEvent)(res.detail.value, res.detail.selectionStart, res.detail.selectionEnd, res.detail.isComposing, controlled.current);
++        if (lockInput.current) res.currentTarget.setAttribute('readonly', true);
++        runOnBackground(sendInputEvent)(res.detail.value, res.detail.selectionStart, res.detail.selectionEnd, res.detail.isComposing, lockInput.current);
+     };
+     useImperativeHandle(ref, ()=>({
+             setValue,
+diff --git a/src/Input.tsx b/src/Input.tsx
+index d9b77d9f37aa7e7cf195b70c5759a0eb6c141ecf..28ca19e820396ae73f6294c5ec37bafd8b065e20 100644
+--- a/src/Input.tsx
++++ b/src/Input.tsx
+@@ -52,6 +52,11 @@ function InputImpl(props: InputProps, ref: ForwardedRef<InputRef>) {
+   } = props
+ 
+   const controlled = useRef<boolean>(value !== undefined)
++  // Android browsers dismiss the IME when readonly becomes true, even briefly.
++  // Keep native input serialization, but never lock the browser's editable field.
++  const lockInput = useRef(controlled.current &&
++    (typeof SystemInfo === 'undefined' || String(SystemInfo.platform).toLowerCase() !== 'web'))
++  const pendingInputValues = useRef<string[]>([])
+ 
+   const inputRef = useRef<NodesRef>(null)
+   const { onInputBlurred, onInputFocused } = useContext(
+@@ -59,6 +64,15 @@ function InputImpl(props: InputProps, ref: ForwardedRef<InputRef>) {
+   )
+ 
+   useEffect(() => {
++    const pending = pendingInputValues.current
++    const echo = pending.indexOf(value ?? '')
++    if (echo !== -1) {
++      // The browser already applied these edits. Echoing an older background
++      // render can erase a newer keystroke or cancel an ongoing composition.
++      pending.splice(0, echo + 1)
++      return
++    }
++    pending.length = 0
+     setValue(value ?? '')
+   }, [value])
+ 
+@@ -188,6 +202,7 @@ function InputImpl(props: InputProps, ref: ForwardedRef<InputRef>) {
+     isComposing: boolean,
+     unlockInteraction = false,
+   ) => {
++    if (controlled.current && !lockInput.current) pendingInputValues.current.push(value)
+     onInput?.(value, selectionStart, selectionEnd, isComposing)
+     if (unlockInteraction) {
+       setNativePropsByRef(inputRef, { readonly: false })
+@@ -196,7 +211,7 @@ function InputImpl(props: InputProps, ref: ForwardedRef<InputRef>) {
+ 
+   const onInputContentDidChanged = (res: { detail: InputInputEvent }) => {
+     'main thread'
+-    if (controlled.current) {
++    if (lockInput.current) {
+       // @ts-expect-error TODO: fix the typings of MTS
+       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+       res.currentTarget.setAttribute('readonly', true)
+@@ -206,7 +221,7 @@ function InputImpl(props: InputProps, ref: ForwardedRef<InputRef>) {
+       res.detail.selectionStart,
+       res.detail.selectionEnd,
+       res.detail.isComposing,
+-      controlled.current,
++      lockInput.current,
+     )
+   }
+ 
+diff --git a/src/TextArea.tsx b/src/TextArea.tsx
+index 2a089fc9e3fef0181031a2ab91e38db54d5ac7a0..58dc3bdfe619b06e532f4756b042529f0f9eb0a2 100644
+--- a/src/TextArea.tsx
++++ b/src/TextArea.tsx
+@@ -59,6 +59,11 @@ function TextAreaImpl(props: TextAreaProps, ref: ForwardedRef<TextAreaRef>) {
+   } = props
+ 
+   const controlled = useRef<boolean>(value !== undefined)
++  // Android browsers dismiss the IME when readonly becomes true, even briefly.
++  // Keep native input serialization, but never lock the browser's editable field.
++  const lockInput = useRef(controlled.current &&
++    (typeof SystemInfo === 'undefined' || String(SystemInfo.platform).toLowerCase() !== 'web'))
++  const pendingInputValues = useRef<string[]>([])
+ 
+   const inputRef = useRef<NodesRef>(null)
+   const { onInputBlurred, onInputFocused } = useContext(
+@@ -66,6 +71,15 @@ function TextAreaImpl(props: TextAreaProps, ref: ForwardedRef<TextAreaRef>) {
+   )
+ 
+   useEffect(() => {
++    const pending = pendingInputValues.current
++    const echo = pending.indexOf(value ?? '')
++    if (echo !== -1) {
++      // The browser already applied these edits. Echoing an older background
++      // render can erase a newer keystroke or cancel an ongoing composition.
++      pending.splice(0, echo + 1)
++      return
++    }
++    pending.length = 0
+     setValue(value ?? '')
+   }, [value])
+ 
+@@ -195,6 +209,7 @@ function TextAreaImpl(props: TextAreaProps, ref: ForwardedRef<TextAreaRef>) {
+     isComposing: boolean,
+     unlockInteraction = false,
+   ) => {
++    if (controlled.current && !lockInput.current) pendingInputValues.current.push(value)
+     onInput?.(value, selectionStart, selectionEnd, isComposing)
+     if (unlockInteraction) {
+       setNativePropsByRef(inputRef, { readonly: false })
+@@ -203,7 +218,7 @@ function TextAreaImpl(props: TextAreaProps, ref: ForwardedRef<TextAreaRef>) {
+ 
+   const onInputContentDidChanged = (res: { detail: InputInputEvent }) => {
+     'main thread'
+-    if (controlled.current) {
++    if (lockInput.current) {
+       // @ts-expect-error TODO: fix the typings of MTS
+       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+       res.currentTarget.setAttribute('readonly', true)
+@@ -213,6 +228,6 @@ function TextAreaImpl(props: TextAreaProps, ref: ForwardedRef<TextAreaRef>) {
+       res.detail.selectionStart,
+       res.detail.selectionEnd,
+       res.detail.isComposing,
+-      controlled.current,
++      lockInput.current,
+     )
+   }

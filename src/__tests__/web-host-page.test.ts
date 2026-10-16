@@ -25,6 +25,15 @@ import { describe, expect, test } from 'vitest'
 const repoRoot = path.resolve(__dirname, '..', '..')
 const read = (relative: string): string => readFileSync(path.join(repoRoot, relative), 'utf8')
 
+test('mobile Web sizes its contained Lynx viewport below browser chrome and above the IME', () => {
+  const html = read('web/index.html')
+  const viewport = html.match(/<meta\s+name="viewport"\s+content="([^"]+)"/)?.[1]
+  expect(viewport).toContain('interactive-widget=resizes-content')
+  const styles = [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(match => match[1]).join('\n')
+  const view = styles.match(/lynx-view\s*\{([^}]+)\}/)?.[1]
+  expect(view).toMatch(/height:\s*100vh\s*;[\s\S]*height:\s*100dvh\s*;/)
+})
+
 /**
  * The web-core asset directory both serve.mjs and copy-bundle-web.mjs use.
  *

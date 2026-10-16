@@ -1,5 +1,9 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-16 · Android Chrome 输入与底栏回归
+
+实际 Android 34 / Chrome 113 / Gboard 复现 dev 输入触发 readonly 收起键盘，及 100vh 使导航下沿超出视口 48px。Web 专用输入补丁保留原生锁，并跳过后台的输入值回写，防止快速连续输入丢字；HTML 改用动态高度与 resizes-content。基线 9 项回归失败，只停用锁的第一版还在真实快速输入中丢失 `l`，补充 4 项异步回写测试后反向失败。最终 3580 项、类型、双 bundle、Go 嵌入、87 项发布检查与 Android 28 项实际交互通过。根路径、LAN HTTP、子路径、多行输入、横竖屏与 360px 均有截图和系统/媒体/几何断言；未保存代理测试草稿。详细对象、证据和 Not run 见 [记录](web-android-input-viewport.md) / [English](../en/project/web-android-input-viewport.md)。提交/CI/dev 包后续绑定最终 SHA，不打正式 tag、不操作 Issue。
+
 ## 2026-10-16 · 完整版嵌入 Web 切换
 
 CI 后续：`38883061236` 的 Web embedded 因 `<base href="/">` 被旧归档正则识别为空资源而失败；standalone 被矩阵 fail-fast 取消。HTMLParser 现在单独校验 base，只对真实资源检查入包；新测试直接归档 copy 输出并验证删除资源仍被拦截。旧 verifier 反向失败，最终 85 项发布检查和 CI 同款归档流程通过。修复另提交并更新父指针，旧运行取消/失败不能当成最终通过。

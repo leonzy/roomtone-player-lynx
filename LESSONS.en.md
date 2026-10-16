@@ -10,6 +10,14 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### WEB-002: Desktop mobile viewports do not validate Android Chrome IME or browser controls
+
+- Scope: Web `Input` / `TextArea`, asynchronous controlled-value echoes and fixed navigation; no associated Issue.
+- Evidence: on 2026-10-16, baseline `209f6c88b071c187064194a2ae197e48c23fa6c3` reproduces on an Android 34 / Chrome 113 / Gboard emulator. One letter triggers a roughly 9.5ms readonly pulse: DOM focus remains, but the OS dismisses the keyboard. A 912px root exceeds the 856px visible viewport, placing the capsule 48px outside it. Earlier 390px desktop screenshots did not exercise either OS behavior.
+- Rule: independently observe OS IME visibility, real continuous/composition input and geometry with browser chrome. Removing the readonly lock alone still lets older echoes overwrite newer edits: the first fix loses `l`, and four additional asynchronous echo tests fail on it. Acknowledge inputs in order; an equal value must not consume later repeated events prematurely.
+- Done right: Web avoids temporary readonly changes and skips value echoes already applied by the browser; native locking remains. The host uses dynamic viewport height and Android `resizes-content`. Installed source/distributed controllers pass 36 regressions, the full suite passes 3580, and type checks, dual bundles and 87 release checks pass. Final device results are in the [record](docs/en/project/web-android-input-viewport.md), with evidence under `/home/hanxi/work/songloft-review/android-web-input-20261016/`.
+- Seen 1× (2026-10-16). Status: lesson; a single emulator/browser version does not establish physical Android, latest Chrome or Safari acceptance.
+
 ### WEB-001: HTML packaging changes must pass the actual archive verifier
 
 - Scope: embedded Web HTML, copy-bundle-web.mjs and verify-package.py.

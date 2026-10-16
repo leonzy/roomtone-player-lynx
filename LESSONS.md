@@ -10,6 +10,14 @@
 
 ## 条目
 
+### WEB-002：桌面手机尺寸不能替代 Android Chrome 的 IME 与浏览器栏验证
+
+- 范围：Web `Input` / `TextArea`、异步受控值回写和 fixed 导航；无关联 Issue。
+- 证据：2026-10-16，基线 `209f6c88b071c187064194a2ae197e48c23fa6c3` 在 Android 34 / Chrome 113 / Gboard 模拟器中，单字输入触发约 9.5ms 只读脉冲，DOM 焦点仍在，系统键盘却收起；912px 的根高于 856px 实际视口，胶囊超出 48px。此前 390px 桌面截图未覆盖这两种系统行为。
+- 规则：分别验证系统 IME 状态、真实连续/组合输入和浏览器 chrome 下的几何。只取消只读锁仍会因旧回写覆盖新输入而丢字；第一版实际丢失 `l`，新增四项异步回写测试后全部反向失败。输入确认值按顺序消费，重复值不能提前确认后续事件。
+- Done right：Web 不临时设为只读，跳过浏览器已应用的 value 回写；保留原生锁。宿主使用动态视口和 Android `resizes-content`。源码/发行控制器 36 项回归、全量 3580 项、类型、双 bundle 和 87 项发布检查通过。设备最终结果见 [记录](docs/project/web-android-input-viewport.md)；证据 `/home/hanxi/work/songloft-review/android-web-input-20261016/`。
+- Seen 1× (2026-10-16)。状态：经验；不把单版本模拟器扩大为 Android 真机、最新 Chrome 或 Safari 验收。
+
 ### WEB-001：HTML 打包改动必须经过实际归档验证器
 
 - 范围：嵌入 Web HTML、`copy-bundle-web.mjs` 与 `verify-package.py`。

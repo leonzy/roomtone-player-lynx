@@ -9,7 +9,7 @@
        — exactly the layout the native hosts avoid. It also lets the page paint
        edge to edge, which is why the tokens exist rather than the host insetting
        the viewport. -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Songloft</title>
@@ -299,6 +299,10 @@
     lynx-view {
       width: 100vw;
       height: 100vh;
+      /* web-core contains fixed descendants inside this box. Android's 100vh
+         includes the collapsed URL bar, placing the nav below the visible page.
+         Dynamic height also follows the IME with resizes-content above. */
+      height: 100dvh;
       display: block;
       /* Above the host <video> surface (z-index 0, injected by audio-host.js). */
       position: relative;

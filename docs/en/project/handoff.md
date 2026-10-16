@@ -1,5 +1,9 @@
 # Handoff (2026-10-14)
 
+## 2026-10-16 · Android Chrome input and bottom navigation
+
+Reproduced both published-dev defects on an actual Android 34 / Chrome 113 / Gboard emulator: temporary readonly dismisses the IME, and 100vh places navigation 48px outside the viewport. The Web input patch also prevents older asynchronous value echoes from dropping newer text; native locking remains. The host uses 100dvh and resizes-content. 3580 tests, type checks, dual bundles, Go embedding and 87 release checks pass; Android root/LAN/subpath plus multiline/rotation/360px checks total 28 passes. See the [record](web-android-input-viewport.md) / [中文](../../project/web-android-input-viewport.md). Evidence and source fingerprint: `/home/hanxi/work/songloft-review/android-web-input-20261016/validation.json`. Physical devices, latest Chrome, actual Pinyin candidate selection and Safari/iOS/HarmonyOS runtime behavior are Not run. Continue this session's default-Web-switch commit/push authorization: client first, then parent gitlink; delivery records final SHA/CI/dev artifact acceptance. No stable tag or Issue operation.
+
 ## 2026-10-16 · Default embedded Lynx Web in the full server
 
 Subsequent CI exposed the archive verifier treating the base tag as an empty asset path. HTMLParser now separates document bases from assets; a new test packages actual output, verifies its archive and confirms missing assets still fail. The old verifier fails this case; the fix passes 85 release checks and the exact CI archive command. Old runs are not final acceptance; delivery records subsequent commits/CI.
