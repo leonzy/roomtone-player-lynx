@@ -11,7 +11,9 @@ The `deployMode` global prop controls the API-address UI. Embedded uses the host
 
 ## Before deployment
 
-web-core requires SharedArrayBuffer without a fallback. Use a secure context (HTTPS, except localhost) and return `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`. Both modes need them; the Go backend's default Flutter deployment does not automatically satisfy this Lynx host contract. Configure proxy headers and backend CORP support for cross-origin covers/audio. web/serve.mjs supplies local validation headers.
+All 33 internal RPC endpoints in web-core 0.23.1 are asynchronous. The generic RPC library retains a synchronous SAB branch, but this does not establish a page requirement. On 2026-10-16, Docker Chrome 121 core flows pass over LAN HTTP, a localhost subpath and HTTPS without COOP/COEP and with SAB undefined in the document and both Workers. The full server retains ordinary HTTP; HTTPS enables secure-context capabilities such as clipboard and Wake Lock. These results do not establish Firefox, real Safari, plugin or long-background compatibility.
+
+Hosts opting into cross-origin isolation can configure `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` with compatible cross-origin resource/frame policies. web/serve.mjs supplies isolation headers by default, but they are not required for the full edition. The parent `make build-frontend-web-embedded` builds the default full frontend; `embedded-build.json` records client and server identities separately.
 
 Example root-path Nginx static serving (provide TLS separately; embedded also needs an /api/v1/ proxy location):
 
@@ -19,8 +21,6 @@ Example root-path Nginx static serving (provide TLS separately; embedded also ne
 location / {
     root /var/www/songloft-lynx;
     try_files $uri $uri/ /index.html;
-    add_header Cross-Origin-Opener-Policy same-origin always;
-    add_header Cross-Origin-Embedder-Policy require-corp always;
     add_header Cache-Control no-cache always;
 }
 ```
@@ -33,7 +33,7 @@ Vitest checks local index.html references and a type=module entry. Those checks 
 
 The frontend supports both root hosting and directory subpaths such as `/songloft/`. Before web-core upgrades the element, the host supplies the document directory and resolves bundles, modules, scripts, styles, WASM and app icons there. Child plugin-frame bridge modules also load from the host directory. Standalone configures its server independently, allowing different frontend and backend directories; embedded uses the same-origin directory and ignores a stored standalone `server_url` during session restoration. Web Lynx main-thread realms without `location` read the same host directory using the platform identifier. Native resource paths retain their existing behavior.
 
-Directory entry URLs must end in a slash, or explicitly name that directory's `index.html`; redirect `/songloft` to `/songloft/`. The app uses an in-memory router rather than mapping app routes to arbitrary server directories. For embedded hosting, also start the backend with `-base-path /songloft` (or `BASE_PATH=/songloft`) and preserve the API prefix in the proxy. This example stores frontend files under `/var/www/songloft/`; a secure context and isolation headers remain required:
+Directory entry URLs must end in a slash, or explicitly name that directory's `index.html`; redirect `/songloft` to `/songloft/`. The app uses memory history. Embedded output includes a `<base href="/">` tag that Go replaces; legacy SPA bookmark fallbacks also load assets from the deployment root. Start the backend with `-base-path /songloft` (or `BASE_PATH=/songloft`) and preserve the API prefix. This example stores files under `/var/www/songloft/`; secure-context capabilities and optional host isolation remain separate considerations:
 
 ```nginx
 location = /songloft {
@@ -46,8 +46,6 @@ location /songloft/ {
     root /var/www;
     index index.html;
     try_files $uri $uri/ =404;
-    add_header Cross-Origin-Opener-Policy same-origin always;
-    add_header Cross-Origin-Embedder-Policy require-corp always;
     add_header Cache-Control no-cache always;
 }
 ```

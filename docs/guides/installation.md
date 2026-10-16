@@ -47,7 +47,7 @@ hdc install songloft-lynx-harmony.hap
 
 ## Web
 
-解压 standalone 包到静态服务根目录，打开站点并填写后端地址。服务器需提供 JS modules、Worker、WASM 的正确 MIME；宿主页需 HTTPS（localhost 例外）和 `Cross-Origin-Opener-Policy: same-origin`、`Cross-Origin-Embedder-Policy: require-corp` 响应头，否则 SharedArrayBuffer 不可用、页面会白屏。跨源后端需允许来源的 API 请求与 CORP 资源加载。先在常青浏览器中验证。
+解压 standalone 包到静态服务根目录，打开站点并填写后端地址。服务器需提供 JS modules、Worker、WASM 的正确 MIME；当前核心流程不强制 SAB 或隔离头，普通 HTTP 可用，HTTPS 用于剪贴板和常亮等安全上下文能力。跨源后端需允许 API 请求；宿主主动启用 COEP 时还需兼容 CORP 资源加载。先在常青浏览器中验证。
 
 embedded 包隐藏 API 地址输入，使用同源后端。它是静态资源包，不会自动替换 Songloft 后端的 Flutter 内嵌资源；要使用它，需要明确配置后端构建嵌入路径或反向代理的静态目录。当前宿主中含根路径资源 URL，**子路径部署尚未完成验证**。
 

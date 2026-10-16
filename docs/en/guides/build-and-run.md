@@ -114,9 +114,9 @@ The production web-core entry uses import.meta and must load via `<script type="
 
 ## Subpath deployment
 
-Root-relative resource URLs and API paths remain. Lynx subpath deployment is **unverified**; setting a backend base-path alone does not make this client compatible.
+The host supplies its directory through webBaseUrl before engine startup for API, Worker, asset and plugin-bridge URLs. Embedded output includes a `<base href="/">` tag that Go replaces using `-base-path /xxx` or `BASE_PATH=/xxx`. Redirect `/xxx` to `/xxx/`; navigation uses memory history.
 
-Embedded mode derives the backend origin from the Worker environment. A deployMode global prop distinguishes standalone from embedded. See the source configuration and [Web deployment (Chinese)](../../guides/web-deployment.md) for current behavior.
+Root and subpath deployments have real isolated-browser coverage. Current core flows over ordinary HTTP do not require SAB or isolation headers; see [Web deployment](web-deployment.md) for coverage limits.
 
 ## Related
 

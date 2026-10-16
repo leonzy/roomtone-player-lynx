@@ -122,9 +122,9 @@ pnpm run build:web-embedded  # 同上 + --embedded：供后端嵌入（父仓库
 
 ## 子路径部署
 
-宿主中仍有根路径资源 URL，API 也尚未完成带前缀的适配，因此 Lynx 子路径部署**未验证**。下述后端参数并不能独自保证本客户端在子路径下可用。
+宿主页通过 `webBaseUrl` 在引擎启动前注入页面目录，供 API、Worker、静态资源和插件桥接使用。embedded 输出包含 Go 可替换的 `<base href="/">`；后端通过 `-base-path /xxx` 或 `BASE_PATH=/xxx` 注入前缀。入口 `/xxx` 重定向到 `/xxx/`，应用内部使用内存路由。
 
-后端启动时用 `-base-path /xxx` 或 `BASE_PATH=/xxx`；前端不读子路径参数 —— embedded 部署下 API base 取自 worker realm 的 `self.location.origin`（页面 origin 即后端 origin，`src/core/config/app-config.ts:35-47`），standalone 与 embedded 由 `deployMode` global prop 区分。
+根路径和子路径已在隔离浏览器验证，当前普通 HTTP 核心流程不要求 SAB/隔离头；覆盖边界见 [Web 部署](web-deployment.md)。
 
 ## 相关
 

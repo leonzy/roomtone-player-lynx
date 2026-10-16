@@ -47,7 +47,7 @@ Installation also depends on whether the signing certificate/profile authorizes 
 
 ## Web
 
-Extract the standalone archive into a static server root, open it, and enter the backend address. Serve JS modules, Worker, and WASM with appropriate MIME types. The host page requires HTTPS (localhost is exempt), `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` response headers; without them SharedArrayBuffer is unavailable and the page stays blank. Cross-origin backends must permit the site's requests and CORP resource loading. Validate in a current browser.
+Extract the standalone archive into a static server root, open it, and enter the backend address. Serve JS modules, Worker, and WASM with appropriate MIME types. Current core flows do not require SAB or isolation headers and work over ordinary HTTP. HTTPS enables secure-context features such as clipboard and wake lock. Cross-origin backends must permit API requests; hosts opting into COEP also require compatible CORP resource loading. Validate in a current browser.
 
 The embedded archive hides the API address field and uses the same-origin backend. It is a static asset package and does not automatically replace the backend's embedded Flutter assets. Configure the backend's embedding source or the reverse proxy's static directory explicitly. Host resources currently include root-relative URLs; **subpath deployment remains unverified**.
 
