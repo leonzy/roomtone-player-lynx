@@ -10,6 +10,13 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### LYRIC-001: Explain when accessibility disables cover backgrounds
+
+- Scope: Lynx player and appearance settings; songloft-org/songloft#523 feedback on 2026-10-16.
+- Evidence: an actual Web build of baseline `1ad0eaf1cba340d644660f64198fed6b8b6d6d6d` unmounts the cover and shows a solid background with either Increase Contrast or Reduce Transparency. Old descriptions only mentioned labels/separators or solid surfaces. The screenshots match this path, but device settings remain unconfirmed.
+- Done right: disable each option through the real settings UI and confirm the cover returns; clarify the effect in both languages while retaining the accessibility policy. Screenshot similarity does not prove a device cause. See the [#523 follow-up record](docs/en/project/issue-523.md) for comparisons and commands.
+- Seen 1× (2026-10-16). Status: lesson; copy was uncommitted during validation, with final validation objects in the task record.
+
 ### LIST-001: Delegating to a virtual list does not establish large-queue runtime performance
 
 - Scope: playback queues, shared `VirtualList`, Web and native runtimes, songloft-org/songloft#525.

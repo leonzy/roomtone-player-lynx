@@ -1,5 +1,15 @@
 # Lyric Backgrounds and Built-in Palettes · songloft-org/songloft#523
 
+## 2026-10-16 · White Background Feedback
+
+Delivery authorization: on 2026-10-16 the user authorized this batch's commits, pushes and a reply to songloft-org/songloft#523. Uncommitted/unposted states below are validation snapshots; Git/GitHub records for the same SHA determine final commits, CI and the comment. No stable tag or Issue closure.
+
+For the [follow-up comment](https://github.com/songloft-org/songloft/issues/523#issuecomment-6210432894), an actual Web build of current `1ad0eaf1cba340d644660f64198fed6b8b6d6d6d` reproduces the white background and unmounted cover with either Increase Contrast or Reduce Transparency enabled. Turning each off in Appearance immediately restores the cover background. With amber and increased contrast, the button is approximately `#774600`, versus the reported screenshot's dominant `#774601`; this strongly matches the path but does not establish the reporter's settings.
+
+Only the bilingual switch descriptions change, explaining the cover-background effect and system accessibility precedence. The policy remains unchanged. Evidence: `/tmp/songloft-523-followup/{browser-results.json,normal.png,reduce.png,contrast.png,reduce-off.png,contrast-off.png}`; final validation objects, commands and results are in `validation.json` in that directory. Copy changes add no regression tests; old-implementation failure checks are inapplicable. Not run: Android/iOS/HarmonyOS devices, outdoor use and the reporter's library. Device cause remains unconfirmed. No commit, push, release or Issue reply.
+
+Validation: Linux amd64 / Node 22.17.1 / pnpm 11.15.1; type checking, all 3,543 tests, both Lynx/Web bundles and Web deployment builds pass. Docker Chrome displays the new descriptions at 390px in Chinese and English with no page exceptions. The first two script attempts clicked Collapse before the player entrance settled and missed it; waiting for entrance completion passes. Failed logs are retained.
+
 ## Behavior
 
 Keep Lynx's blurred artwork with independent player background, scrim and foreground tokens. The light scrim ranges from .86 to .94, dark from .82 to .90. Active lyrics, translations, romaji and completed karaoke words adjust the accent against bounds covering every possible artwork color, targeting 7:1; other lyrics target 4.5:1, raised to 7:1 with increased contrast.

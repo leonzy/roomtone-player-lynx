@@ -1,5 +1,11 @@
 # Handoff (2026-10-14)
 
+## 2026-10-16 · #523 White Lyric Background Feedback
+
+The user has now authorized this batch's commits, pushes and a #523 reply. Commit clients before updating parent gitlinks. Uncommitted states below are validation snapshots; Git/GitHub records for the same SHA determine delivery. No stable tag or Issue closure.
+
+The actual Web build reproduces a white background with either Increase Contrast or Reduce Transparency; disabling each through Settings restores the cover. Screenshots match the report, but the reporter's device settings remain unconfirmed. This batch only clarifies the two bilingual switch descriptions, preserving accessibility policy. Baseline: `1ad0eaf1cba340d644660f64198fed6b8b6d6d6d`; evidence and validation boundaries: [#523 follow-up record](issue-523.md) and `/tmp/songloft-523-followup/validation.json`. No commit, push, release or Issue write; parent gitlink unchanged. Historical authorizations below do not apply to this batch.
+
 ## 2026-10-15 · #525: 30,000-song Queue Fix
 
 The user authorized this batch's Flutter/Lynx and parent commits/pushes plus a #525 reply. Uncommitted states below are validation snapshots; Git/GitHub records for the same SHA and the comment determine delivery. No stable tag or Issue closure.

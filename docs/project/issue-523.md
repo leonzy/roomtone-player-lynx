@@ -1,5 +1,15 @@
 # 歌词背景与内置配色 · songloft-org/songloft#523
 
+## 2026-10-16 · 纯白背景反馈
+
+交付授权：用户已于 2026-10-16 授权本批提交、推送及回复 songloft-org/songloft#523。下文未提交/未回复状态为验证阶段快照；最终提交、CI 与评论以 Git/GitHub 同一 SHA 的记录为准，不打正式版 tag、不关闭 Issue。
+
+针对[后续评论](https://github.com/songloft-org/songloft/issues/523#issuecomment-6210432894)，在当前 `1ad0eaf1cba340d644660f64198fed6b8b6d6d6d` 的实际 Web 构建中分别开启增强对比度、降低透明度，均复现封面卸载和纯白背景；在外观设置中关闭后，封面背景立即恢复。琥珀配色开启增强对比度时按钮约为 `#774600`，报告截图主要按钮为 `#774601`，与该路径高度一致，但不能代替报告人的设置确认。
+
+本次只补充中英文开关说明：两者会关闭播放器封面背景，系统辅助功能也会生效；不更改无障碍策略。证据 `/tmp/songloft-523-followup/{browser-results.json,normal.png,reduce.png,contrast.png,reduce-off.png,contrast-off.png}`；最终验证对象、命令与结果见同目录 `validation.json`。文案修改不新增回归测试，旧实现失败验证不适用。Not run：Android/iOS/HarmonyOS 设备、户外与报告人曲库。未确认设备根因，未提交、推送、发布或回复 Issue。
+
+本批验证：Linux amd64 / Node 22.17.1 / pnpm 11.15.1；类型检查、全量 3,543 项测试、Lynx/Web 双 bundle 与 Web 部署构建通过。Docker Chrome 中英文 390px 设置页显示新说明，无页面异常；首两轮脚本在播放器入场未稳定时点击收起，未命中按钮，补充入场等待后通过，失败日志保留。
+
 ## 行为
 
 保留 Lynx 的模糊封面，使用独立播放器背景、遮罩和文字令牌。浅色遮罩从 .86 到 .94、深色从 .82 到 .90；当前歌词、翻译、罗马音和已唱逐字文字按所有封面颜色的边界调整强调色，目标对比度 7:1，普通歌词 4.5:1。增强对比度时普通歌词也以 7:1 为目标。
