@@ -1,5 +1,9 @@
 # 工作交接（2026-10-14）
 
+## 2026-10-16 · 键盘弹出时收起悬浮胶囊
+
+继续修复用户反馈的「键盘把胶囊顶上去」：旧 dev 在 IME 打开时导航上移 312px 且可点击，新宿主根据编辑焦点和键盘几何/视口占用隐藏底部 tab 与窄屏迷你播放器，收键盘后恢复；音频与组件不卸载。普通聚焦、地址栏变化、缩放、旋转及清理有宿主事件回归，Android 实测包含多行/切换输入框/返回键恢复/旋转往返与真实音频时间。最终构建、工作树指纹、设备验收和 CI/dev 以 `/home/hanxi/work/songloft-review/android-web-keyboard-nav-20261016/validation.json` 与交付为准。HTTP 回退属于启发式；真机、最新 Chrome、真实外接键盘与任意厂商输入法 Not run。详细边界见 [记录](web-android-input-viewport.md#后续键盘弹出时收起悬浮胶囊) / [English](../en/project/web-android-input-viewport.md#follow-up-hide-floating-capsules-while-the-keyboard-is-open)。
+
 ## 2026-10-16 · Android Chrome 输入与底栏
 
 已在实际 Android 34 / Chrome 113 / Gboard 模拟器复现已发布 dev 的两处问题：临时 readonly 收起 IME，100vh 使胶囊超出视口 48px。Web 输入组件补丁同时解决异步旧 value 回写丢字，原生锁保留；宿主使用 100dvh 与 resizes-content。3580 项测试、类型、双 bundle、Go 嵌入和 87 项发布检查通过，Android 根路径/局域网/子路径与多行/横竖屏/360px 共 28 项检查通过。详见 [记录](web-android-input-viewport.md) / [English](../en/project/web-android-input-viewport.md)。证据与源码指纹 `/home/hanxi/work/songloft-review/android-web-input-20261016/validation.json`；真机、最新 Chrome、实际拼音候选与 Safari/iOS/HarmonyOS 运行 Not run。沿用本会话默认 Web 切换的提交推送授权；先子仓库，再父 gitlink，最终 SHA/CI/dev 产物验收以交付为准，不打正式版 tag、不操作 Issue。

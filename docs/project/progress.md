@@ -1,5 +1,9 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-16 · IME 打开时隐藏悬浮胶囊
+
+用户追报已复现：上批动态视口让导航随键盘上移 312px，原验收遗漏输入时应收起底栏。新增浏览器宿主结合编辑焦点与键盘占用，隐藏底部 tab 和窄屏迷你播放器，保留播放和选中状态；收起键盘后恢复。没有撤回动态视口或修改原生布局。HTTP 的启发式边界、旧版失败与最终构建/设备结果见 [记录](web-android-input-viewport.md#后续键盘弹出时收起悬浮胶囊) / [English](../en/project/web-android-input-viewport.md#follow-up-hide-floating-capsules-while-the-keyboard-is-open)，证据 `/home/hanxi/work/songloft-review/android-web-keyboard-nav-20261016/`。Seen 不递增，继续本会话提交推送与 dev 包验收授权。
+
 ## 2026-10-16 · Android Chrome 输入与底栏回归
 
 实际 Android 34 / Chrome 113 / Gboard 复现 dev 输入触发 readonly 收起键盘，及 100vh 使导航下沿超出视口 48px。Web 专用输入补丁保留原生锁，并跳过后台的输入值回写，防止快速连续输入丢字；HTML 改用动态高度与 resizes-content。基线 9 项回归失败，只停用锁的第一版还在真实快速输入中丢失 `l`，补充 4 项异步回写测试后反向失败。最终 3580 项、类型、双 bundle、Go 嵌入、87 项发布检查与 Android 28 项实际交互通过。根路径、LAN HTTP、子路径、多行输入、横竖屏与 360px 均有截图和系统/媒体/几何断言；未保存代理测试草稿。详细对象、证据和 Not run 见 [记录](web-android-input-viewport.md) / [English](../en/project/web-android-input-viewport.md)。提交/CI/dev 包后续绑定最终 SHA，不打正式 tag、不操作 Issue。

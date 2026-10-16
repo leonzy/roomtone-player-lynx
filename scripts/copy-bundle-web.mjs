@@ -202,6 +202,7 @@ const HOST_SCRIPTS = [
   'screen-awake-host.js',
   'file-transfer-host.js',
   'playback-keyboard-host.js',
+  'viewport-keyboard-host.js',
   'hls.min.js',
   'songloft-platform-module.js',
   'songloft-audio-module.js',
