@@ -1,5 +1,19 @@
 # Lyric Backgrounds and Built-in Palettes · songloft-org/songloft#523
 
+## 2026-10-17 · Stronger Cover Backgrounds
+
+Delivery authorization: after being informed of the Flutter validation gaps, the user explicitly authorized commits, pushes and a reply to songloft-org/songloft#523 for this batch. Uncommitted states below are validation snapshots; verify final commits, CI, dev assets and the comment against the same SHA. No new stable tag or Issue closure.
+
+The reporter [confirmed accessibility settings are off and Lynx colors are visible but too subtle](https://github.com/songloft-org/songloft/issues/523#issuecomment-6228812821). Baseline `364607b0cb7a0ed07378e59b27ff6827549fde3e` leaves only 14%→6% artwork in light mode and 18%→10% in dark mode. Passing text contrast does not establish sufficient cover color separation.
+
+The scrim now uses 70%→82% in light mode and 76%→82% in dark mode, leaving 30%→18% and 24%→18% artwork. The imported surface foreground contrast gate rises to 18:1 to leave headroom for the stronger wash. Cover extremes still target 7:1 for active lyrics and 4.5:1 for other lyrics. New separation regressions fail in both modes on the old implementation. Load states, the stable capture root and accessibility cover removal remain; no native host or CSS changes.
+
+Final objects, commands, screenshots and unrun checks are recorded in `/tmp/songloft-523-followup-20261017/validation.json`, using an isolated database and synthetic media. Flutter also addresses palette filters, server cache identity and background strength.
+
+Actual switching screenshots: [Android light coral cover](../assets/issue-523/followup-20261017/android-light-coral.png) · [Android light ocean cover](../assets/issue-523/followup-20261017/android-light-ocean.png).
+
+Final validation: Linux amd64 / Node 22.17.1 / pnpm 11.15.1; typecheck, all 3,595 tests, both bundles, Web deployment and Android Debug builds pass. After the final rebuild, 21 color/backdrop/release-artifact checks pass; the packaged APK bundle equals the final build. Docker Chrome passes light/dark switching, missing/failed covers and restoration after both accessibility toggles. Android 34 with the ARM64 translated APK completes actual switching across four songs in each mode, verified with saved indices and real screenshots; color separation and missing/failed fallback pixel checks pass. Native automation initially failed to idle during animation and used an insufficient fixed wait; polling the saved index resolves those checks without counting missed taps as success. Not run: reporter device, iOS/HarmonyOS, outdoor use and remote CI for the uncommitted worktree. Raw evidence stays in the task directory; a sanitized review copy is at `/home/hanxi/work/songloft-review/issue-523-20261017/`.
+
 ## 2026-10-16 · White Background Feedback
 
 Delivery authorization: on 2026-10-16 the user authorized this batch's commits, pushes and a reply to songloft-org/songloft#523. Uncommitted/unposted states below are validation snapshots; Git/GitHub records for the same SHA determine final commits, CI and the comment. No stable tag or Issue closure.

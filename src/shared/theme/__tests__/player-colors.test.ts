@@ -4,6 +4,15 @@ import { contrastRatio, mixColor } from '../color-contrast.js'
 import { playerColorVars, resolvePlayerColors } from '../player-colors.js'
 
 for (const theme of ['light', 'dark'] as const) {
+  test(`${theme}: cover hue stays visible at both ends of the veil`, () => {
+    const colors = resolvePlayerColors({ theme, accent: '#007aff', background: theme === 'light' ? '#ffffff' : '#000000', opaque: false })
+    for (const scrim of [colors.scrimFrom, colors.scrimTo]) {
+      const alpha = Number(scrim.match(/, ([\d.]+)\)$/)![1])
+      const red = mixColor('#ff0000', colors.background, alpha)
+      const blue = mixColor('#0000ff', colors.background, alpha)
+      expect(Math.abs(parseInt(red.slice(1, 3), 16) - parseInt(blue.slice(1, 3), 16))).toBeGreaterThanOrEqual(40)
+    }
+  })
   for (const palette of BUILT_IN_PALETTE_OPTIONS) {
     test(`${theme}/${palette}: readable lyrics across cover extremes, gradient, and fallback`, () => {
       const colors = resolvePlayerColors({
@@ -12,17 +21,20 @@ for (const theme of ['light', 'dark'] as const) {
       })
       for (const cover of ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff']) {
         for (let step = 0; step <= 20; step++) {
-          const alpha = (theme === 'light' ? 0.86 : 0.82) + (theme === 'light' ? 0.08 : 0.08) * step / 20
+          const from = Number(colors.scrimFrom.match(/, ([\d.]+)\)$/)![1])
+          const to = Number(colors.scrimTo.match(/, ([\d.]+)\)$/)![1])
+          const alpha = from + (to - from) * step / 20
           const background = mixColor(cover, colors.background, alpha)
           expect(contrastRatio(colors.active, background)).toBeGreaterThanOrEqual(7)
           expect(contrastRatio(colors.secondary, background)).toBeGreaterThanOrEqual(4.5)
+          expect(contrastRatio(colors.content, background)).toBeGreaterThanOrEqual(7)
           const fallback = mixColor(colors.fallbackFrom, colors.fallbackTo, step / 20)
           expect(contrastRatio(colors.active, fallback)).toBeGreaterThanOrEqual(7)
         }
       }
       const vars = playerColorVars(colors)
       expect(vars['--player-lyric-active']).toBe(colors.active)
-      expect(vars['--player-scrim-from']).toContain(theme === 'light' ? '0.86' : '0.82')
+      expect(vars['--player-scrim-from']).toBe(colors.scrimFrom)
     })
   }
   test(`${theme}: accessibility and invalid pack surfaces retain the contrast floor`, () => {

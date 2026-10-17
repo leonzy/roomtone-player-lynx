@@ -1,5 +1,9 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-17 · #523 封面背景加深
+
+报告人确认辅助功能关闭后仍色彩太淡。本批降低亮暗遮罩，保留 18%–30% 封面色，并收紧主题包 surface 边界；新增上下两端色差回归，旧实现浅/深模式均失败。继续验收所有内置配色和封面极值的文字对比度；真实浏览器亮暗切歌、缺失/失败、辅助功能恢复已运行。完整对象、最终测试/构建和平台边界见 [记录](issue-523.md#2026-10-17--加深封面背景) / [English](../en/project/issue-523.md#2026-10-17--stronger-cover-backgrounds) 与 `/tmp/songloft-523-followup-20261017/validation.json`。上述记录为提交前验证快照；用户已获知 Flutter 停止播放测试失败与原生切歌验收缺口，明确授权本批提交、推送并回复 songloft-org/songloft#523。按最终 SHA 核对父 gitlink、CI、dev 包和评论，不新打正式版 tag、不关闭 Issue。
+
 ## 2026-10-16 · IME 打开时隐藏悬浮胶囊
 
 用户追报已复现：上批动态视口让导航随键盘上移 312px，原验收遗漏输入时应收起底栏。新增浏览器宿主结合编辑焦点与键盘占用，隐藏底部 tab 和窄屏迷你播放器，保留播放和选中状态；收起键盘后恢复。没有撤回动态视口或修改原生布局。HTTP 的启发式边界、旧版失败与最终构建/设备结果见 [记录](web-android-input-viewport.md#后续键盘弹出时收起悬浮胶囊) / [English](../en/project/web-android-input-viewport.md#follow-up-hide-floating-capsules-while-the-keyboard-is-open)，证据 `/home/hanxi/work/songloft-review/android-web-keyboard-nav-20261016/`。Seen 不递增，继续本会话提交推送与 dev 包验收授权。

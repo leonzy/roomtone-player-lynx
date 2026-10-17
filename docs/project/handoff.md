@@ -1,5 +1,9 @@
 # 工作交接（2026-10-14）
 
+## 2026-10-17 · #523 封面背景加深
+
+基线 `364607b0cb7a0ed07378e59b27ff6827549fde3e` + 未提交工作树：减少遮罩，封面保留比例提高至 18%–30%，以独立色差回归补足原有文字对比度检查；未改宿主或 CSS。旧实现浅/深模式均反向失败，真实浏览器切歌、回退、辅助功能恢复另行检查。完整最终验证及 Not run 见 [记录](issue-523.md#2026-10-17--加深封面背景) / [English](../en/project/issue-523.md#2026-10-17--stronger-cover-backgrounds) 与 `/tmp/songloft-523-followup-20261017/validation.json`。Flutter 同步修复取色及加深背景。上述未提交状态是验证快照；用户已获知 Flutter 停止播放测试失败与原生切歌验收缺口，明确授权本批提交、推送并回复 songloft-org/songloft#523。最终提交、CI、dev 包和评论按同一 SHA 核对；不新打正式版 tag、不关闭 Issue。
+
 ## 2026-10-16 · 键盘弹出时收起悬浮胶囊
 
 继续修复用户反馈的「键盘把胶囊顶上去」：旧 dev 在 IME 打开时导航上移 312px 且可点击，新宿主根据编辑焦点和键盘几何/视口占用隐藏底部 tab 与窄屏迷你播放器，收键盘后恢复；音频与组件不卸载。普通聚焦、地址栏变化、缩放、旋转及清理有宿主事件回归，Android 实测包含多行/切换输入框/返回键恢复/旋转往返与真实音频时间。最终构建、工作树指纹、设备验收和 CI/dev 以 `/home/hanxi/work/songloft-review/android-web-keyboard-nav-20261016/validation.json` 与交付为准。HTTP 回退属于启发式；真机、最新 Chrome、真实外接键盘与任意厂商输入法 Not run。详细边界见 [记录](web-android-input-viewport.md#后续键盘弹出时收起悬浮胶囊) / [English](../en/project/web-android-input-viewport.md#follow-up-hide-floating-capsules-while-the-keyboard-is-open)。

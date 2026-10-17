@@ -1,5 +1,19 @@
 # 歌词背景与内置配色 · songloft-org/songloft#523
 
+## 2026-10-17 · 加深封面背景
+
+交付授权：用户在获知 Flutter 验证缺口后，明确授权本批提交、推送并回复 songloft-org/songloft#523。下方未提交状态为验证快照；最终提交、CI、dev 包与评论按同一 SHA 核对，不新打正式版 tag、不关闭 Issue。
+
+报告人[确认无障碍设置关闭、Lynx 取色可见但不明显](https://github.com/songloft-org/songloft/issues/523#issuecomment-6228812821)。本批基线 `364607b0cb7a0ed07378e59b27ff6827549fde3e` 的遮罩保留封面比例仅浅色 14%→6%、深色 18%→10%；文字对比度通过不代表封面色差足够。
+
+改为浅色遮罩 70%→82%、深色 76%→82%，分别保留 30%→18%、24%→18% 封面。主题包 surface 的前景对比度门槛提高至 18:1，为更浓的封面留出文字可读空间；所有封面明暗极值仍验收当前歌词 7:1、普通歌词 4.5:1。新增双端色差回归在旧实现的浅/深模式均失败。加载状态、稳定采样根节点及辅助功能卸载封面的策略不变，没有修改原生宿主或 CSS。
+
+最终验证对象、命令、截图和未跑项见 `/tmp/songloft-523-followup-20261017/validation.json`；使用独立数据库与合成媒体。Flutter 同时处理取色过滤、服务器缓存和背景色深度。
+
+实际切歌截图：[Android 浅色珊瑚封面](../assets/issue-523/followup-20261017/android-light-coral.png) · [Android 浅色海蓝封面](../assets/issue-523/followup-20261017/android-light-ocean.png)。
+
+最终验证：Linux amd64 / Node 22.17.1 / pnpm 11.15.1；类型、3,595 项完整测试、双 bundle、Web 部署和 Android Debug 构建通过。最终重建后 21 项配色/背景/发布产物检查通过，APK 内 bundle 与最终构建字节一致。Docker Chrome 浅/深切歌、缺失/失败和两项辅助功能关闭后恢复通过；Android 34 / arm64 转译包浅/深各四首实际切歌完成，以持久化索引和真实截图共同验收，背景像素差与缺失/失败回退检查通过。原生自动化曾因动画无法 idle、固定等待过短而失败，改为轮询实际保存索引后通过，没有把未命中的点击当通过。Not run：报告人原机、iOS/HarmonyOS、户外及未提交工作树的远端 CI。原始日志与截图在证据目录，脱敏审核副本在 `/home/hanxi/work/songloft-review/issue-523-20261017/`。
+
 ## 2026-10-16 · 纯白背景反馈
 
 交付授权：用户已于 2026-10-16 授权本批提交、推送及回复 songloft-org/songloft#523。下文未提交/未回复状态为验证阶段快照；最终提交、CI 与评论以 Git/GitHub 同一 SHA 的记录为准，不打正式版 tag、不关闭 Issue。

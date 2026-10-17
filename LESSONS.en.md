@@ -10,6 +10,13 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### LYRIC-002: Readable text does not establish visible cover changes
+
+- Scope: Lynx player scrims and lyric foregrounds, songloft-org/songloft#523 feedback on 2026-10-17.
+- Evidence: baseline `364607b0cb7a0ed07378e59b27ff6827549fde3e` passed contrast regressions, but the reporter confirmed normal mode remained too faint. New separation tests at both gradient ends failed in light and dark modes on the old implementation; the lower scrim left only 6%/10% artwork.
+- Done right: constrain cover separation independently, reduce the veil, and recheck black/white extremes and every built-in palette against 7:1 / 4.5:1 text targets. Verify switching, fallbacks and accessibility restoration in a real browser. Full objects and platform limits are in the [record](docs/en/project/issue-523.md#2026-10-17--stronger-cover-backgrounds).
+- Seen 1× (2026-10-17). Status: lesson; currently an uncommitted worktree.
+
 ### WEB-002: Desktop mobile viewports do not validate Android Chrome IME or browser controls
 
 - Scope: Web `Input` / `TextArea`, asynchronous controlled-value echoes and fixed navigation; no associated Issue.

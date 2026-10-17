@@ -25,10 +25,12 @@ export function resolvePlayerColors(options: {
   const foreground = light ? '#000000' : '#ffffff'
   // An imported pack can supply a surface of the opposite brightness. Keep the
   // player readable independently of that pack's unvalidated label/background pair.
-  const background = contrastRatio(foreground, options.background) >= 14
+  const background = contrastRatio(foreground, options.background) >= 18
     ? options.background : light ? '#ffffff' : '#000000'
-  const fromAlpha = options.opaque ? 1 : light ? 0.86 : 0.82
-  const toAlpha = options.opaque ? 1 : light ? 0.94 : 0.90
+  // Leave enough of the cover visible at both ends, while the bounds below
+  // continue to guarantee readable text even on pure black/white artwork.
+  const fromAlpha = options.opaque ? 1 : light ? 0.70 : 0.76
+  const toAlpha = options.opaque ? 1 : 0.82
   const fallbackFrom = options.opaque ? background : mixColor(background, options.accent, 0.08)
   const fallbackTo = options.opaque ? background : mixColor(background, options.accent, 0.03)
   const backgrounds = [
