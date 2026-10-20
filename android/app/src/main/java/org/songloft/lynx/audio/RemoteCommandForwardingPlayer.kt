@@ -17,12 +17,39 @@ import androidx.media3.common.util.UnstableApi
  * forwards the command to JS as a `remoteCommand` event instead of performing
  * a real seek — the JS store decides how to advance and then calls
  * `load()`/`play()` for the new track itself.
+ * Play/pause also report explicit user intent: buffering alone can emit paused,
+ * and pausing an already-stalled player need not emit any state change.
  */
 @UnstableApi
 class RemoteCommandForwardingPlayer(
     player: Player,
     private val onRemoteCommand: (String) -> Unit,
 ) : ForwardingPlayer(player) {
+
+    override fun play() {
+        super.play()
+        onRemoteCommand(SongloftAudioEngine.REMOTE_COMMAND_PLAY)
+    }
+
+    override fun pause() {
+        super.pause()
+        onRemoteCommand(SongloftAudioEngine.REMOTE_COMMAND_PAUSE)
+    }
+
+    override fun setPlayWhenReady(playWhenReady: Boolean) {
+        super.setPlayWhenReady(playWhenReady)
+        onRemoteCommand(
+            if (playWhenReady) SongloftAudioEngine.REMOTE_COMMAND_PLAY
+            else SongloftAudioEngine.REMOTE_COMMAND_PAUSE,
+        )
+    }
+
+    override fun stop() {
+        // Hardware/system STOP is a player command, unlike the notification's
+        // custom exit command. Both must stop the engine and cancel JS retries.
+        SongloftAudioEngine.stop()
+        onRemoteCommand(SongloftAudioEngine.REMOTE_COMMAND_STOP)
+    }
 
     override fun getAvailableCommands(): Player.Commands {
         // Both the "smart" seek commands (used by the notification's own

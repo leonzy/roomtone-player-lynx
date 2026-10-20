@@ -101,7 +101,7 @@ test('HarmonyOS commands preserve seek/speed parameters and only send valid Work
   assert.ok(h.calls.media.some(c => c[0] === 'play')); assert.ok(h.calls.media.some(c => c[0] === 'pause'))
   assert.ok(h.calls.media.some(c => c[0] === 'seek' && c[1] === 12345))
   assert.ok(h.calls.media.some(c => c[0] === 'speed' && c[1] === 1.25))
-  assert.deepEqual(h.calls.events.filter(e => e.name === 'SongloftAudio.remoteCommand').map(e => e.params[0].command), ['next', 'previous', 'stop', 'toggleFavorite'])
+  assert.deepEqual(h.calls.events.filter(e => e.name === 'SongloftAudio.remoteCommand').map(e => e.params[0].command), ['play', 'pause', 'next', 'previous', 'stop', 'toggleFavorite'])
   h.module.setVolume(.37); h.module.getVolume(); h.module.setFavorite(true); h.module.setRepeatMode('one'); await tick()
   assert.equal(h.calls.events.filter(e => e.name === 'SongloftAudio.volumeChanged').at(-1).params[0].volume, 37)
   assert.equal(h.calls.states.at(-1).isFavorite, true); assert.equal(h.calls.states.at(-1).loopMode, 1)

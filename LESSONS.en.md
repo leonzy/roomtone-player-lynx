@@ -10,6 +10,13 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### AUDIO-001: Preserve live playback intent and explicitly forward system pause
+
+- Scope: songloft-org/songloft#531, four audio hosts and the shared player store; baseline `f3f78b3aae6e74323b963a9e8c940bf74b3613b5`.
+- Evidence: Live completed events advanced the queue, and errors advanced after three retries. New regressions fail against the isolated old store for playback modes, extended retries and cancellation. Host paused events also represent buffering; pausing an already-paused engine may produce no state event. An actual Android STOP media key also exposed ordinary player stop bypassing the notification's custom exit command: verify distinct system-control entry points separately.
+- Rule and Done right: Reconnect indefinitely to the current station with a capped delay, preserving queue and song counts. All four hosts explicitly send user play/pause commands; pause/stop cancel timers and pending loads. Actual results, source fingerprint, final commits and platform boundaries are in the [validation record](docs/en/project/issue-531.md).
+- Seen 1× (2026-10-20). Status: lesson; final same-SHA delivery determines CI/dev artifacts.
+
 ### SDK-001: SDK parity includes dispatch, model conversion and bidirectional transport
 
 - Renderer comparison: All 19 functional assertions on the same APK with Mesa do not establish sustained icon correctness. A new image segfaulted before client installation and another path was OOM-killed: these prove independent environment failures, not the cause of every missing glyph. Wait for actual asynchronous playback with a bound, preserving assertions and initial failure evidence. Multiple diagnostic interventions are not a single-variable causal proof. See `/tmp/songloft-sdk-e2e/rendering-validation.json`.

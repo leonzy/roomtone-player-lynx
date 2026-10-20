@@ -116,8 +116,8 @@ export class SongloftAudioModule extends LynxModule {
 
     this.sessionController.onCommand = (command: string, value?: number) => {
       if (this.disposed) return
-      if (command === 'play') this.play()
-      else if (command === 'pause') this.pause()
+      if (command === 'play') { this.play(); this.emitCommand('play') }
+      else if (command === 'pause') { this.pause(); this.emitCommand('pause') }
       else if (command === 'seek' && value !== undefined) this.seek(value)
       else if (command === 'setSpeed' && value !== undefined) this.setSpeed(value)
       else if (command === 'next' || command === 'previous' || command === 'stop' || command === 'toggleFavorite') {

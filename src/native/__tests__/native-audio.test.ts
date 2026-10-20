@@ -134,6 +134,11 @@ describe('mapGlobalEvent (native → facade decode)', () => {
   })
 
   test('decodes a valid remoteCommand and rejects an unknown one', () => {
+    for (const command of ['play', 'pause']) {
+      expect(mapGlobalEvent(NATIVE_EVENT.remoteCommand, { command })).toEqual({
+        type: 'remoteCommand', command,
+      })
+    }
     expect(mapGlobalEvent(NATIVE_EVENT.remoteCommand, { command: 'next' })).toEqual({
       type: 'remoteCommand',
       command: 'next',

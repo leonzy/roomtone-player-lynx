@@ -87,7 +87,7 @@ Web 通过 `<lynx-view>` 的 `nativeModulesMap` 注册 **7 个**模块：`Songlo
 词表：
 
 - `state` 共 **7 个**：`idle` / `loading` / `ready` / `playing` / `paused` / `completed` / `error`。`mapGlobalEvent` 丢弃表外值 ⇒ 宿主发 `"buffering"` 会让播放器永远停在上一状态。
-- `command` 共 **4 个**：`next` / `previous` / `toggleFavorite` / `stop`（iOS 尚无 stop 远端命令）。HarmonyOS 的 play/pause/seek/setSpeed 直接控制引擎，不传无法解码的 Worker 命令。
+- `command` 共 **6 个**：`next` / `previous` / `toggleFavorite` / `stop` / `play` / `pause`（iOS 尚无 stop 远端命令）。四端媒体播放/暂停先控制引擎，再发送明确用户意图，供 JS 取消或恢复直播重连；缓冲导致的 `paused` 不是用户暂停。HarmonyOS 的 seek/setSpeed 仍直接控制引擎。变更、旧壳边界和英文说明见 [直播重连记录](../project/issue-531.md) / [English](../en/project/issue-531.md)。
 - facade 的 `AudioEvent` 还含 `queueIndexChanged`，**只有 mock 与 Web 实现发**（`src/native/mock-audio.ts` / `src/native/web-audio.ts`），原生宿主不发。
 
 **闸门锁住的不变量**

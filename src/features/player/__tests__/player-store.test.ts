@@ -587,6 +587,130 @@ describe('playback error retry', () => {
   })
 })
 
+describe('live radio reconnect (songloft-org/songloft#531)', () => {
+  const advance = async (milliseconds: number) => {
+    for (let elapsed = 0; elapsed < milliseconds; elapsed += 1000) {
+      vi.advanceTimersByTime(Math.min(1000, milliseconds - elapsed))
+      await flush()
+    }
+  }
+  const audio = () => getAudio() as MockSongloftAudio
+  const emit = (event: AudioEvent) => (audio() as unknown as { emit: (event: AudioEvent) => void }).emit(event)
+  const radio = (id: number): Song => ({ ...song(id, 3600), type: 'radio', isLive: true,
+    url: `/api/v1/songs/${id}/play` })
+
+  afterEach(() => vi.restoreAllMocks())
+
+  test.each(['order', 'loop', 'single', 'singlePlay', 'random'] as const)(
+    '%s completion reconnects the same station without consuming priority or sleep songs', async (mode) => {
+      await usePlayerStore.getState().playPlaylist([radio(1), radio(2)])
+      usePlayerStore.getState().setPlayMode(mode)
+      await usePlayerStore.getState().playSongNext(radio(2))
+      usePlayerStore.getState().setSleepTimerAfterSongs(2)
+      const load = vi.spyOn(audio(), 'load')
+      const seek = vi.spyOn(audio(), 'seek')
+      emit({ type: 'stateChanged', state: 'completed' })
+      emit({ type: 'stateChanged', state: 'completed' })
+      expect(usePlayerStore.getState()).toMatchObject({ currentIndex: 0,
+        currentSong: { id: 1 }, hasPriorityNext: true, sleepTimer: { remainingSongs: 2 } })
+      await advance(1000)
+      expect(load).toHaveBeenCalledTimes(1)
+      expect(load.mock.calls[0][0]).toContain('/songs/1/play')
+      expect(seek).not.toHaveBeenCalled()
+      expect(usePlayerStore.getState()).toMatchObject({ isPlaying: true, playMode: mode, hasPriorityNext: true })
+    },
+  )
+
+  test('offline retries exceed the song budget, cap at 10s and recover at the live edge', async () => {
+    await usePlayerStore.getState().playPlaylist([radio(1), radio(2)])
+    await usePlayerStore.getState().seek(12000)
+    const originalLoad = audio().load.bind(audio())
+    const load = vi.spyOn(audio(), 'load').mockRejectedValue(new Error('offline'))
+    const seek = vi.spyOn(audio(), 'seek')
+    audio().simulateError('offline')
+    emit({ type: 'stateChanged', state: 'paused' }) // Buffering is not user pause.
+    await advance(180000)
+    expect(load.mock.calls.length).toBeGreaterThan(8)
+    expect(load.mock.calls.length).toBeLessThan(25)
+    expect(load.mock.calls.every(([url]) => url.includes('/songs/1/play'))).toBe(true)
+    expect(usePlayerStore.getState()).toMatchObject({ currentSong: { id: 1 }, isPlaying: true, isBuffering: true })
+    load.mockImplementation(originalLoad)
+    await advance(10000)
+    expect(usePlayerStore.getState()).toMatchObject({ currentSong: { id: 1 }, isPlaying: true, isBuffering: false })
+    expect(seek).not.toHaveBeenCalled()
+  })
+
+  test('initial live load failure keeps retrying until playback succeeds', async () => {
+    const original = audio().load.bind(audio())
+    const load = vi.spyOn(audio(), 'load').mockRejectedValue(new Error('offline'))
+    await usePlayerStore.getState().playPlaylist([radio(1), radio(2)])
+    await advance(60000)
+    expect(load.mock.calls.length).toBeGreaterThan(4)
+    expect(usePlayerStore.getState().currentSong?.id).toBe(1)
+    load.mockImplementation(original)
+    await advance(10000)
+    expect(usePlayerStore.getState().isPlaying).toBe(true)
+  })
+
+  test.each(['toggle', 'remote-pause', 'remote-stop', 'clear', 'reset', 'next', 'sleep'] as const)(
+    '%s cancels pending reconnect and ignores late events', async (action) => {
+      await usePlayerStore.getState().playPlaylist([radio(1), radio(2)])
+      if (action === 'sleep') usePlayerStore.getState().setSleepTimerByDuration(500)
+      audio().simulateError('offline')
+      const load = vi.spyOn(audio(), 'load')
+      switch (action) {
+        case 'toggle': await usePlayerStore.getState().togglePlay(); break
+        case 'remote-pause': emit({ type: 'remoteCommand', command: 'pause' } as AudioEvent); await audio().pause(); break
+        case 'remote-stop': await audio().stop(); emit({ type: 'remoteCommand', command: 'stop' }); break
+        case 'clear': usePlayerStore.getState().clearPlaylist(); break
+        case 'reset': usePlayerStore.getState().reset(); break
+        case 'next': await usePlayerStore.getState().playNext(); break
+        case 'sleep': break // Countdown was armed before the reconnect timer.
+      }
+      await flush()
+      const expectedLoads = action === 'next' ? 1 : 0
+      if (action !== 'next') {
+        emit({ type: 'stateChanged', state: 'completed' })
+        audio().simulateError('late network error')
+      }
+      await advance(60000)
+      expect(load).toHaveBeenCalledTimes(expectedLoads)
+      expect(usePlayerStore.getState().isPlaying).toBe(action === 'next')
+    },
+  )
+
+  test('a pause during a pending retry load prevents its late play', async () => {
+    await usePlayerStore.getState().playPlaylist([radio(1), radio(2)])
+    let finish!: () => void
+    vi.spyOn(audio(), 'load').mockImplementation(() => new Promise<void>(resolve => { finish = resolve }))
+    const play = vi.spyOn(audio(), 'play')
+    audio().simulateError('offline')
+    await advance(1000)
+    await usePlayerStore.getState().togglePlay()
+    finish()
+    await flush()
+    expect(play).not.toHaveBeenCalled()
+    await advance(60000)
+    expect(play).not.toHaveBeenCalled()
+  })
+
+  test('media play reloads a paused live station and duplicate errors share one retry', async () => {
+    await usePlayerStore.getState().playPlaylist([radio(1), radio(2)])
+    await usePlayerStore.getState().togglePlay()
+    const load = vi.spyOn(audio(), 'load')
+    emit({ type: 'remoteCommand', command: 'play' } as AudioEvent)
+    await advance(1000)
+    expect(load).toHaveBeenCalledTimes(1)
+    expect(usePlayerStore.getState().isPlaying).toBe(true)
+    audio().simulateError('offline')
+    audio().simulateError('duplicate')
+    emit({ type: 'stateChanged', state: 'completed' })
+    await advance(3000)
+    expect(load).toHaveBeenCalledTimes(2)
+    expect(usePlayerStore.getState().currentSong?.id).toBe(1)
+  })
+})
+
 /**
  * Batch 40: the native queue carries `artworkUrl` so the media notification and
  * lock screen can show the cover. The interesting part is not that the field is

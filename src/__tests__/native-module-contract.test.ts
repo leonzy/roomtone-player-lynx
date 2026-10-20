@@ -321,7 +321,7 @@ describe('audio global-event names reach both hosts verbatim', () => {
     expect(hosts.audioModule.harmony, `${name} missing from the HarmonyOS module`).toContain(name)
   })
 
-  test.each(['next', 'previous', 'toggleFavorite'])(
+  test.each(['next', 'previous', 'toggleFavorite', 'play', 'pause'])(
     'remoteCommand payload value %s in both platforms',
     (command) => {
       expect(hosts.audio.android).toContain(`"${command}"`)

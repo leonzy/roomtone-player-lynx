@@ -51,6 +51,8 @@ final class SongloftAudioEngine {
   static let remoteCommandNext = "next"
   static let remoteCommandPrevious = "previous"
   static let remoteCommandToggleFavorite = "toggleFavorite"
+  static let remoteCommandPlay = "play"
+  static let remoteCommandPause = "pause"
 
   /// Progress tick cadence in **wall-clock** seconds, matching the Kotlin engine's
   /// `PROGRESS_INTERVAL_MS` (a `postDelayed` loop, so its 500 ms is real time and
@@ -834,17 +836,29 @@ final class SongloftAudioEngine {
     let center = MPRemoteCommandCenter.shared()
 
     center.playCommand.addTarget { [weak self] _ in
-      self?.runOnMain { self?.play() }
+      self?.runOnMain {
+        self?.play()
+        self?.emit(Self.eventRemoteCommand, ["command": Self.remoteCommandPlay])
+      }
       return .success
     }
     center.pauseCommand.addTarget { [weak self] _ in
-      self?.runOnMain { self?.pause() }
+      self?.runOnMain {
+        self?.pause()
+        self?.emit(Self.eventRemoteCommand, ["command": Self.remoteCommandPause])
+      }
       return .success
     }
     center.togglePlayPauseCommand.addTarget { [weak self] _ in
       self?.runOnMain {
         guard let self else { return }
-        if self.player?.timeControlStatus == .playing { self.pause() } else { self.play() }
+        if self.pendingAutoplay {
+          self.pause()
+          self.emit(Self.eventRemoteCommand, ["command": Self.remoteCommandPause])
+        } else {
+          self.play()
+          self.emit(Self.eventRemoteCommand, ["command": Self.remoteCommandPlay])
+        }
       }
       return .success
     }

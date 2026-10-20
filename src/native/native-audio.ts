@@ -153,7 +153,7 @@ function decodeGlobalEvent(name: string, payload: unknown): AudioEvent | null {
       }
     case NATIVE_EVENT.remoteCommand: {
       const command = data.command
-      if (command !== 'next' && command !== 'previous' && command !== 'toggleFavorite' && command !== 'stop') {
+      if (command !== 'next' && command !== 'previous' && command !== 'toggleFavorite' && command !== 'stop' && command !== 'play' && command !== 'pause') {
         return null
       }
       return { type: 'remoteCommand', command }

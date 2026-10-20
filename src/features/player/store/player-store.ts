@@ -521,9 +521,15 @@ function syncFavoriteToNative(songId: number): void {
  *    through it would zero the counter on every attempt and never terminate.
  * 3. **It re-seeks to where the failure happened.** A mid-stream drop at 2:30
  *    that silently restarts the track from 0 is worse than not retrying at all.
+ * Live streams instead reconnect indefinitely at the live edge, with a 10s cap.
+ * Their explicit play intent outlives buffering and is cleared by user controls.
  */
 const RETRY_DELAYS_MS = [1_000, 3_000, 9_000]
+const LIVE_RETRY_DELAYS_MS = [1_000, 3_000, 9_000, 10_000]
 let _retryCount = 0
+let _livePlayIntent = false
+let _liveRetryInFlight = false
+let _liveRetryNeeded = false
 // Guarded `clearTimeout` rather than `safeClearTimeout`: this handle is a
 // `setTimeout` return value (a `Timeout` under the Node typings), matching how
 // `_saveTimer` below is handled. Lynx's strict `clearTimeout` still never sees a
@@ -583,6 +589,17 @@ function cancelRetry(): void {
   _retryCount = 0
   _retrySongId = null
   _consecutiveSkips = 0
+  _livePlayIntent = false
+  _liveRetryInFlight = false
+  _liveRetryNeeded = false
+}
+
+function cancelLivePlayback(): void {
+  if (!_livePlayIntent) return
+  cancelRetry()
+  invalidateSourceLoad()
+  _loadedSongId = null
+  usePlayerStore.setState({ isPlaying: false, isBuffering: false, errorMessage: undefined })
 }
 
 /** Release iOS's execution window without sending invalid terminal commands to other hosts. */
@@ -595,12 +612,22 @@ function scheduleRetry(song: Song, { positionMs, autoplay }: { positionMs: numbe
     finishIOSPlaybackGap()
     return
   }
+  if (song.isLive) {
+    if (!_livePlayIntent || _retryTimer != null) return
+    if (_liveRetryInFlight) { _liveRetryNeeded = true; return }
+    // Live playback always rejoins the current edge; it has no saved seek position.
+    positionMs = 0
+    autoplay = true
+    usePlayerStore.setState({ isPlaying: true, isBuffering: true, errorMessage: undefined })
+  }
   if (_retrySongId !== song.id) {
     _retryCount = 0
     _retrySongId = song.id
   }
-  const delay = RETRY_DELAYS_MS[_retryCount]
-  // Budget exhausted — skip to the next song instead of freezing the queue.
+  const delay = song.isLive
+    ? LIVE_RETRY_DELAYS_MS[Math.min(_retryCount, LIVE_RETRY_DELAYS_MS.length - 1)]
+    : RETRY_DELAYS_MS[_retryCount]
+  // Finite-song budget exhausted — skip rather than freezing the queue.
   // A single bad track (corrupt file, dead URL) used to leave `errorMessage`
   // standing forever with no way forward except manual intervention. Flutter
   // auto-skips up to 3 consecutive failures; we do the same.
@@ -622,7 +649,7 @@ function scheduleRetry(song: Song, { positionMs, autoplay }: { positionMs: numbe
     }
     return
   }
-  _retryCount += 1
+  _retryCount = song.isLive ? Math.min(_retryCount + 1, LIVE_RETRY_DELAYS_MS.length - 1) : _retryCount + 1
 
   clearRetryTimer()
   _retryTimer = setTimeout(() => {
@@ -631,6 +658,7 @@ function scheduleRetry(song: Song, { positionMs, autoplay }: { positionMs: numbe
     // reloading here would yank playback back to a track they left behind.
     if (usePlayerStore.getState().currentSong?.id !== song.id) return
     const generation = _loadGeneration
+    if (song.isLive) { _liveRetryInFlight = true; _liveRetryNeeded = false }
     usePlayerStore.setState({ errorMessage: undefined, isBuffering: true })
     void (async () => {
       const retrySource = await resolvePlaybackSource(song)
@@ -646,16 +674,22 @@ function scheduleRetry(song: Song, { positionMs, autoplay }: { positionMs: numbe
       } else {
         await audio.load(retrySource.url, load)
         if (generation !== _loadGeneration) return
+        if (song.isLive && _liveRetryNeeded) return
         _awaitingPlayback = { song, generation }
         if (positionMs > 0) await audio.seek(positionMs)
         if (autoplay) await audio.play()
       }
     })().catch((error: unknown) => {
       if (generation !== _loadGeneration || error instanceof SourceLoadCancelled) return
+      if (song.isLive) { _liveRetryNeeded = true; return }
       usePlayerStore.setState({ isPlaying: false, isBuffering: false,
         errorMessage: error instanceof Error ? error.message : String(error) })
       // Native errors already schedule a retry; readiness timeouts do not emit one.
       if (_retryTimer == null) scheduleRetry(song, { positionMs, autoplay })
+    }).finally(() => {
+      if (!song.isLive || generation !== _loadGeneration) return
+      _liveRetryInFlight = false
+      if (_liveRetryNeeded) scheduleRetry(song, { positionMs: 0, autoplay: true })
     })
   }, delay)
 }
@@ -667,6 +701,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     if (!song) return
     const generation = invalidateSourceLoad()
     cancelRetry()
+    _livePlayIntent = song.isLive
     try {
       if (!cachedSongIdentity(song) && get().playlist.some(value => cachedSongIdentity(value) !== null) && !getCachedAccessToken()) {
         set({ errorMessage: 'cache_file_unavailable', isPlaying: false, isBuffering: false })
@@ -680,6 +715,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         currentTime: 0,
         duration: stateDurationMsOf(song),
         errorMessage: undefined,
+        ...(song.isLive ? { isPlaying: true, isBuffering: true } : {}),
         audioTrack: null,
         audioTrackPending: undefined,
         isAudioTrackSwitching: false,
@@ -716,6 +752,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         hls: source.hls,
       })
       if (generation !== _loadGeneration) return
+      if (song.isLive && _retryTimer != null) return
       _loadedSongId = song.id
       _loadedSourceKind = source.cached ? 'cache' : 'stream'
       _awaitingPlayback = { song, generation }
@@ -724,6 +761,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       if (cachedSongIdentity(song)) void audio.setFavorite(false)
       else syncFavoriteToNative(song.id)
     } catch (error) {
+      if (generation === _loadGeneration && song.isLive && _livePlayIntent) {
+        scheduleRetry(song, { positionMs: 0, autoplay: true })
+        return
+      }
       if (generation === _loadGeneration) {
         _awaitingPlayback = null
         const failedIndex = get().playlist.indexOf(song)
@@ -748,6 +789,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         if (useDlnaStore.getState().activeDevice && useDlnaStore.getState().isPlaying) {
           void useDlnaStore.getState().togglePlay().catch(() => {})
         } else {
+          cancelLivePlayback()
           void audio.pause()
         }
         set({ isPlaying: false })
@@ -758,6 +800,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
   /** Route a `completed` event through the current play mode + sleep timer. */
   function onCompleted(): void {
     const s = get()
+    if (s.currentSong?.isLive) {
+      if (!useDlnaStore.getState().activeDevice) scheduleRetry(s.currentSong, { positionMs: 0, autoplay: true })
+      return
+    }
 
     // afterSongs sleep timer: decrement first; pause if it expires.
     const step = sleepTimerOnSongCompleted(s.sleepTimer)
@@ -892,6 +938,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       }
       const s = get()
       if (!s.currentSong) return
+      if (s.currentSong.isLive && _livePlayIntent) {
+        cancelLivePlayback()
+        await audio.pause()
+        return
+      }
       if (s.isAudioTrackSwitching) {
         _trackPlayIntent = !(_trackPlayIntent ?? s.isPlaying)
         set({ isPlaying: _trackPlayIntent })
@@ -1310,6 +1361,7 @@ audio.on('stateChanged', (e) => {
       usePlayerStore.setState({ isBuffering: false })
       break
     case 'playing':
+      if (usePlayerStore.getState().currentSong?.isLive && !_livePlayIntent) break
       usePlayerStore.setState({ isPlaying: true, isBuffering: false })
       // Native load/play promises acknowledge commands, not playback. Commit
       // history only when the current source actually starts; retries do not
@@ -1326,10 +1378,14 @@ audio.on('stateChanged', (e) => {
       }
       break
     case 'paused':
-      usePlayerStore.setState({ isPlaying: false })
+      if (usePlayerStore.getState().currentSong?.isLive && _livePlayIntent) {
+        usePlayerStore.setState({ isPlaying: true, isBuffering: true })
+      } else usePlayerStore.setState({ isPlaying: false })
       break
     case 'idle':
-      usePlayerStore.setState({ isPlaying: false, isBuffering: false })
+      if (usePlayerStore.getState().currentSong?.isLive && _livePlayIntent) {
+        usePlayerStore.setState({ isPlaying: true, isBuffering: true })
+      } else usePlayerStore.setState({ isPlaying: false, isBuffering: false })
       break
     case 'completed':
       // The completion router (play-mode + sleep-timer) lives in the store
@@ -1344,6 +1400,10 @@ audio.on('stateChanged', (e) => {
 audio.on('error', (e) => {
   if (useDlnaStore.getState().activeDevice) return
   const { currentSong, currentTime, isPlaying } = usePlayerStore.getState()
+  if (currentSong?.isLive) {
+    if (_livePlayIntent) scheduleRetry(currentSong, { positionMs: 0, autoplay: true })
+    return
+  }
   if (_awaitingPlayback?.generation === _loadGeneration) {
     _awaitingPlayback = null
     _navigation.markFailed(usePlayerStore.getState().currentIndex)
@@ -1370,6 +1430,17 @@ audio.on('error', (e) => {
  */
 audio.on('remoteCommand', (e) => {
   switch (e.command) {
+    case 'pause':
+      cancelLivePlayback()
+      break
+    case 'play': {
+      const song = usePlayerStore.getState().currentSong
+      if (song?.isLive && !_livePlayIntent) {
+        _livePlayIntent = true
+        scheduleRetry(song, { positionMs: 0, autoplay: true })
+      }
+      break
+    }
     case 'next':
       void usePlayerStore.getState().playNext()
       break

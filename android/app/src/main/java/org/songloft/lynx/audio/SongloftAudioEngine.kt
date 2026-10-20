@@ -84,6 +84,8 @@ object SongloftAudioEngine {
     const val REMOTE_COMMAND_PREVIOUS = "previous"
     const val REMOTE_COMMAND_TOGGLE_FAVORITE = "toggleFavorite"
     const val REMOTE_COMMAND_STOP = "stop"
+    const val REMOTE_COMMAND_PLAY = "play"
+    const val REMOTE_COMMAND_PAUSE = "pause"
 
     /** Custom session command backing the notification's favorite button. */
     private const val FAVORITE_ACTION = "org.songloft.lynx.TOGGLE_FAVORITE"

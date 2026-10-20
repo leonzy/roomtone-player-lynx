@@ -414,9 +414,11 @@
 
     navigator.mediaSession.setActionHandler('play', function () {
       activeMedia().play()
+      sendEvent('SongloftAudio.remoteCommand', { command: 'play' })
     })
     navigator.mediaSession.setActionHandler('pause', function () {
       activeMedia().pause()
+      sendEvent('SongloftAudio.remoteCommand', { command: 'pause' })
     })
     navigator.mediaSession.setActionHandler('previoustrack', function () {
       sendEvent('SongloftAudio.remoteCommand', { command: 'previous' })

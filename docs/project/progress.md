@@ -1,5 +1,9 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-20 · #531 直播无限重连
+
+直播 completed/error 保持当前台，无限重试且间隔上限 10 秒；四端宿主明确发送系统 play/pause，用户暂停/停止取消重连。3630 项测试、类型、双产物/Web、87 项发布检查、Android Debug 编译通过，实际播放与平台边界见 [记录](issue-531.md) / [English](../en/project/issue-531.md)。用户已授权 Flutter/Lynx 提交、推送及回复父 Issue；先子仓库后父指针，最终 SHA/CI/评论以交付为准，不打正式版 tag、不关闭 Issue。
+
 ## 2026-10-20 · 渲染环境对照
 
 同一 APK 在 Mesa llvmpipe / Android 34、开启“减少透明度”时 19 项再次通过，但图标与默认效果仍未全部验收。新 Android 35 镜像在安装客户端前即发生模拟器段错误；Vulkan 重试由内核确认 OOM 杀死。环境失败独立存在，不能借此认定插件缺字根因；未追加业务补丁，需稳定设备补验。记录 `/tmp/songloft-sdk-e2e/rendering-validation.json`，详见 [SDK 验证](../reference/plugin-client-sdk.md)。
