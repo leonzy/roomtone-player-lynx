@@ -2,6 +2,25 @@
 
 此文件记录 Songloft Player（Lynx）的版本变更，仅提供中文版本。版本 tag 的 Release 发布成功后，由 CI 根据 Conventional Commits 分类追加记录并提交到 `main`；滚动 dev 记录见 [GitHub Releases](https://github.com/songloft-org/songloft-player-lynx/releases/tag/dev)。
 
+## [v0.1.4] - 2026-10-20
+### :sparkles: 新增功能
+- [`6edca85`](https://github.com/songloft-org/songloft-player-lynx/commit/6edca8561eeaa375c82c725c2cfd097f0ef3f996) - **web**: 支持后端默认嵌入与子路径回退 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`bdb625f`](https://github.com/songloft-org/songloft-player-lynx/commit/bdb625f157047e2d57cc7a2859d2f54fa09d20a5) - **plugin**: 对齐 Flutter 客户端 SDK 并补齐原生宿主桥接 *(提交者 [@hanxi](https://github.com/hanxi))*
+
+### :bug: 问题修复
+- [`e924f05`](https://github.com/songloft-org/songloft-player-lynx/commit/e924f05a334254b6eb754927b2808f87a7943302) - **release**: 修复版本确认提示与取消状态 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`1ad0eaf`](https://github.com/songloft-org/songloft-player-lynx/commit/1ad0eaf1cba340d644660f64198fed6b8b6d6d6d) - **player**: 优化大播放队列渲染与状态保存 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`9ced2b8`](https://github.com/songloft-org/songloft-player-lynx/commit/9ced2b895376dfc829895100db70530bf8ac4426) - **settings**: 说明辅助功能会停用封面背景（Ref songloft-org/songloft[#523](https://github.com/songloft-org/songloft-player-lynx/pull/523)） *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`2e37e89`](https://github.com/songloft-org/songloft-player-lynx/commit/2e37e8929bceb66fd0fdf67322b86baa77897754) - **web**: 归档校验区分文档 base 与静态资源 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`209f6c8`](https://github.com/songloft-org/songloft-player-lynx/commit/209f6c88b071c187064194a2ae197e48c23fa6c3) - **web**: 保留独立嵌入静态包的子目录部署 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`e69cef9`](https://github.com/songloft-org/songloft-player-lynx/commit/e69cef902afd57661301fc76642bb8980273811e) - **web**: 修复安卓浏览器输入键盘与底栏定位 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`364607b`](https://github.com/songloft-org/songloft-player-lynx/commit/364607b0cb7a0ed07378e59b27ff6827549fde3e) - **web**: 输入时收起悬浮导航和播放器 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`e41987c`](https://github.com/songloft-org/songloft-player-lynx/commit/e41987c5b6f3f4a0315e0e54914207c45868a458) - **player**: 加深歌词封面背景 *(提交者 [@hanxi](https://github.com/hanxi))*
+
+### :wrench: 维护工作
+- [`dee8fa3`](https://github.com/songloft-org/songloft-player-lynx/commit/dee8fa384528179efec31e19174dab6570beffea) - **release**: 发布 0.1.4 *(提交者 [@hanxi](https://github.com/hanxi))*
+
+
 ## [v0.1.2] - 2026-10-14
 ### :sparkles: 新增功能
 - [`e48b491`](https://github.com/songloft-org/songloft-player-lynx/commit/e48b49103a0ace611469040e4b04c4c198cd8eb4) - **jsplugin**: 支持 GitHub Token 与商店客户端渐进加载 *(提交者 [@hanxi](https://github.com/hanxi))*
@@ -680,3 +699,4 @@
 - [`dcbf7c3`](https://github.com/songloft-org/songloft-player-lynx/commit/dcbf7c397f6e6453e31fbe238a2747059717b9be) — 将插件导航设置集中到插件管理页。
 [v0.1.1]: https://github.com/songloft-org/songloft-player-lynx/compare/9b27ab201ff2ac9cf9c3389d6e8421287399eb72...v0.1.1
 [v0.1.2]: https://github.com/songloft-org/songloft-player-lynx/compare/v0.1.1...v0.1.2
+[v0.1.4]: https://github.com/songloft-org/songloft-player-lynx/compare/v0.1.3...v0.1.4
