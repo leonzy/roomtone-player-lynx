@@ -150,7 +150,8 @@ test('HarmonyOS core verifies the shared raw UTF-8 vector and rejects tampering/
   }
 })
 
-test('HarmonyOS signed plugin-template capability requires a new immutable shell snapshot', t => {
+for (const capability of ['pluginFrame.templates.v1', 'audio.remoteIntent.v1'])
+test(`HarmonyOS signed ${capability} capability requires a new immutable shell snapshot`, t => {
   const env = native(t)
   const pair = generateKeyPairSync('rsa', { modulusLength: 2048 })
   const spki = pair.publicKey.export({ type: 'spki', format: 'der' })
@@ -170,12 +171,12 @@ test('HarmonyOS signed plugin-template capability requires a new immutable shell
   const old = env.make()
   assert.equal(old.inspect(legacyRaw, envelope(legacyRaw)).channel, 'dev')
   const next = JSON.parse(legacyRaw)
-  for (const target of next.bundle_update.targets) target.required_capabilities.push('pluginFrame.templates.v1')
+  for (const target of next.bundle_update.targets) target.required_capabilities.push(capability)
   const raw = JSON.stringify(next), signature = envelope(raw)
   assert.throws(() => old.inspect(raw, signature), /incompatible_capability/)
   assert.equal(old.info().pending, null)
   const bridge = env.host.bridge_version, schema = env.host.local_schema
-  env.host.capabilities.push('pluginFrame.templates.v1')
+  env.host.capabilities.push(capability)
   const upgraded = env.make()
   assert.equal(upgraded.inspect(raw, signature).channel, 'dev')
   assert.equal(upgraded.inspect(legacyRaw, envelope(legacyRaw)).channel, 'dev')

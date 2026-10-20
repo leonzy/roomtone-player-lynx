@@ -166,6 +166,14 @@ class BundleUpdateStoreTest {
     }
 
     @Test fun pluginTemplateCapabilityRequiresANewShellWithoutChangingBridgeOrSchema() {
+        assertCapabilityRequiresNewShell("pluginFrame.templates.v1")
+    }
+
+    @Test fun radioRemoteIntentCapabilityRequiresANewShellWithoutChangingBridgeOrSchema() {
+        assertCapabilityRequiresNewShell("audio.remoteIntent.v1")
+    }
+
+    private fun assertCapabilityRequiresNewShell(capability: String) {
         Fixture().use { fixture ->
             fixture.host.put("bridge_version", 3).put("local_schema", 2)
             fixture.manifest.getJSONObject("bundle_update").put("local_schema", 2)
@@ -181,7 +189,7 @@ class BundleUpdateStoreTest {
             val next = JSONObject(legacyRaw)
             val targets = next.getJSONObject("bundle_update").getJSONArray("targets")
             for (index in 0 until targets.length()) {
-                targets.getJSONObject(index).getJSONArray("required_capabilities").put("pluginFrame.templates.v1")
+                targets.getJSONObject(index).getJSONArray("required_capabilities").put(capability)
             }
             val raw = next.toString()
             val signature = fixture.envelope(raw)
@@ -189,7 +197,7 @@ class BundleUpdateStoreTest {
             assertNull(oldStore.info().optJSONObject("pending"))
 
             val newHost = JSONObject(oldHost.toString())
-            newHost.getJSONArray("capabilities").put("pluginFrame.templates.v1")
+            newHost.getJSONArray("capabilities").put(capability)
             val newStore = BundleUpdateStore(fixture.root, newHost)
             assertEquals(oldHost.getInt("bridge_version"), newHost.getInt("bridge_version"))
             assertEquals(oldHost.getInt("local_schema"), newHost.getInt("local_schema"))

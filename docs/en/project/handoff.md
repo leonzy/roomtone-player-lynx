@@ -2,6 +2,8 @@
 
 #531 follow-up (2026-10-20): This session authorizes fixing Flutter/Lynx, committing, pushing and replying to the Issue. Lynx live disconnects reconnect indefinitely to the current station; all four hosts explicitly forward system pause/play intent. Validated objects, actual playback and Not run items: [record](issue-531.md). This authorization supersedes historical snapshots below; final SHA/CI/comment status follows delivery. No stable tag or Issue closure.
 
+Upgrade review (2026-10-21): Initial CI passed. Existing authorization also covers the follow-up `audio.remoteIntent.v1` immutable-host capability gate, preventing JS-only updates into shells lacking system control events. All 88 release checks pass; final builds, commits, parent pointer, CI and comment follow the same validation record. Playback core remains unchanged.
+
 Commit handoff (2026-10-20): After being informed of native visual and environment limitations, the user explicitly requested committing directly. This authorizes local commits for the client changes and parent shared bridge/submodule pointer, not pushing or releasing. Verification records below are pre-commit snapshots; failed and Not run items remain open.
 
 Renderer comparison (2026-10-20): SDK/APK unchanged; all 19 functional assertions pass on Mesa / Android 34, but full visual acceptance remains open. A fresh Android 35 image segfaulted before client installation; the Vulkan retry was OOM-killed, confirming independent environment failures. Evidence: `/tmp/songloft-sdk-e2e/rendering-validation.json`. A stable Android device is still needed for default-effects and sustained-rendering acceptance. No commit, push or release.

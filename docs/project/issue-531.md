@@ -37,3 +37,9 @@ Android 最终 APK：Emulator 35.6.11 / API 34 / Mesa llvmpipe，开启“减少
 Debug 桥验证后重建生产 Lynx/Web 与 Web 部署产物，最终 87 项发布检查、420 项受影响回归通过。3630 项全量和类型验证后仅追加 Android STOP 接线；最终已重跑受影响的原生契约、Gradle 与上述设备场景。验证清单和最终工作树对象为 `validation.json`、`worktree-final.json`。
 
 Not run：报告人 Android 硬件、真实弱网/长后台、iOS 真机及 Apple SDK 本地编译、HarmonyOS 本地 HAP/设备、DLNA 电台重连。Linux 环境不能替代 Apple 工具链；HarmonyOS 编译跟踪推送后的同 SHA CI。原生渲染已有的默认效果/模拟器限制单独记录，不把音频断言扩大为视觉全面验收。不打正式版 tag，不关闭 Issue。
+
+## 2026-10-21 · 完整客户端升级门控
+
+首批 `384225c` 与父指针 `c74d824` 的必要 CI 已通过，Lynx 首次 OHPM 503 在重跑后恢复，开发包元数据确认包含修复。发布核对又发现：仅提示安装新宿主不足以阻止旧壳通过自动更新安装新 JS，旧宿主仍缺系统暂停意图。契约新增 `audio.remoteIntent.v1`，从同一源生成三端不可变宿主快照与签名清单，旧壳返回 capability 不兼容并引导完整安装，不改变 bridge 3 / schema 2。
+
+新发布契约回归在旧配置失败；补修后 88 项发布检查通过，其中 HarmonyOS 实际更新器验证旧壳拒绝、新壳接受、旧快照仍拒绝和没有 pending 写入；Android 同类回归已新增，交给后续 CI 执行。两次本地双目标构建退出 137，内核确认 Rspeedy OOM；低并发 Lynx 单目标最终通过（14 分 16 秒），保留类型检查。日志保留为 `capability-build*.log`；不再启动本地重构建，最终双目标生产构建、APK 元数据和提交/CI 记录在 `validation.json`。本地后续 Android 编译/测试 Not run（共享主机资源不足）；以同 SHA CI 的构建及原生测试为准。播放核心未再次修改，首批音频实测仍对应上面的播放源码指纹；后续重建验证能力元数据分发，不能将旧 APK 当成含新能力标记的安装包。

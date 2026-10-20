@@ -16,6 +16,7 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 - Evidence: Live completed events advanced the queue, and errors advanced after three retries. New regressions fail against the isolated old store for playback modes, extended retries and cancellation. Host paused events also represent buffering; pausing an already-paused engine may produce no state event. An actual Android STOP media key also exposed ordinary player stop bypassing the notification's custom exit command: verify distinct system-control entry points separately.
 - Rule and Done right: Reconnect indefinitely to the current station with a capped delay, preserving queue and song counts. All four hosts explicitly send user play/pause commands; pause/stop cancel timers and pending loads. Actual results, source fingerprint, final commits and platform boundaries are in the [validation record](docs/en/project/issue-531.md).
 - Seen 1× (2026-10-20). Status: lesson; final same-SHA delivery determines CI/dev artifacts.
+- Same-incident release review: New native events also require updating capabilities in `updates/native-contract.json`. A documented full-install requirement alone still lets automatic updates install JS into shells lacking those events. Signed-manifest/immutable-snapshot regressions for `audio.remoteIntent.v1` are in the same record; Seen does not increase.
 
 ### SDK-001: SDK parity includes dispatch, model conversion and bidirectional transport
 

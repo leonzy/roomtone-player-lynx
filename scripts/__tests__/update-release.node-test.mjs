@@ -51,6 +51,8 @@ test('signed native bundle shares one manifest with the five full packages', (t)
   assert.ok(manifest.bundle_update.targets.every(t => t.required_capabilities.includes('updater.metadata.v1')))
   assert.ok(manifest.bundle_update.targets.every(t => t.required_capabilities.includes('pluginFrame.templates.v1')))
   assert.ok(options.nativeHost.capabilities.includes('pluginFrame.templates.v1'))
+  assert.ok(manifest.bundle_update.targets.every(t => t.required_capabilities.includes('audio.remoteIntent.v1')))
+  assert.ok(options.nativeHost.capabilities.includes('audio.remoteIntent.v1'))
   const checksums = readFileSync(join(options.directory, 'checksums.txt'), 'utf8').trim().split('\n')
   assert.equal(checksums.length, 8)
   for (const line of checksums) {
