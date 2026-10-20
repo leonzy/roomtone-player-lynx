@@ -1,6 +1,6 @@
 {
   "name": "songloft-player-lynx",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@11.15.1",
