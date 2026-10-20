@@ -2,6 +2,18 @@
 
 此文件记录 Songloft Player（Lynx）的版本变更，仅提供中文版本。版本 tag 的 Release 发布成功后，由 CI 根据 Conventional Commits 分类追加记录并提交到 `main`；滚动 dev 记录见 [GitHub Releases](https://github.com/songloft-org/songloft-player-lynx/releases/tag/dev)。
 
+## [v0.1.5] - 2026-10-20
+### :bug: 问题修复
+- [`384225c`](https://github.com/songloft-org/songloft-player-lynx/commit/384225c13b44cdc733b66c79c8d04ff318ef5a1b) - **player**: 电台断流持续重连并响应系统暂停停止 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`44cc91d`](https://github.com/songloft-org/songloft-player-lynx/commit/44cc91d731b0a3f13fb9b56fd817a9428c34c0cd) - **updater**: 电台重连更新要求系统媒体意图能力 *(提交者 [@hanxi](https://github.com/hanxi))*
+
+### :memo: 文档更新
+- [`f3f78b3`](https://github.com/songloft-org/songloft-player-lynx/commit/f3f78b3aae6e74323b963a9e8c940bf74b3613b5) - **changelog**: 更新 v0.1.4 变更记录 *(提交者 [@github-actions[bot]](https://github.com/apps/github-actions))*
+
+### :wrench: 维护工作
+- [`1ef3248`](https://github.com/songloft-org/songloft-player-lynx/commit/1ef324864b88c679a7b0378eff24cfef3de4f167) - **release**: 发布 0.1.5 *(提交者 [@hanxi](https://github.com/hanxi))*
+
+
 ## [v0.1.4] - 2026-10-20
 ### :sparkles: 新增功能
 - [`6edca85`](https://github.com/songloft-org/songloft-player-lynx/commit/6edca8561eeaa375c82c725c2cfd097f0ef3f996) - **web**: 支持后端默认嵌入与子路径回退 *(提交者 [@hanxi](https://github.com/hanxi))*
@@ -700,3 +712,4 @@
 [v0.1.1]: https://github.com/songloft-org/songloft-player-lynx/compare/9b27ab201ff2ac9cf9c3389d6e8421287399eb72...v0.1.1
 [v0.1.2]: https://github.com/songloft-org/songloft-player-lynx/compare/v0.1.1...v0.1.2
 [v0.1.4]: https://github.com/songloft-org/songloft-player-lynx/compare/v0.1.3...v0.1.4
+[v0.1.5]: https://github.com/songloft-org/songloft-player-lynx/compare/v0.1.4...v0.1.5
