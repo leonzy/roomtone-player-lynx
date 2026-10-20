@@ -151,7 +151,8 @@ dependencies {
     implementation("org.lynxsdk.lynx:xelement-input:4.0.0")
     implementation("org.lynxsdk.lynx:xelement-overlay:4.0.0")
     implementation("org.lynxsdk.lynx:xelement-svg:4.0.0")
-    implementation("org.lynxsdk.lynx:servalsvg:0.1.1")
+    // 0.1.1 omits x86_64: SVG elements stay blank on that ABI.
+    implementation("org.lynxsdk.lynx:servalsvg:0.2.4")
     implementation("org.lynxsdk.lynx:xelement-refresh:4.0.0")
     implementation("org.lynxsdk.lynx:xelement-webview:4.0.0")
 

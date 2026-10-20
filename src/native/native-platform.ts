@@ -2,6 +2,7 @@ import { readNativeModules } from './native-modules.js'
 import { isWebEnvironment, webOpenURL, webPickAndUploadFile } from './web-platform.js'
 
 interface SongloftPlatformNative {
+  getCookies(origin: string, callback: (error: string | null, cookiesJson: string | null) => void): void
   setKeepScreenOn(enabled: boolean): void
   openURL(url: string): void
   pickAndUploadFile(
@@ -35,6 +36,33 @@ interface SongloftPlatformNative {
     fileName: string,
     callback: (error: string | null, resultJson: string | null) => void,
   ): void
+}
+
+/** Cookie store access belongs to the native browser, including HttpOnly cookies. */
+export function getHostCookies(origin: string): Promise<Record<string, string>> {
+  const mod = getModule()
+  if (!mod || typeof mod.getCookies !== 'function') {
+    return Promise.reject(new Error('getCookies is not available on this platform (requires a newer native client)'))
+  }
+  return new Promise((resolve, reject) => {
+    let settled = false
+    const finish = (error: string | null, json: string | null) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      if (error !== null) { reject(new Error(error || 'getCookies failed')); return }
+      try {
+        if (typeof json !== 'string') throw new Error('invalid cookie response')
+        const data: unknown = JSON.parse(json)
+        if (!data || typeof data !== 'object' || Array.isArray(data)
+          || Object.values(data).some(value => typeof value !== 'string')) throw new Error('invalid cookie response')
+        resolve(data as Record<string, string>)
+      } catch (error) { reject(error) }
+    }
+    const timer = setTimeout(() => finish('getCookies timeout', null), 10000)
+    try { mod.getCookies(origin, finish) }
+    catch (error) { finish(String(error), null) }
+  })
 }
 
 function getModule(): SongloftPlatformNative | null {

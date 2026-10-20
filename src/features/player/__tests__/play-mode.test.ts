@@ -99,9 +99,10 @@ describe('resolveStartIndex', () => {
   })
 })
 
-test('cyclePlayMode rotates order → loop → single → random → order', () => {
+test('cyclePlayMode rotates through all five SDK modes', () => {
   expect(cyclePlayMode('order')).toBe('loop')
   expect(cyclePlayMode('loop')).toBe('single')
   expect(cyclePlayMode('single')).toBe('random')
-  expect(cyclePlayMode('random')).toBe('order')
+  expect(cyclePlayMode('random')).toBe('singlePlay')
+  expect(cyclePlayMode('singlePlay')).toBe('order')
 })

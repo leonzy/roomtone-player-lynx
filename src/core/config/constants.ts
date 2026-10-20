@@ -57,6 +57,7 @@ export const playMode = {
   loop: 'loop',
   single: 'single',
   random: 'random',
+  singlePlay: 'singlePlay',
 } as const
 export type PlayMode = (typeof playMode)[keyof typeof playMode]
 export const playModes: readonly PlayMode[] = [
@@ -64,6 +65,7 @@ export const playModes: readonly PlayMode[] = [
   playMode.loop,
   playMode.single,
   playMode.random,
+  playMode.singlePlay,
 ]
 
 /** Song source types. */

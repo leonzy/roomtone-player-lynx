@@ -33,6 +33,7 @@ export function resolveNext(
 ): number | null {
   if (length <= 0) return null
   switch (mode) {
+    case 'singlePlay':
     case 'order': {
       const next = index + 1
       return next < length ? next : null
@@ -61,6 +62,7 @@ export function resolvePrev(
 ): number | null {
   if (length <= 0) return null
   switch (mode) {
+    case 'singlePlay':
     case 'order': {
       const prev = index - 1
       return prev >= 0 ? prev : null

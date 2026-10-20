@@ -33,6 +33,27 @@ import java.util.zip.ZipOutputStream
  */
 class SongloftPlatformModule(context: Context) : LynxModule(context) {
 
+    @LynxMethod
+    fun getCookies(origin: String, callback: Callback) {
+        mainHandler.post {
+            try {
+                val uri = android.net.Uri.parse(origin)
+                require((uri.scheme == "https" || uri.scheme == "http") && !uri.host.isNullOrBlank()) { "invalid origin" }
+                val result = org.json.JSONObject()
+                val cookies = android.webkit.CookieManager.getInstance().getCookie(origin).orEmpty()
+                for (part in cookies.split(';')) {
+                    val separator = part.indexOf('=')
+                    if (separator <= 0) continue
+                    val name = part.substring(0, separator).trim()
+                    if (name.isNotEmpty()) result.put(name, part.substring(separator + 1).trim())
+                }
+                callback.invoke(null, result.toString())
+            } catch (error: Exception) {
+                callback.invoke(error.message ?: "getCookies failed", null)
+            }
+        }
+    }
+
     init {
         // Hand the context to the shared client log file before anything else;
         // other holders (audio module/service) re-run it harmlessly.

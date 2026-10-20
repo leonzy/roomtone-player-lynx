@@ -124,6 +124,9 @@ export interface PlayerState extends PlayerData {
     fetch: FetchPage
   }) => void
   insertNextInQueue: (songs: Song[]) => void
+  insertToPlaylist: (index: number, song: Song) => void
+  /** SDK reorder indices refer to insertion positions before removal (Flutter parity). */
+  reorderPlaylist: (oldIndex: number, newIndex: number) => void
   removeFromPlaylist: (index: number) => Promise<void>
   clearPlaylist: () => void
 
@@ -765,7 +768,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       return
     }
 
-    const nextIdx = _navigation.next(s.currentIndex, s.playlist.length)
+    const nextIdx = s.playMode === 'singlePlay' ? null : _navigation.next(s.currentIndex, s.playlist.length)
     if (nextIdx == null) {
       // An ended native engine will not restart from its final position on play().
       // The next user play must reload this song at the beginning.
@@ -1033,6 +1036,40 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       if (songs.length === 0) return
       if (get().playlist.length === 0) { void get().playPlaylist(songs); return }
       for (const song of [...songs].reverse()) void get().playSongNext(song)
+    },
+
+    insertToPlaylist: (index, song) => {
+      if (!Number.isInteger(index)) return
+      const s = get()
+      const position = Math.max(0, Math.min(index, s.playlist.length))
+      const list = [...s.playlist]
+      list.splice(position, 0, song)
+      const indices = new Map(s.playlist.map((_, i) => [i, i >= position ? i + 1 : i]))
+      _navigation.remap(indices)
+      const currentIndex = indices.get(s.currentIndex) ?? s.currentIndex
+      set({ playlist: list, currentIndex, currentSong: list[currentIndex] })
+      syncNavigation()
+      void syncQueueWindow(list, currentIndex)
+    },
+
+    reorderPlaylist: (oldIndex, newIndex) => {
+      const s = get()
+      if (!Number.isInteger(oldIndex) || !Number.isInteger(newIndex)
+        || oldIndex < 0 || oldIndex >= s.playlist.length
+        || newIndex < 0 || newIndex > s.playlist.length) return
+      const target = newIndex > oldIndex ? newIndex - 1 : newIndex
+      if (target === oldIndex) return
+      // Track occurrences by old index: duplicate songs must not steal the current position.
+      const entries = s.playlist.map((song, index) => ({ song, index }))
+      const [entry] = entries.splice(oldIndex, 1)
+      entries.splice(target, 0, entry)
+      const indices = new Map(entries.map((value, index) => [value.index, index]))
+      const list = entries.map(value => value.song)
+      const currentIndex = indices.get(s.currentIndex) ?? s.currentIndex
+      _navigation.remap(indices)
+      set({ playlist: list, currentIndex, currentSong: list[currentIndex] })
+      syncNavigation()
+      void syncQueueWindow(list, currentIndex)
     },
 
     removeFromPlaylist: async (index) => {

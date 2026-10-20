@@ -26,20 +26,19 @@ import { usePlayerStore } from '../../player/store/index.js'
 import {
   handlePluginHostCall,
   playerStateToJson,
+  pluginPlayerStateChanged,
   type HostCallRequest,
-  type PluginHostContext,
 } from '../domain/plugin-host-dispatch.js'
+import { pluginHostContext as hostContext } from '../domain/plugin-host-context.js'
 import {
   pluginThemeAppearance,
   type PluginThemeAppearance,
 } from '../domain/plugin-theme-appearance.js'
 import { pluginColorSchemeMap } from '../domain/plugin-color-scheme.js'
 import { getBuiltInPalette, subscribeBuiltInPalette } from '../../../shared/theme/built-in-palette-model.js'
-import { getJSPluginApi } from '../api/index.js'
 import { usePluginsQuery } from '../data/jsplugin-query.js'
 import { isWebPlatform } from '../../../native/web-platform.js'
 import { subscribeAppResumed } from '../../../native/app-lifecycle.js'
-import type { Song } from '../../../models/song.js'
 import { LynxPluginFrame } from '../widgets/LynxPluginFrame.js'
 import { createPluginBackBridge } from '../domain/plugin-back-bridge.js'
 import './PluginWebViewPage.css'
@@ -53,35 +52,17 @@ async function getAccessToken(): Promise<string> {
   }
 }
 
-async function resolveSongs(ids: number[]): Promise<Song[]> {
-  const api = getJSPluginApi()
-  const results: Song[] = []
-  for (const id of ids) {
-    try {
-      const res = await (api as unknown as { client: { get: Function } }).client
-        .get(`/api/v1/songs/${id}`)
-      if (res?.data) results.push(res.data as Song)
-    } catch { /* skip */ }
-  }
-  return results
-}
-
-const hostContext: PluginHostContext = {
-  platform: 'lynx',
-  version: '1.0.0',
-  resolveSongs,
-}
-
 /**
  * Build the plugin page URL. `embed` hides the plugin's own toolbar — right for
  * a chromeless tab entry, wrong for a pushed page, where the plugin keeps its
  * own header under our topbar (both Flutter pages make exactly this
  * distinction: tab_page embeds, webview_page does not).
  */
-function buildPluginUrl(entryPath: string, theme: string, token: string, embed: boolean): string {
+function buildPluginUrl(entryPath: string, theme: string, token: string, embed: boolean, nativeHost = false): string {
   const base = `${appConfig.baseUrl}${appConfig.basePath}`
   const params = [embed ? 'embed' : '', `theme=${theme}`]
   if (token) params.push(`access_token=${token}`)
+  if (nativeHost) params.push('songloft_host=lynx')
   return `${base}/api/v1/jsplugin/${entryPath}/?${params.filter(Boolean).join('&')}`
 }
 
@@ -163,6 +144,11 @@ export function PluginWebViewPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const webviewRef = useRef<NodesRef>(null)
+  const nativePageGeneration = useRef(0)
+  useEffect(() => {
+    nativePageGeneration.current++
+    return () => { nativePageGeneration.current++ }
+  }, [src])
   const backBridgeRef = useRef<ReturnType<typeof createPluginBackBridge> | null>(null)
   const canPluginBackRef = useRef(false)
   const [canPluginBack, setCanPluginBack] = useState(false)
@@ -249,6 +235,9 @@ export function PluginWebViewPage() {
 
   /** A (re)load resets the page to its entry point, so there is no internal history. */
   const onWebViewLoad = () => {
+    // This is load *completion*. SDK calls made during document startup may
+    // still be awaiting the host; invalidating here would discard their replies.
+    // A new document ignores old replies through common.js's pending request IDs.
     console.info('[plugin] native page loaded:', entryPath)
     setDepth(0)
     selfBackPendingRef.current = false
@@ -300,7 +289,7 @@ export function PluginWebViewPage() {
   pushThemeMessageRef.current = () => {
     webviewRef.current?.invoke({
       method: 'eval',
-      params: { func: `window.postMessage(${JSON.stringify(buildThemeMessage())},'*')` },
+      params: { func: `window.dispatchEvent(new MessageEvent('message',{data:${JSON.stringify(buildThemeMessage())}}))` },
     }).exec()
   }
 
@@ -314,7 +303,7 @@ export function PluginWebViewPage() {
   pushPlayerStateRef.current = () => {
     webviewRef.current?.invoke({
       method: 'eval',
-      params: { func: `window.postMessage(${JSON.stringify({ type: 'songloft-player-state', state: playerStateToJson() })},'*')` },
+      params: { func: `window.dispatchEvent(new MessageEvent('message',{data:${JSON.stringify({ type: 'songloft-player-state', state: playerStateToJson() })}}))` },
     }).exec()
   }
 
@@ -379,7 +368,7 @@ export function PluginWebViewPage() {
         // for `theme-light`, and Lynx has no DOM — the guard kept it from crashing but
         // pinned every plugin to `theme=dark`, even with light mode selected.
         const theme = resolveTheme(getAppTheme())
-        setSrc(buildPluginUrl(entryPath, theme, token, isTabEntry))
+        setSrc(buildPluginUrl(entryPath, theme, token, isTabEntry, !isWebPlatform()))
         setBrowserUrl(buildPluginUrl(entryPath, theme, token, false))
         setLoading(false)
       } catch (e) {
@@ -392,19 +381,11 @@ export function PluginWebViewPage() {
   useEffect(() => {
     if (!src) return
     const unsub = usePlayerStore.subscribe((state, prev) => {
-      const sig = `${state.currentIndex}|${state.isPlaying}|${state.currentSong?.id}|${state.playMode}|${state.playlist.length}`
-      const prevSig = `${prev.currentIndex}|${prev.isPlaying}|${prev.currentSong?.id}|${prev.playMode}|${prev.playlist.length}`
-      if (sig === prevSig) return
-      const stateJson = JSON.stringify({
-        queue: state.playlist.map((s) => ({ id: s.id, title: s.title, artist: s.artist })),
-        current_index: state.currentIndex,
-        current_song: state.currentSong ? { id: state.currentSong.id, title: state.currentSong.title } : null,
-        is_playing: state.isPlaying,
-        play_mode: state.playMode,
-      })
+      if (!pluginPlayerStateChanged(state, prev)) return
+      const stateJson = JSON.stringify(playerStateToJson(state))
       webviewRef.current?.invoke({
         method: 'eval',
-        params: { func: `window.postMessage({type:'songloft-player-state',state:${stateJson}},'*')` },
+        params: { func: `window.dispatchEvent(new MessageEvent('message',{data:{type:'songloft-player-state',state:${stateJson}}}))` },
       }).exec()
     })
     return unsub
@@ -416,7 +397,18 @@ export function PluginWebViewPage() {
       if (!raw) return
       const req = typeof raw === 'string' ? JSON.parse(raw) : raw
       if (backBridgeRef.current?.receive(req)) return
-      void handlePluginHostCall(req, hostContext)
+      const call = decodeHostCall(req)
+      if (!call) return
+      const node = webviewRef.current
+      const generation = nativePageGeneration.current
+      void handlePluginHostCall(call, hostContext).then(result => {
+        if (!node || webviewRef.current !== node || generation !== nativePageGeneration.current) return
+        const reply = JSON.stringify({ type: 'songloft-host-reply', id: call.id, ...result })
+        node.invoke({ method: 'eval', params: { func: `window.dispatchEvent(new MessageEvent('message',{data:${reply}}))` } }).exec()
+      }).catch(() => {
+        // The native view can disappear before eval executes. The requesting
+        // document owns the RPC timeout; never leak an unhandled rejection.
+      })
     } catch { /* ignore malformed messages */ }
   }
 
@@ -621,9 +613,7 @@ function WebPluginFrame({ src, frameKey, onBackMessage, onConnectBack }: {
 
     unsubPlayer = usePlayerStore.subscribe((state, prev) => {
       // Same change-signature throttle as the native branch's push.
-      const sig = `${state.currentIndex}|${state.isPlaying}|${state.currentSong?.id}|${state.playMode}|${state.playlist.length}`
-      const prevSig = `${prev.currentIndex}|${prev.isPlaying}|${prev.currentSong?.id}|${prev.playMode}|${prev.playlist.length}`
-      if (sig === prevSig) return
+      if (!pluginPlayerStateChanged(state, prev)) return
       send({ type: 'songloft-player-state', state: playerStateToJson() })
     })
 

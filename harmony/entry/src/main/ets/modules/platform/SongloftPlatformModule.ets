@@ -7,6 +7,7 @@ import { zlib, pasteboard, BusinessError } from '@kit.BasicServicesKit'
 import { http } from '@kit.NetworkKit'
 import { LynxModule, LynxContext } from '@lynx/lynx'
 import { window } from '@kit.ArkUI'
+import { webview } from '@kit.ArkWeb'
 import { InsecureTls } from '../../net/InsecureTls'
 import { ClientFileLog } from './ClientFileLog'
 
@@ -62,6 +63,33 @@ export class SongloftPlatformModule extends LynxModule {
       uri: url,
     }
     this.abilityContext.startAbility(want).catch(() => {})
+  }
+
+  public getCookies(origin: string, callback: (error: string | null, cookiesJson: string | null) => void): void {
+    try {
+      if (!/^https?:\/\/[^\s/?#]+(?:[/?#]|$)/i.test(origin)) {
+        callback('invalid origin', null)
+        return
+      }
+      const cookies = webview.WebCookieManager.fetchCookieSync(origin)
+      const result = new Map<string, string>()
+      for (const part of cookies.split(';')) {
+        const separator = part.indexOf('=')
+        if (separator <= 0) continue
+        const name = part.substring(0, separator).trim()
+        if (name.length > 0) result.set(name, part.substring(separator + 1).trim())
+      }
+      // Cookie names are data, including "__proto__"; never assign them to {}.
+      const fields: string[] = []
+      result.forEach((value: string, name: string) => {
+        fields.push(JSON.stringify(name) + ':' + JSON.stringify(value))
+      })
+      callback(null, '{' + fields.join(',') + '}')
+    } catch (error) {
+      const code = (error as BusinessError).code
+      if (code === 17100002) callback(null, '{}')
+      else callback('getCookies failed', null)
+    }
   }
 
   public setClipboard(text: string): void {

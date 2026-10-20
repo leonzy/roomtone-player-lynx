@@ -1,5 +1,31 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-20 · 渲染环境对照
+
+同一 APK 在 Mesa llvmpipe / Android 34、开启“减少透明度”时 19 项再次通过，但图标与默认效果仍未全部验收。新 Android 35 镜像在安装客户端前即发生模拟器段错误；Vulkan 重试由内核确认 OOM 杀死。环境失败独立存在，不能借此认定插件缺字根因；未追加业务补丁，需稳定设备补验。记录 `/tmp/songloft-sdk-e2e/rendering-validation.json`，详见 [SDK 验证](../reference/plugin-client-sdk.md)。
+
+## 2026-10-20 · Android SVG 缺库补修
+
+`servalsvg` 从 0.1.1 升至 0.2.4，补齐 x86_64 库；新 APK 构建、四 ABI 库检查和 x86_64 原生图标显示通过，官方插件 19 项功能断言再通过。插件文字控制符号刷新后正常、静置后再次缺失；默认玻璃效果仍使模拟器宿主退出 139。功能成功仍限“减少透明度”开启，视觉未全部通过。证据 `/tmp/songloft-sdk-e2e/svg/validation.json`；详细边界见 [SDK 最新记录](../reference/plugin-client-sdk.md)。未提交、推送或发布。
+
+## 2026-10-20 · SDK Android 原生有条件验收
+
+在 Emulator 35.6.11 / Android 34 / WebView 113、应用“减少透明度”开启时，官方「正在播放」19 项原生测试通过，含真实 HttpOnly Cookie、播放控制/进度、队列、收藏和加载期间的回执；新截图与结果见 `/tmp/songloft-sdk-e2e/native-validation.json`。默认效果仍曾使模拟器退出，截图存在部分控制符号未绘制，未确认原因；不把功能断言通过等同于全部视觉验收。业务代码和第三方插件未改，未提交/推送/发布。详见 [SDK 记录](../reference/plugin-client-sdk.md#android-原生补验有条件通过)。
+
+## 2026-10-20 · SDK 审核后完整复验
+
+3611 项全量测试、类型、生产双产物、87 项发布检查和公共脚本 9 项通过；最新 Web/服务器再次通过官方「正在播放」的 16 项实测，新桌面/手机截图已保存。Android 最新测试 bundle 打包、安装通过，但独立模拟器因 OOM、宿主渲染线程段错误和禁用 GPU 后退出而无法完成插件验收。不能将安装成功算作运行通过。完整命令、源码指纹及环境失败记录见 `/tmp/songloft-sdk-e2e/continued-validation.json` 和 [SDK 记录](../reference/plugin-client-sdk.md#审核后完整复验)。未提交、推送或发布。
+
+## 2026-10-20 · SDK 审核补修
+
+修复原生加载完成误取消启动回执、回执执行异常未收敛和 HarmonyOS 特殊 Cookie 名称丢失。加载时序/Cookie 回归先失败后通过；补修后 22 文件 / 575 项相关测试、类型、Lynx/Web 构建通过。未重跑原生设备及 iOS/HarmonyOS 编译，原 Web 截图保留为上一快照。证据 `/tmp/songloft-sdk-e2e/review-validation.json`，详情见 [SDK 记录](../reference/plugin-client-sdk.md#同日审核补修)。未提交、推送或发布。
+
+## 2026-10-20 · 客户端 SDK 与官方「正在播放」实测
+
+对照 Flutter 补齐队列编辑、按歌单播放、收藏、三端 Cookie 和单曲播完停止；统一歌曲模型解析、完整状态推送、真实宿主信息与原生 WebView 回执。基线 `e41987c5b6f3f4a0315e0e54914207c45868a458` + 未提交工作树，源码指纹见 `/tmp/songloft-sdk-e2e/validation.json`。3610 项测试、类型、双产物、Web 部署、87 项发布检查与 Android 编译通过；隔离旧实现的 7 项回归失败。父仓库公共传输增加三端入口，旧脚本 5 项失败，当前 9 项脚本及相关 Go 测试通过。
+
+从官方源安装未修改的「正在播放」1.0.31（charce526，ZIP 哈希与清单一致），实际浏览器通过 16 项界面/音频/后端断言，并保存桌面、手机截图。收藏按钮的后端写入和 SDK 收藏缓存刷新分别验证，未把第三方插件未调用的接口说成已由它调用。详情、证据与 Not run 见 [中文](../reference/plugin-client-sdk.md#2026-10-20-本批结果) / [English](../en/reference/plugin-client-sdk.md#results-for-2026-10-20)。iOS/HarmonyOS 编译与三端原生设备/Cookie store 未运行；未提交、推送、更新父指针或发布。
+
 ## 2026-10-17 · #523 封面背景加深
 
 报告人确认辅助功能关闭后仍色彩太淡。本批降低亮暗遮罩，保留 18%–30% 封面色，并收紧主题包 surface 边界；新增上下两端色差回归，旧实现浅/深模式均失败。继续验收所有内置配色和封面极值的文字对比度；真实浏览器亮暗切歌、缺失/失败、辅助功能恢复已运行。完整对象、最终测试/构建和平台边界见 [记录](issue-523.md#2026-10-17--加深封面背景) / [English](../en/project/issue-523.md#2026-10-17--stronger-cover-backgrounds) 与 `/tmp/songloft-523-followup-20261017/validation.json`。上述记录为提交前验证快照；用户已获知 Flutter 停止播放测试失败与原生切歌验收缺口，明确授权本批提交、推送并回复 songloft-org/songloft#523。按最终 SHA 核对父 gitlink、CI、dev 包和评论，不新打正式版 tag、不关闭 Issue。

@@ -17,6 +17,7 @@ const MODE_ICON: Record<PlayMode, IconName> = {
   loop: 'repeat',
   single: 'repeat-one',
   random: 'shuffle',
+  singlePlay: 'play',
 }
 
 /** i18n key for the play-mode toggle label per mode. */
@@ -25,6 +26,7 @@ const MODE_LABEL_KEY: Record<PlayMode, string> = {
   loop: 'player.modeLoop',
   single: 'player.modeSingle',
   random: 'player.modeRandom',
+  singlePlay: 'player.modeSinglePlay',
 }
 
 /** Favorite toggle. Split out so its react-query hooks stay off the transport row. */
@@ -101,6 +103,7 @@ export function PlayControls({ playBtn, playRadius, slot, songId }: PlayControls
     { key: 'loop',   label: t('player.modeLoop'),   icon: 'repeat',     selected: playMode === 'loop' },
     { key: 'single', label: t('player.modeSingle'), icon: 'repeat-one', selected: playMode === 'single' },
     { key: 'random', label: t('player.modeRandom'), icon: 'shuffle',    selected: playMode === 'random' },
+    { key: 'singlePlay', label: t('player.modeSinglePlay'), icon: 'play', selected: playMode === 'singlePlay' },
   ]
 
   return (

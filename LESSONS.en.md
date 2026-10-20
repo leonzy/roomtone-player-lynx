@@ -10,6 +10,21 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### SDK-001: SDK parity includes dispatch, model conversion and bidirectional transport
+
+- Renderer comparison: All 19 functional assertions on the same APK with Mesa do not establish sustained icon correctness. A new image segfaulted before client installation and another path was OOM-killed: these prove independent environment failures, not the cause of every missing glyph. Wait for actual asynchronous playback with a bound, preserving assertions and initial failure evidence. Multiple diagnostic interventions are not a single-variable causal proof. See `/tmp/songloft-sdk-e2e/rendering-validation.json`.
+
+- Same-day icon fix: The actual APK's `servalsvg:0.1.1` omits x86_64; a declared Gradle dependency does not prove ABI coverage. After updating to 0.2.4, verify all four packaged libraries, runtime loading logs and screenshots: native icons return and all 19 assertions pass again. Plugin glyphs render after reload but disappear later: selecting only the correct frame cannot establish a pass. Default effects still exit with 139, so restoring SVG icons does not remove the environment limit. See `/tmp/songloft-sdk-e2e/svg/validation.json`.
+
+- Scope: HTML / frame client SDK in Lynx; no linked Issue, baseline `e41987c5b6f3f4a0315e0e54914207c45868a458`.
+- Evidence: On 2026-10-20, comparison with Flutter and `@songloft/client-sdk` exposed missing queue edits, playlist playback, favorites and cookies. Pages cast HTTP snake_case JSON directly to Song; native WebViews discarded dispatch results; snapshots omitted artwork and other fields. With the old dispatcher and player restored in an isolated copy, all 7 new real-store regressions failed as expected. Parent-repository tests cover old shared `common.js` native transports.
+- Rule and fix: Both renderers share typed APIs, dispatch and complete serialization. Insert/reorder remap both the current occurrence and navigation history; finding by song ID cannot handle duplicates correctly. Replies retain correlation IDs and stop after component unmounts or URL changes. Push same-length reorders, volume and actual duration while filtering position-only ticks.
+- Same-day review: New regressions confirm that `bindload` means load completion and must not cancel startup requests; native reply failures must settle Promise rejections. HarmonyOS cookie dictionaries use Map to retain data keys such as `__proto__`; executing the actual method against a controlled store exposes the old lost-key behavior. All 575 affected tests pass; device/HAP acceptance remains unrun. See the SDK record.
+- Follow-up: All 3611 post-review tests pass. With Reduce Transparency enabled, the official plugin passes 19 assertions on the Android 34 emulator, including actual HttpOnly cookies and startup replies. Default effects previously exited the emulator and some control glyphs remain absent: retain environment conditions and visual gaps rather than generalizing functional success to complete native acceptance. See `/tmp/songloft-sdk-e2e/native-validation.json`.
+- Done right: The uncommitted tree passes TypeScript, all 3610 Vitest tests, Lynx/Web bundles, Web deployment, 87 release checks and Android `assembleDebug`. Interfaces and this batch's browser boundaries appear in the [client SDK reference](docs/en/reference/plugin-client-sdk.md). Favorite refresh cancels older GETs before updating a complete cache; a cold cache reloads rather than treating one notification as the entire set.
+- Not run: iOS/HarmonyOS host compilation and real native cookie-store / device acceptance on all three platforms. Android compilation does not establish device behavior.
+- Seen 1× (2026-10-20). Status: lesson; not committed, pushed or released.
+
 ### LYRIC-002: Readable text does not establish visible cover changes
 
 - Scope: Lynx player scrims and lyric foregrounds, songloft-org/songloft#523 feedback on 2026-10-17.

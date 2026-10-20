@@ -109,3 +109,21 @@ export async function getFavoriteState(songId: number): Promise<boolean> {
   })
   return ids.has(songId)
 }
+
+/** Synchronize plugin writes without writing to the server a second time. */
+export async function refreshFavoritesFromPlugin(songId?: number, isFavorited?: boolean): Promise<void> {
+  const client = getQueryClient()
+  // Do not let an older GET overwrite an incremental notification.
+  await client.cancelQueries({ queryKey: FAV_QUERY_KEY })
+  if (songId != null && isFavorited != null && client.getQueryData(FAV_QUERY_KEY) != null) {
+    client.setQueryData<Set<number>>(FAV_QUERY_KEY, current => {
+      const ids = new Set(current)
+      if (isFavorited) ids.add(songId)
+      else ids.delete(songId)
+      return ids
+    })
+  } else {
+    await client.invalidateQueries({ queryKey: FAV_QUERY_KEY, refetchType: 'none' })
+    await client.fetchQuery({ queryKey: FAV_QUERY_KEY, queryFn: fetchFavoriteSongIds, staleTime: 0 })
+  }
+}

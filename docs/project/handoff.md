@@ -1,5 +1,21 @@
 # 工作交接（2026-10-14）
 
+提交交接（2026-10-20）：用户在获知原生视觉与环境限制后明确要求“直接提交”。本批按该授权提交客户端改动及主仓库公共桥接/子模块指针；未授权推送或发布。以下验证记录为提交前快照，未通过与 Not run 项保持开放。
+
+渲染对照（2026-10-20）：SDK/APK 未再修改；Mesa / Android 34 的 19 项功能复验通过，视觉仍未全部通过。新 Android 35 镜像在安装客户端前段错误，Vulkan 重试 OOM，确认测试环境存在独立失败。证据 `/tmp/songloft-sdk-e2e/rendering-validation.json`。仍需稳定 Android 设备完成默认效果与持续显示验收；未提交、推送或发布。
+
+最新 Android 补修（2026-10-20）：升级 `servalsvg` 至 0.2.4 补齐 x86_64 库，原生图标恢复，APK 构建与官方插件 19 项功能复验通过。插件控制文字刷新后正常、静置后再次缺失，视觉未全部通过。证据 `/tmp/songloft-sdk-e2e/svg/validation.json`。默认玻璃效果仍使模拟器宿主退出 139，功能成功仍以开启“减少透明度”为条件。其他平台/真机/长后台未验；未提交、推送或发布。下方是此前快照。
+
+Android 补验（2026-10-20）：同一 APK 在 Emulator 35.6.11 / Android 34 / WebView 113、开启“减少透明度”时通过 19 项原生 SDK/插件断言，含真实 HttpOnly Cookie、加载回执和播放进度。证据 `/tmp/songloft-sdk-e2e/native-validation.json`。默认效果与部分控制符号的绘制仍有验收缺口；iOS/HarmonyOS、真机、长后台未跑。未改业务实现，未提交/推送/发布。
+
+最新复验（2026-10-20）：审核后全量 3611 项、类型、生产双产物及 87 项发布检查通过；官方「正在播放」16 项 Web 实测及桌面/手机截图已更新。Android 新 JS/壳构建和安装成功，模拟器运行被宿主 OOM/渲染崩溃阻塞，原生插件和 Cookie 尚未验收。最新证据 `/tmp/songloft-sdk-e2e/continued-validation.json`；未提交、推送或发布。
+
+审核补充（2026-10-20）：SDK 原生启动回执、执行异常与 HarmonyOS Cookie 特殊键已补修，575 项相关回归、类型和双产物构建通过。最新验证对象见 `/tmp/songloft-sdk-e2e/review-validation.json`；之前 3610 项全量测试和 Web 截图是补修前快照，平台验收缺口不变。详见 [审核记录](../reference/plugin-client-sdk.md#同日审核补修)。
+
+## 2026-10-20 · 客户端 SDK 补齐
+
+Flutter 对齐的 `host/player/favorite/cookies` 已实现，WebView / frame 共用模型解析、分发与完整状态。3610 项测试、类型、双产物、Web、87 项发布检查、Android 编译和官方「正在播放」1.0.31 的 16 项真实浏览器断言通过；桌面/手机截图及源码指纹在 `/tmp/songloft-sdk-e2e/`。接口、旧实现反向验证、服务器公共资源/原生壳依赖与 Not run 见 [记录](../reference/plugin-client-sdk.md#2026-10-20-本批结果) / [English](../en/reference/plugin-client-sdk.md#results-for-2026-10-20)。iOS/HarmonyOS 编译及原生 Cookie store/设备验收仍开放。此批没有提交/推送/发布授权，保留未提交工作树，父 gitlink 不变。
+
 ## 2026-10-17 · #523 封面背景加深
 
 基线 `364607b0cb7a0ed07378e59b27ff6827549fde3e` + 未提交工作树：减少遮罩，封面保留比例提高至 18%–30%，以独立色差回归补足原有文字对比度检查；未改宿主或 CSS。旧实现浅/深模式均反向失败，真实浏览器切歌、回退、辅助功能恢复另行检查。完整最终验证及 Not run 见 [记录](issue-523.md#2026-10-17--加深封面背景) / [English](../en/project/issue-523.md#2026-10-17--stronger-cover-backgrounds) 与 `/tmp/songloft-523-followup-20261017/validation.json`。Flutter 同步修复取色及加深背景。上述未提交状态是验证快照；用户已获知 Flutter 停止播放测试失败与原生切歌验收缺口，明确授权本批提交、推送并回复 songloft-org/songloft#523。最终提交、CI、dev 包和评论按同一 SHA 核对；不新打正式版 tag、不关闭 Issue。

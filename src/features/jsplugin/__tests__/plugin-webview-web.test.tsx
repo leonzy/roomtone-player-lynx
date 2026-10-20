@@ -48,6 +48,7 @@ const h = vi.hoisted(() => ({
     currentSong: null,
     isPlaying: false,
     currentTime: 0,
+    duration: 0,
     volume: 80,
     playMode: 'order',
     sourcePlaylistId: null,
@@ -321,7 +322,64 @@ test('replies to a plugin host call with the same correlation id', async () => {
   expect(h.postMessage.mock.calls.length, 'exactly one reply').toBe(before + 1)
   const reply = JSON.parse(h.postMessage.mock.calls.at(-1)![0] as string)
   expect(reply).toMatchObject({ type: 'songloft-host-reply', id: 'c1', ok: true })
-  expect(reply.data).toMatchObject({ platform: 'lynx' })
+  expect(reply.data).toMatchObject({ platform: 'web', version: expect.any(String) })
+})
+
+test('native WebView sends correlated success/error replies and excludes the marker from external URLs', async () => {
+  h.isWeb = false
+  const host = nativeHost()
+  const { q, unmount } = await renderPage()
+  const frame = q.getByTestId('plugin-webview-frame')
+  expect(frame.getAttribute('src')).toContain('songloft_host=lynx')
+  fireEvent.tap(q.getByTestId('plugin-webview-open'))
+  expect(h.openURL.mock.calls.at(-1)![0]).not.toContain('songloft_host')
+  const send = (payload: unknown) => {
+    const event = frame.ownerDocument.createEvent('Event')
+    event.initEvent('bindEvent:message', false, false)
+    Object.assign(event, { eventType: 'bindEvent', eventName: 'message', detail: { msg: JSON.stringify(payload) } })
+    frame.dispatchEvent(event)
+  }
+  host.invoke.mockClear()
+  await act(async () => {
+    send({ type: 'songloft-host-call', id: 'native-1', ns: 'host', method: 'getInfo', params: null })
+    await Promise.resolve()
+  })
+  const replies: Array<{ data: unknown }> = []
+  const browser = { window: { dispatchEvent: (event: { data: unknown }) => replies.push(event) },
+    MessageEvent: class { constructor(public type: string, public options: { data: unknown }) {} get data() { return this.options.data } } }
+  runInNewContext(host.invoke.mock.calls.at(-1)![0].params.func, browser)
+  expect(replies.at(-1)!.data).toMatchObject({ type: 'songloft-host-reply', id: 'native-1', ok: true })
+  await act(async () => {
+    send({ type: 'songloft-host-call', id: 'native-2', ns: 'missing', method: 'get' })
+    await Promise.resolve()
+  })
+  runInNewContext(host.invoke.mock.calls.at(-1)![0].params.func, browser)
+  expect(replies.at(-1)!.data).toMatchObject({ id: 'native-2', ok: false, error: 'unknown namespace: missing' })
+  await act(async () => {
+    send({ type: 'songloft-host-call', id: 'native-before-load', ns: 'host', method: 'getInfo' })
+    const event = frame.ownerDocument.createEvent('Event')
+    event.initEvent('bindEvent:load', false, false)
+    Object.assign(event, { eventType: 'bindEvent', eventName: 'load', detail: {} })
+    frame.dispatchEvent(event)
+    await Promise.resolve()
+  })
+  runInNewContext(host.invoke.mock.calls.at(-1)![0].params.func, browser)
+  expect(replies.at(-1)!.data).toMatchObject({ id: 'native-before-load', ok: true })
+  host.invoke.mockImplementationOnce(() => { throw new Error('native view destroyed') })
+  await act(async () => {
+    send({ type: 'songloft-host-call', id: 'native-destroyed', ns: 'host', method: 'getInfo' })
+    await Promise.resolve()
+  })
+  expect(host.invoke).toHaveBeenLastCalledWith(expect.objectContaining({
+    params: { func: expect.stringContaining('native-destroyed') },
+  }))
+  host.invoke.mockClear()
+  await act(async () => {
+    send({ type: 'songloft-host-call', id: 'native-late', ns: 'host', method: 'getInfo' })
+    unmount()
+    await Promise.resolve()
+  })
+  expect(host.invoke).not.toHaveBeenCalled()
 })
 
 test('a message that is not a host call is ignored', async () => {

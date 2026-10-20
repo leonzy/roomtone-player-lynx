@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import { getQueryClient } from '../../../lib/query/index.js'
-import { getFavoriteState, toggleFavoriteNonReact } from '../data/favorites.js'
+import { getFavoriteState, toggleFavoriteNonReact, refreshFavoritesFromPlugin } from '../data/favorites.js'
 
 vi.mock('../../playlist/api/index.js', () => ({
   getPlaylistApi: () => mockApi,
@@ -16,6 +16,45 @@ const mockApi = {
 afterEach(() => {
   vi.clearAllMocks()
   getQueryClient().clear()
+})
+
+test('plugin increment updates preserve other favorites, including false, without duplicate writes or GETs', async () => {
+  mockApi.getPlaylistSongs.mockResolvedValue(songsPage([1, 2]))
+  await getFavoriteState(1)
+  await refreshFavoritesFromPlugin(2, false)
+  await refreshFavoritesFromPlugin(3, true)
+  expect(await getFavoriteState(1)).toBe(true)
+  expect(await getFavoriteState(2)).toBe(false)
+  expect(await getFavoriteState(3)).toBe(true)
+  expect(mockApi.getPlaylistSongs).toHaveBeenCalledTimes(1)
+  expect(mockApi.addSongsToPlaylist).not.toHaveBeenCalled()
+  expect(mockApi.removeSongFromPlaylist).not.toHaveBeenCalled()
+})
+
+test('plugin full refresh and a cold incremental refresh load the complete favorite set', async () => {
+  mockApi.getPlaylistSongs.mockResolvedValue(songsPage([1, 2]))
+  await refreshFavoritesFromPlugin(2, true)
+  expect(await getFavoriteState(1)).toBe(true)
+  mockApi.getPlaylistSongs.mockResolvedValue(songsPage([3]))
+  await refreshFavoritesFromPlugin()
+  expect(await getFavoriteState(1)).toBe(false)
+  expect(await getFavoriteState(3)).toBe(true)
+  expect(mockApi.getPlaylistSongs).toHaveBeenCalledTimes(2)
+})
+
+test('a delayed pre-plugin GET cannot overwrite an incremental notification', async () => {
+  const client = getQueryClient()
+  client.setQueryData(['favorites', 'songIds'], new Set([1]))
+  let finish!: (value: ReturnType<typeof songsPage>) => void
+  mockApi.getPlaylistSongs.mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+  const pending = client.fetchQuery({ queryKey: ['favorites', 'songIds'], queryFn: async () => {
+    const page = await mockApi.getPlaylistSongs()
+    return new Set(page.songs.map((s: { id: number }) => s.id))
+  }, staleTime: 0 }).catch(() => {})
+  await refreshFavoritesFromPlugin(2, true)
+  finish(songsPage([1]))
+  await pending
+  expect(await getFavoriteState(2)).toBe(true)
 })
 
 /** One page of `getPlaylistSongs` covering every id in `ids` (no pagination). */

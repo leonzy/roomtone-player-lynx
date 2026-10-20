@@ -2,6 +2,8 @@
 
 本项目反复踩过的坑，按主题组织：每条 = 现象 → 根因 → 一句话规则 → 证据位置。
 
+2026-10-20 更新：下方旧版 `servalsvg:0.1.1` 的 x86_64 缺库已通过升级 0.2.4 修复；新 APK 在 x86_64 直接运行时图标恢复，不再需要为此切换 arm64。默认玻璃效果仍导致本机模拟器宿主退出，不能合并为同一问题。见 [SDK 验证](../reference/plugin-client-sdk.md)。
+
 ### 2026-10-08 · 未调暗菜单的文字与重复外观订阅
 
 - native regular 的 ultra-thin tint 并不能保证 Lynx 自定义文本在任意媒体背景上可读；正文不是 UIKit vibrancy。对比度必须合成 fill、完整 sheen/ramp、选中态 wash 和文字 alpha。P2 数值测试发现原 tint 在黑白极端背景失败；即使提高填充，完整渐变下的选中 accent 仍不足 3.0。未调暗的 popover/anchored song menu 改用独立 `--material-fill-menu`（亮 .99、暗 .92）并去除整面渐变，保留 native blur 与边缘高光。正文 4.5、secondary/accent/red 3.0 是仓库原有分层门槛，不是所有小字满足 WCAG AA；主题包自选颜色另需验证。见 `contrast.test.ts` 的原填充/原渐变失败对照。

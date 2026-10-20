@@ -127,7 +127,7 @@ HarmonyOS 的两个 EQ 方法仍无 DSP 实现：新增 `equalizer` 能力位为
 
 **闸门锁住的不变量**：5 个方法两侧齐备；`"secure"` 拼写在两个宿主里逐字一致（写错会让 token 落进非敏感区，而 `secure.get` 一直读空的那个）。
 
-### 2.3 `SongloftPlatform`（10 方法）
+### 2.3 `SongloftPlatform`（11 方法）
 
 | 方法 | Kotlin 签名 | iOS 选择器 | 形状 |
 |---|---|---|---|
@@ -135,6 +135,7 @@ HarmonyOS 的两个 EQ 方法仍无 DSP 实现：新增 `equalizer` 能力位为
 | `setKeepScreenOn` | `setKeepScreenOn(enabled: Boolean)` | `setKeepScreenOn(_:)` | 写；ArkTS 同名 boolean 参数，Web 经主线程桥接 |
 | `setClipboard` | `setClipboard(text: String)` | `setClipboard(_:)` | 写 |
 | `setClipboardWithResult` | `setClipboardWithResult(text: String, callback: Callback)` | `setClipboardWithResult(_:callback:)` | Callback `(error)`，仅 null 确认成功 |
+| `getCookies` | `getCookies(origin: String, callback: Callback)` | `getCookies(_:callback:)` | Callback `(error, cookiesJson)`；三端原生 WebView Cookie store，Web / 旧壳明确拒绝；见 [客户端 SDK](plugin-client-sdk.md) |
 | `pickAndUploadFile` | `pickAndUploadFile(uploadUrl: String, fieldName: String, mimeType: String, callback: Callback)` | `pickAndUploadFile(_:fieldName:mimeType:callback:)` | Callback `(error, responseBody)` |
 | `setInsecureTls` | `setInsecureTls(enabled: Boolean)` | `setInsecureTls(_:)` | 写 |
 | `logWrite` | `logWrite(line: String)` | `logWrite(_:)` | 写 |

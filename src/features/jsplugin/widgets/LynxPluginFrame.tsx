@@ -10,33 +10,14 @@ import { usePlayerStore } from '../../player/store/index.js'
 import {
   handlePluginHostCall,
   playerStateToJson,
-  type PluginHostContext,
+  pluginPlayerStateChanged,
 } from '../domain/plugin-host-dispatch.js'
-import { getJSPluginApi } from '../api/index.js'
+import { pluginHostContext as hostContext } from '../domain/plugin-host-context.js'
 import {
   getLynxFrameModule,
   setLynxFrameBridgeHandlers,
   type LynxFrameHostCallPayload,
 } from '../../../native/web-lynx-frame.js'
-import type { Song } from '../../../models/song.js'
-
-async function resolveSongs(ids: number[]): Promise<Song[]> {
-  const api = getJSPluginApi()
-  const results: Song[] = []
-  for (const id of ids) {
-    try {
-      const res = await (api as unknown as { client: { get: Function } }).client.get(`/api/v1/songs/${id}`)
-      if (res?.data) results.push(res.data as Song)
-    } catch { /* skip */ }
-  }
-  return results
-}
-
-const hostContext: PluginHostContext = {
-  platform: 'lynx',
-  version: '1.0.0',
-  resolveSongs,
-}
 
 function buildLynxBundleUrl(entryPath: string): string {
   const base = `${appConfig.baseUrl}${appConfig.basePath}`
@@ -115,7 +96,7 @@ export function LynxPluginFrame({ entryPath, isTabEntry }: Props) {
   const globalProps = {
     frameId,
     theme,
-    hostVersion: '1.0.0',
+    hostVersion: hostContext.version,
     embed: isTabEntry,
     playerState: playerStateToJson(),
     access_token: accessToken,
@@ -180,9 +161,7 @@ export function LynxPluginFrame({ entryPath, isTabEntry }: Props) {
   // globalProps — see above).
   useEffect(() => {
     return usePlayerStore.subscribe((state, prev) => {
-      const sig = `${state.currentIndex}|${state.isPlaying}|${state.currentSong?.id}|${state.playMode}|${state.playlist.length}`
-      const prevSig = `${prev.currentIndex}|${prev.isPlaying}|${prev.currentSong?.id}|${prev.playMode}|${prev.playlist.length}`
-      if (sig === prevSig) return
+      if (!pluginPlayerStateChanged(state, prev)) return
       const stateJson = JSON.stringify(playerStateToJson())
       if (isWeb) {
         const mod = getLynxFrameModule()

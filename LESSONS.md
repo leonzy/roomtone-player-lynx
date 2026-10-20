@@ -10,6 +10,21 @@
 
 ## 条目
 
+### SDK-001：SDK 对齐必须覆盖分发、模型转换和双向传输
+
+- 渲染对照：相同 APK 换 Mesa 后 19 项功能通过仍不代表图标持续正常；新镜像未安装客户端就段错误、另一路被 OOM 杀死，证明环境有独立失败，但不能据此直接归因所有缺字。异步播放用有界等待真实状态，保留原断言和首次失败证据；多项诊断干预不能包装成单变量根因证明。见 `/tmp/songloft-sdk-e2e/rendering-validation.json`。
+
+- 同日图标补修：实际 APK 的 `servalsvg:0.1.1` 缺 x86_64 库，不能只检查 Gradle 已声明依赖；升级 0.2.4 后核对四 ABI 库、实际加载日志和截图，原生图标恢复、19 项再通过。插件文字图标在刷新后正常、静置后再次缺失，不能只选择正常帧宣称通过；默认效果仍退出 139，不能因 SVG 修复就解除环境限制。见 `/tmp/songloft-sdk-e2e/svg/validation.json`。
+
+- 范围：Lynx 的 HTML / frame 客户端 SDK；无关联 Issue，基线 `e41987c5b6f3f4a0315e0e54914207c45868a458`。
+- 证据：2026-10-20，对照 Flutter 与 `@songloft/client-sdk`，旧分发器缺少队列编辑、按歌单播放、收藏和 Cookie；页面把 HTTP snake_case JSON 强转 Song，原生 WebView 丢弃分发结果，状态省略封面等字段。隔离旧分发器和播放器后，新增 7 项实际 store 回归全部按预期失败；公共 `common.js` 的三端旧传输反向回归见父仓库。
+- 规则与修复：两种渲染方式共用 typed API、分发器和完整序列化；队列插入/重排同时映射当前条目与导航历史，不能通过查找歌曲 ID 处理重复项。回执保留请求 ID，组件卸载/URL 切换后不回发；状态推送包含等长重排、音量和实际时长，过滤单纯进度 tick。
+- 同日审核：新回归证实 `bindload` 是加载完成，不能在此取消启动请求；原生回执执行失败须收敛 Promise 拒绝。HarmonyOS Cookie 字典用 Map 保留 `__proto__` 等数据键，真实方法的受控 store 回归在旧实现丢键。补修 575 项相关测试通过，设备/HAP 验收仍未执行；见 SDK 记录。
+- 后续补验：审核后 3611 项全量通过；Android 34 模拟器开启“减少透明度”后，官方插件 19 项原生断言通过，含真实 HttpOnly Cookie 和加载回执。默认效果曾使模拟器退出，部分控制符号仍未绘制，必须保留环境条件与视觉缺口，不能将功能通过泛化为原生全面验收。见 `/tmp/songloft-sdk-e2e/native-validation.json`。
+- Done right：未提交工作树下 TypeScript、3610 项完整 Vitest、Lynx/Web 双产物、Web 部署、87 项发布检查及 Android `assembleDebug` 通过；接口与本批浏览器验证边界见 [客户端 SDK](docs/reference/plugin-client-sdk.md)。`favorite.refresh` 先取消旧 GET，再更新缓存；缺少完整缓存时重载，不能把一首收藏通知当全量集合。
+- Not run：iOS/HarmonyOS 宿主编译及三端真实 Cookie store / 原生设备验收；Android 编译不代表设备行为。
+- Seen 1× (2026-10-20)。状态：经验；尚未提交、推送或发布。
+
 ### LYRIC-002：文字可读不能代替封面变化的视觉验收
 
 - 范围：Lynx 播放器遮罩与歌词前景，songloft-org/songloft#523 的 2026-10-17 反馈。

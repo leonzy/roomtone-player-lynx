@@ -1,5 +1,6 @@
 import UIKit
 import UniformTypeIdentifiers
+import WebKit
 
 /**
  * Lynx native module `NativeModules.SongloftPlatform` — platform utilities.
@@ -18,6 +19,7 @@ final class SongloftPlatformModule: NSObject, LynxModule {
     [
       "setKeepScreenOn": NSStringFromSelector(#selector(SongloftPlatformModule.setKeepScreenOn(_:))),
       "openURL": NSStringFromSelector(#selector(SongloftPlatformModule.openURL(_:))),
+      "getCookies": NSStringFromSelector(#selector(SongloftPlatformModule.getCookies(_:callback:))),
       "pickAndUploadFile": NSStringFromSelector(
         #selector(SongloftPlatformModule.pickAndUploadFile(_:fieldName:mimeType:callback:))
       ),
@@ -43,6 +45,34 @@ final class SongloftPlatformModule: NSObject, LynxModule {
         #selector(SongloftPlatformModule.shareLogArchive(_:authHeader:fileName:callback:))
       ),
     ]
+  }
+
+  @objc func getCookies(_ origin: String, callback: @escaping LynxCallbackBlock) {
+    guard let url = URL(string: origin), let host = url.host?.lowercased(),
+          url.scheme == "https" || url.scheme == "http" else {
+      callback(["invalid origin", NSNull()]); return
+    }
+    DispatchQueue.main.async {
+      WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+        var result: [String: String] = [:]
+        let path = url.path.isEmpty ? "/" : url.path
+        for cookie in cookies {
+          let domain = cookie.domain.lowercased()
+          let domainMatches = domain.hasPrefix(".")
+            ? (host == String(domain.dropFirst()) || host.hasSuffix(domain)) : host == domain
+          let cookiePath = cookie.path
+          let pathMatches = path == cookiePath || (path.hasPrefix(cookiePath)
+            && (cookiePath.hasSuffix("/") || path.dropFirst(cookiePath.count).hasPrefix("/")))
+          guard domainMatches, pathMatches, !cookie.isSecure || url.scheme == "https",
+                cookie.expiresDate == nil || cookie.expiresDate! > Date() else { continue }
+          result[cookie.name] = cookie.value
+        }
+        do {
+          let json = try JSONSerialization.data(withJSONObject: result)
+          callback([NSNull(), String(decoding: json, as: UTF8.self)])
+        } catch { callback(["getCookies failed", NSNull()]) }
+      }
+    }
   }
 
   // Archive entry names and staging layout, shared with the Android/HarmonyOS
