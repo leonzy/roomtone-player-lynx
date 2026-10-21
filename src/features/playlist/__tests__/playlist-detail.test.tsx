@@ -6,6 +6,7 @@ import { act, fireEvent, getQueriesForElement, render } from '@lynx-js/react/tes
 
 import type { Playlist } from '../../../models/playlist.js'
 import type { Song } from '../../../models/song.js'
+import { PlaylistApi } from '../api/index.js'
 
 const { detailHook, songsHook, deleteMutationHook, updateMutationHook, removeSongMutationHook, moveSongMutationHook, visibilityMutationHook, pinnedMutationHook, sortMutationHook } = vi.hoisted(() => ({
   detailHook: vi.fn(),
@@ -374,6 +375,22 @@ test('delete menu item opens a confirm dialog; confirming fires the mutation', a
   await act(async () => { await Promise.resolve() })
   expect(deleteMutationHook.mock.results[0]!.value.mutate).toHaveBeenCalledWith(7, expect.anything())
   expect(queries.queryByTestId('playlist-delete-dialog')).not.toBeInTheDocument()
+})
+
+test('permanent ordering waits for confirmation and submits a server action', async () => {
+  const sort = vi.spyOn(PlaylistApi.prototype, 'sortPlaylistSongs').mockResolvedValue(undefined)
+  songsHook.mockReturnValue(songsResult([{ songs: [makeSong(1), makeSong(2)], total: 2 }]))
+  const queries = await renderPage()
+  await openMoreMenu(queries)
+  fireEvent.tap(queries.getByTestId('popover-item-permanent_number_prefix'), {})
+  await act(async () => { await Promise.resolve() })
+  expect(sort).not.toHaveBeenCalled()
+  expect(queries.getByTestId('playlist-permanent-sort-dialog')).toBeInTheDocument()
+  fireEvent.tap(queries.getByTestId('playlist-permanent-sort-confirm'), {})
+  await act(async () => { await Promise.resolve() })
+  expect(sort).toHaveBeenCalledWith(7, 'number_prefix')
+  expect(queries.queryByTestId('playlist-permanent-sort-dialog')).not.toBeInTheDocument()
+  sort.mockRestore()
 })
 
 test('the row-tail remove button asks for confirmation before removing the song', async () => {

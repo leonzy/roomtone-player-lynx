@@ -18,11 +18,26 @@ import {
   bumpVersion,
   compareVersions,
   createBuildMetadata,
+  syncNativeVersions,
   validateBuildMetadata,
   validateVersion,
 } from '../release-lib.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
+
+test('native version sync updates app and widget configurations together', t => {
+  const repo = fixture(t)
+  mkdirSync(join(repo, 'harmony/AppScope'), { recursive: true })
+  mkdirSync(join(repo, 'ios/SongloftLynx.xcodeproj'), { recursive: true })
+  writeFileSync(join(repo, 'harmony/AppScope/app.json5'), '{"versionName":"0.1.5"}')
+  const project = join(repo, 'ios/SongloftLynx.xcodeproj/project.pbxproj')
+  writeFileSync(project, 'MARKETING_VERSION = 0.1.5;\n'.repeat(4))
+  syncNativeVersions(repo, '0.2.0-dev.1')
+  assert.equal(readFileSync(project, 'utf8'), 'MARKETING_VERSION = 0.2.0;\n'.repeat(4))
+  assert.equal(JSON.parse(readFileSync(join(repo, 'harmony/AppScope/app.json5'), 'utf8')).versionName, '0.2.0')
+  writeFileSync(project, 'MARKETING_VERSION = 0.1.5;\n'.repeat(3))
+  assert.throws(() => syncNativeVersions(repo, '0.2.0'), /Unexpected iOS version fields/)
+})
 const now = new Date('2026-10-06T01:02:03Z')
 const metadata = createBuildMetadata({
   packageVersion: '0.1.0',

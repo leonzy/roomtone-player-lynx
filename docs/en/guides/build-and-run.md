@@ -69,6 +69,10 @@ pnpm run ios:run
 
 The local ios:build command uses two legacy project/target builds sharing SYMROOT because the original development machine lacked the required Xcode platform component. Once platforms are installed, prefer the standard workspace/scheme/destination command used by CI. ios:run requires a booted simulator. Its localhost is the host machine, so no adb-reverse equivalent is required.
 
+Xcode 27.1 rejects the iOS 9/10/12 deployment targets declared by some Pods. The app already requires iOS 15; when running the two `xcodebuild` commands manually, pass `IPHONEOS_DEPLOYMENT_TARGET=15.0` to each so dependencies use the same floor. If `xcode-select -p` points to Command Line Tools, check whether `/Applications/Xcode.app` exists; set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` for the command without changing global settings.
+
+The same environment promotes Lynx 4.0.1's ignored `std::future` results and deprecated UIKit API warnings to errors. This batch additionally passes `'OTHER_CPLUSPLUSFLAGS=$(inherited) -Wno-error=unused-result'` to the Pods build, appends `-Wno-error=deprecated-declarations` to Lynx Objective-C/Objective-C++ files in the temporary generated Pods project, and adds `-Wno-error=deprecated-implementations` only to `LynxTextLayoutManager.m`. Both warnings remain visible; dependency sources, tracked projects and application checks are unchanged. Reproduction scripts/results are linked in [acceptance](../project/feature-port-20261021.md). Record this conditional build separately from default-command failures.
+
 After rebuilding, terminate the running simulator app before installing the new bundle. Installing alone does not replace an existing process; the E2E setup script may also reuse an installed app.
 
 ## HarmonyOS
@@ -98,6 +102,10 @@ hvigorw clean assembleHap --mode module -p product=default -p buildMode=release 
 This verification preserves the minimum compatibility declaration `5.0.1(13)`; the newer toolchain determines the package's compile/target SDK. It does not establish API 13 device behavior. The result is `entry-default-unsigned.hap`; signing and device acceptance remain required.
 
 The bundle is copied to entry/src/main/resources/rawfile. Module registration is per LynxView in pages/Index.ets; EntryAbility.ets configures the HTTP service. FloatingLyric and LiveActivity are unavailable and degrade to no-op. Use a HarmonyOS NEXT device/simulator and hdc for behavioral testing.
+
+## iOS widget signing
+
+iOS widget signing: the project includes the `SongloftWidgets` extension. Both app and extension require App Group `group.org.songloft.lynx` entitlements and matching provisioning profiles. The version script synchronizes both targets; project parsing does not replace an Xcode build/signing check. See the [port acceptance record](../project/feature-port-20261021.md).
 
 ## Web
 

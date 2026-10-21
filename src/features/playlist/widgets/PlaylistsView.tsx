@@ -16,7 +16,7 @@ import { playlistContext } from '../../player/domain/playback-context.js'
 import { getPlaylistApi } from '../api/index.js'
 import { PopoverMenu } from '../../../shared/ui/PopoverMenu.js'
 import type { PopoverMenuItem } from '../../../shared/ui/PopoverMenu.js'
-import { ConfirmDialog } from '../../../shared/ui/ConfirmDialog.js'
+import { DeleteConfirmDialog } from '../../../shared/ui/DeleteConfirmDialog.js'
 import { GlobalMenu } from '../../../shared/ui/GlobalMenu.js'
 import { MediaListItem } from '../../../shared/ui/MediaListItem.js'
 import { GridSpacers } from '../../../shared/ui/GridSpacers.js'
@@ -166,10 +166,12 @@ export function PlaylistsView(
   const batchDelete = () => {
     setConfirmDelete(true)
   }
-  const performBatchDelete = () => {
+  const performBatchDelete = (deleteSongs: boolean) => {
     setConfirmDelete(false)
     const ids = Array.from(selected).filter((id) => !playlists.find((p) => p.id === id)?.isBuiltIn)
-    void Promise.all(ids.map((id) => deleteMutation.mutateAsync(id))).then(exitSelectMode)
+    if (ids.length === 0) return
+    void deleteMutation.mutateAsync({ ids, deleteSongs })
+      .then(exitSelectMode).catch(error => toast.error(String(error instanceof Error ? error.message : error)))
   }
 
   const openRowMenu = (playlist: Playlist, anchor: AnchorMeasurement | null) => {
@@ -519,7 +521,8 @@ export function PlaylistsView(
         * page root, outside the scroll-view, so the dialog centres on the
         * viewport instead of being laid out inside the scrolling column.
         */}
-      <ConfirmDialog
+      <DeleteConfirmDialog
+        option='orphanSongs'
         show={confirmDelete}
         title={t('playlist.deleteTitle')}
         message={t('playlist.deletePlaylistsMessage')}
@@ -534,15 +537,18 @@ export function PlaylistsView(
         * Single-row delete confirm, armed by the row menu — the batch dialog
         * above is for select mode only.
         */}
-      <ConfirmDialog
+      <DeleteConfirmDialog
+        option='orphanSongs'
+        targetKey={pendingDelete?.id}
         show={pendingDelete != null}
         title={t('playlist.deleteTitle')}
         message={t('playlist.deleteMessage')}
         confirmLabel={t('playlist.deletePlaylist')}
-        onConfirm={() => {
+        onConfirm={(deleteSongs) => {
           const target = pendingDelete
           setPendingDelete(null)
-          if (target) void deleteMutation.mutateAsync(target.id)
+          if (target) void deleteMutation.mutateAsync(deleteSongs ? { id: target.id, deleteSongs } : target.id)
+            .catch(error => toast.error(String(error instanceof Error ? error.message : error)))
         }}
         onCancel={() => setPendingDelete(null)}
         testId='playlists-row-delete-dialog'

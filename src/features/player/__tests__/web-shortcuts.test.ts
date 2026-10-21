@@ -88,7 +88,7 @@ test('initialization hydrates disabled preference, deduplicates progress sync an
 test('duplicate startup leaves one listener and rapid writes preserve the final setting', async () => {
   stop = await initializeWebShortcuts()
   stop = await initializeWebShortcuts()
-  expect(listeners.size).toBe(1)
+  expect(listeners.size).toBe(2) // One action listener and one key-recording listener.
   useWebShortcuts.getState().setEnabled(false)
   useWebShortcuts.getState().setEnabled(true)
   stop = await initializeWebShortcuts()
@@ -107,5 +107,5 @@ test('a stale initial read cannot overwrite a user toggle or duplicate a newer i
   stop = await initializeWebShortcuts()
   finish('true');await first
   expect(useWebShortcuts.getState().enabled).toBe(false)
-  expect(listeners.size).toBe(1)
+  expect(listeners.size).toBe(2)
 })

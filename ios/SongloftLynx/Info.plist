@@ -4,6 +4,10 @@
 <dict>
 	<key>CFBundleDisplayName</key>
 	<string>Songloft</string>
+	<key>CFBundleURLTypes</key><array><dict>
+		<key>CFBundleURLName</key><string>org.songloft.lynx.player</string>
+		<key>CFBundleURLSchemes</key><array><string>songloft-lynx</string></array>
+	</dict></array>
 
 	<!-- Programmatic window: the scene delegate builds it, no Main.storyboard.
 	     UILaunchScreen (empty dict) is the modern replacement for a launch

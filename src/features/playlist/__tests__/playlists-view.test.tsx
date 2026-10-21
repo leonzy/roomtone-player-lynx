@@ -394,7 +394,7 @@ test('multi-select delete goes through a full-screen dialog before deleting', as
   })
   // Only the selected, non-built-in playlist is deleted.
   expect(mutateAsync).toHaveBeenCalledTimes(1)
-  expect(mutateAsync).toHaveBeenCalledWith(1)
+  expect(mutateAsync).toHaveBeenCalledWith({ ids: [1], deleteSongs: false })
   expect(queryByTestId('playlists-delete-dialog')).not.toBeInTheDocument()
 })
 

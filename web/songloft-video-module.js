@@ -34,5 +34,7 @@ export default function (_nativeModules, call) {
     setSurfaceLayout: forward(call, 'setSurfaceLayout'),
     setOrientation: forward(call, 'setOrientation'),
     getVideoSize: forward(call, 'getVideoSize'),
+    setFullscreen: forward(call, 'setFullscreen'),
+    fullscreenState: forward(call, 'fullscreenState'),
   }
 }

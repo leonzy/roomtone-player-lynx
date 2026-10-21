@@ -160,13 +160,13 @@ export class SettingsApi {
 
   // ── User preferences (cloud-synced) ────────────────────────────────────
 
-  async getUserPreferences(): Promise<Record<string, unknown>> {
-    const res = await this.client.get<unknown>(`${apiPrefix}/settings/user-preferences`)
+  async getUserPreferences(options: { serverBaseUrl?: string; assertCurrent?: RequestOptions['assertCurrent'] } = {}): Promise<Record<string, unknown>> {
+    const res = await this.client.get<unknown>(`${options.serverBaseUrl ?? ''}${apiPrefix}/settings/user-preferences`, { assertCurrent: options.assertCurrent })
     return (res.data ?? {}) as Record<string, unknown>
   }
 
-  async updateUserPreferences(prefs: Record<string, unknown>): Promise<void> {
-    await this.client.put(`${apiPrefix}/settings/user-preferences`, prefs)
+  async updateUserPreferences(prefs: object, options: { serverBaseUrl?: string; assertCurrent?: RequestOptions['assertCurrent'] } = {}): Promise<void> {
+    await this.client.put(`${options.serverBaseUrl ?? ''}${apiPrefix}/settings/user-preferences`, prefs, { assertCurrent: options.assertCurrent })
   }
 
   // ── Equalizer (cloud-synced) ───────────────────────────────────────────

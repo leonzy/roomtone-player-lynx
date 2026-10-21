@@ -28,19 +28,41 @@
   listen(document, 'compositionstart', function () { composing = true })
   listen(document, 'compositionend', function () { composing = false })
   listen(document, 'keydown', function (event) {
+    if (state.recording && app && app.isConnected && ownsFocus && document.hasFocus()
+      && !composing && !event.isComposing && event.keyCode !== 229
+      && !isInteractive(document.activeElement) && !pathOf(event).some(isInteractive)) {
+      if (/^(Control|Shift|Alt|Meta)/.test(event.code) || event.repeat) return
+      if (event.key === 'Tab') return
+      if ((event.ctrlKey || event.metaKey) && /^(KeyL|KeyR|KeyT|KeyW|KeyN|KeyQ)$/.test(event.code)) return
+      try {
+        app.sendGlobalEvent('SongloftKeyboard.binding', [{ action: state.recording,
+          binding: event.key === 'Escape' ? null : { code: event.code, ctrl: event.ctrlKey,
+            meta: event.metaKey, shift: event.shiftKey, alt: event.altKey } }])
+        event.preventDefault()
+      } catch (_) {}
+      return
+    }
     if (!app || !app.isConnected || !ownsFocus || !document.hasFocus()
       || !state.enabled || state.blocked || !state.canPlay || event.defaultPrevented
-      || composing || event.isComposing || event.keyCode === 229 || event.altKey || event.shiftKey
+      || composing || event.isComposing || event.keyCode === 229
       || document.querySelector('[data-songloft-transfer]')
       || isInteractive(document.activeElement) || pathOf(event).some(isInteractive)) return
-    var command = event.ctrlKey || event.metaKey
     var action = null
-    if (!command && (event.code === 'Space' || event.key === ' ')) action = 'toggle'
-    if (command && event.key === 'ArrowLeft' && state.canPrev) action = 'previous'
-    if (command && event.key === 'ArrowRight' && state.canNext) action = 'next'
-    if (command && event.key === 'ArrowUp' && state.volume < 100) action = 'volumeUp'
-    if (command && event.key === 'ArrowDown' && state.volume > 0) action = 'volumeDown'
-    if (!action || (event.repeat && action !== 'volumeUp' && action !== 'volumeDown')
+    var bindings = state.bindings || {
+      toggle: { code: 'Space' }, previous: { code: 'ArrowLeft', primary: true }, next: { code: 'ArrowRight', primary: true },
+      volumeUp: { code: 'ArrowUp', primary: true }, volumeDown: { code: 'ArrowDown', primary: true },
+    }
+    Object.keys(bindings).some(function (candidate) {
+      var b = bindings[candidate]
+      var code = event.code || (event.key === ' ' ? 'Space' : event.key)
+      if (b.code !== code || Boolean(b.alt) !== event.altKey || Boolean(b.shift) !== event.shiftKey) return false
+      if (b.primary ? !(event.ctrlKey || event.metaKey) : Boolean(b.ctrl) !== event.ctrlKey || Boolean(b.meta) !== event.metaKey) return false
+      if ((candidate === 'next' && !state.canNext) || (candidate === 'previous' && !state.canPrev)
+        || (candidate === 'volumeUp' && state.volume >= 100) || (candidate === 'volumeDown' && state.volume <= 0)) return false
+      action = candidate
+      return true
+    })
+    if (!action || (event.repeat && !/^(volumeUp|volumeDown|seekForward|seekBackward)$/.test(action))
       || typeof app.sendGlobalEvent !== 'function') return
     try {
       app.sendGlobalEvent('SongloftKeyboard.action', [{ action: action }])
@@ -50,6 +72,6 @@
   window.__SONGLOFT_KEYBOARD__ = {
     configure: function (next) { state = next || { enabled: false } },
     getState: function () { return state },
-    destroy: function () { removers.splice(0).forEach(function (remove) { remove() }) },
+    destroy: function () { removers.splice(0).forEach(function (remove) { remove() }); state = { enabled: false } },
   }
 })()

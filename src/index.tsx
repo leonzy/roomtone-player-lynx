@@ -27,6 +27,8 @@ import { useServerStore } from './features/settings/store/server-store.js'
 import { initializeCacheContext, currentCacheScope } from './features/player/data/cache-context.js'
 import { offlineIdentity, readOfflineAddress } from './features/player/data/offline-identity.js'
 import { initializeWebShortcuts } from './features/player/data/web-shortcuts.js'
+import { initializePreferenceSync } from './features/settings/data/preference-sync.js'
+import { initializeHomeWidget } from './features/player/data/home-widget.js'
 import { appConfig } from './core/config/app-config.js'
 import { getSongloftStorage } from './core/storage/index.js'
 import { initSafeArea } from './native/safe-area.js'
@@ -143,6 +145,8 @@ void (async () => {
     // overlay: auth must resolve even if the host's lyric module misbehaves.
     void syncFloatingLyricOverlay().catch(() => { })
     await auth.checkAuth()
+    initializePreferenceSync()
+    initializeHomeWidget(() => { void router.navigate({ to: '/player' }) })
     await initializeWebShortcuts()
     // Only once auth resolved: the pack lives behind the API's auth, and a
     // tokenless GET would 401 (the Flutter provider guards the same way).

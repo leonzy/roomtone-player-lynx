@@ -22,6 +22,7 @@
  * React state, no `useSyncExternalStore`, so no test needs to know it exists.
  */
 import { getSongloftStorage } from '../../core/storage/index.js'
+import { preferenceChanged } from '../../core/storage/user-preference-events.js'
 import type { SongloftStorage } from '../../core/storage/types.js'
 import {
   getSystemAppearance,
@@ -151,6 +152,7 @@ export async function changeAppTheme(
   // Also covers picking "system" at runtime in a process that never ran startup.
   followSystemAppearance()
   setLiveTheme(app)
+  preferenceChanged({ theme_mode: app })
   try {
     if (app === 'system') await storage.prefs.remove(PREF_THEME)
     else await storage.prefs.set(PREF_THEME, app)
@@ -158,4 +160,10 @@ export async function changeAppTheme(
     // best-effort — persistence may be unavailable (native stub / memory).
   }
   return app
+}
+
+/** Server sync updates the live theme without scheduling another server write. */
+export function applySyncedTheme(app: AppTheme): void {
+  followSystemAppearance()
+  setLiveTheme(app)
 }

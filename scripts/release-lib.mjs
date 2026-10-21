@@ -105,7 +105,7 @@ export function syncNativeVersions(root, version) {
   const ios = readFileSync(iosPath, 'utf8')
   if ((harmony.match(/"versionName"\s*:/g) ?? []).length !== 1)
     throw new Error('Unexpected HarmonyOS version fields')
-  if ((ios.match(/MARKETING_VERSION = [^;]+;/g) ?? []).length !== 2)
+  if (![2, 4].includes((ios.match(/MARKETING_VERSION = [^;]+;/g) ?? []).length))
     throw new Error('Unexpected iOS version fields')
   writeFileSync(
     harmonyPath,

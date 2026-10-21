@@ -1,5 +1,19 @@
 # 进展与交接（PROGRESS）
 
+功能移植交付授权（2026-10-21）：用户明确要求「提交推送」，授权本批功能移植和父指针；并发首页/Flutter 任务保持原样。下方未提交表述是验收快照，最终提交与 CI 按交付记录核对。
+
+English: The user explicitly authorized committing and pushing the feature port and parent gitlink. Concurrent home/Flutter work is preserved. Uncommitted statements below are historical snapshots; final commit/CI records govern delivery.
+
+## 2026-10-21 · 功能移植最终设备补验
+
+修复首次桌面播放通道和 MV 切音频后的页面退出。独立副本的 421 项相关测试、89 项发布检查、4 项原生单测、类型、双产物/Web 与 Android 构建通过；最终包 `4f0f5870…c76ba1` 的 9 项小组件实测及 Web/Android MV 自然结束返回均通过。11 张最终截图：`/home/hanxi/work/songloft-review/lynx-current-device-20261021/review.html`。共享首页任务保留，混合构建包被拒绝；中止的全量及启动失败均留档。iOS/HarmonyOS 设备、签名、真机与默认玻璃仍未验，未提交/推送/发布。详见 [最终记录](feature-port-20261021.md)。
+
+English: Fixed first desktop Play delivery and navigation after MV→audio advance. The isolated snapshot passes 421 affected tests, 89 release checks, four native tests, types, production outputs/Web and Android build. Final APK `4f0f5870…c76ba1` passes nine widget checks; Web/Android return correctly at natural MV completion. Eleven screenshots are linked above. Concurrent home work is preserved; mixed builds are rejected and interrupted/full-run/launch failures retained. iOS/HarmonyOS devices, signing, hardware and default glass remain untested. No commit/push/release; see the paired final records.
+
+## 2026-10-21 · 指定 Flutter 功能移植
+
+仅处理五项优先补齐、MV 字幕、Web 真正全屏、平滑逐字歌词和 Android/iOS 桌面小组件。3653 项测试、类型、Lynx/Web 生产构建、89 项发布检查及 Android 编译通过；实际浏览器确认全屏中的视频继续播放、字幕不随控制栏隐藏、偏好拉取/持久化、永久排序与生成文件删除。Android RemoteViews 桌面实测暂停、切歌、收藏，14 张审核截图见 `/home/hanxi/work/songloft-review/lynx-features-20261021/review.html`。同日追加修正 iOS 冷启动回调和首次无封面快照；319 项相关测试及类型/生产构建/89 项发布检查再通过。当前 Android Debug APK、HarmonyOS clean release HAP、带 Xcode 27 兼容条件的 iOS app/WidgetKit 编译与包检查通过，新证据另存 `lynx-native-followup-20261021`，与原桌面截图对应的旧 APK 分开记录。iOS/HarmonyOS 签名、设备/截图、真机和默认玻璃效果仍开放；未提交/推送/发布。范围、可选宿主契约、环境失败与证据见 [记录](feature-port-20261021.md) / [English](../en/project/feature-port-20261021.md)。
+
 ## 2026-10-20 · #531 直播无限重连
 
 2026-10-21 发布补审：为系统媒体意图新增 `audio.remoteIntent.v1` 升级能力门控，防止旧壳自动装入依赖新事件的 JS；完整安装后才可继续热更新。旧发布契约新回归失败，补修后 88 项发布检查通过；首批全部必要 CI 已通过，能力补修的后续对象与资源受限构建结果见同一记录。

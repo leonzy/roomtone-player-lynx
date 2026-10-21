@@ -4,37 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
-import { findCurrentWord, type LyricLine } from '../domain/lyric-parser.js'
+import { KaraokeLine } from './KaraokeLine.js'
 import { useLyricStore } from '../store/index.js'
 import { usePlayerStore } from '../store/index.js'
 import { cachedSongIdentity } from '../domain/offline-cache.js'
 import './LyricsView.css'
-
-function WordHighlightLine({
-  line,
-  positionMs,
-}: {
-  line: LyricLine
-  positionMs: number
-}) {
-  const words = line.words!
-  const currentWordIdx = findCurrentWord(words, positionMs)
-  return (
-    <view className='player-lyrics__words-row'>
-      {words.map((word, wi) => {
-        let cls = 'player-lyrics__word'
-        if (wi === currentWordIdx) {
-          cls = 'player-lyrics__word player-lyrics__word--active'
-        } else if (wi < currentWordIdx) {
-          cls = 'player-lyrics__word player-lyrics__word--past'
-        }
-        return (
-          <text key={`w-${wi}`} className={cls}>{word.text}</text>
-        )
-      })}
-    </view>
-  )
-}
 
 /**
  * Placeholder for the loading / failed / empty states. Mirrors the Flutter
@@ -79,7 +53,6 @@ export function LyricsView() {
   const romanizationMap = useLyricStore((s) => s.romanizationMap)
   const refetch = useLyricStore((s) => s.refetch)
   const currentSong = usePlayerStore((s) => s.currentSong)
-  const currentTime = usePlayerStore((s) => s.currentTime)
 
   // Local songs always allow a re-fetch (the endpoint can be assembled from the
   // id); remote/radio songs need an explicit lyric URL. Same gate as the
@@ -284,7 +257,7 @@ export function LyricsView() {
                 ? <text className='player-lyrics__romanization'>{romanization}</text>
                 : null}
               {hasWords
-                ? <WordHighlightLine line={line} positionMs={currentTime} />
+                ? <KaraokeLine line={line} />
                 : (
                   <text
                     className={active

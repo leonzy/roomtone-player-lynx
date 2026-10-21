@@ -33,9 +33,14 @@ export function useUpdatePlaylistMutation(id: number) {
 export function useDeletePlaylistMutation() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => getPlaylistApi().deletePlaylist(id),
+    mutationFn: (target: number | { id: number; deleteSongs: boolean } | { ids: number[]; deleteSongs: boolean }) => typeof target === 'number'
+      ? getPlaylistApi().deletePlaylist(target)
+      : 'ids' in target ? getPlaylistApi().batchDeletePlaylists(target)
+      : getPlaylistApi().deletePlaylist(target.id, { deleteSongs: target.deleteSongs }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['playlist', 'list'] })
+      void queryClient.invalidateQueries({ queryKey: ['library'] })
+      void queryClient.invalidateQueries({ queryKey: ['playlist', 'songs'] })
     },
   })
 }

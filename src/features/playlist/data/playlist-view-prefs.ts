@@ -1,4 +1,5 @@
 import { getSongloftStorage } from '../../../core/storage/index.js'
+import { preferenceChanged } from '../../../core/storage/user-preference-events.js'
 import type { SongloftStorage } from '../../../core/storage/types.js'
 
 export type PlaylistViewMode = 'grid' | 'list'
@@ -21,6 +22,7 @@ export async function writePlaylistViewMode(
   mode: PlaylistViewMode,
   storage: SongloftStorage = getSongloftStorage(),
 ): Promise<void> {
+  preferenceChanged({ playlist_view_mode: mode })
   try {
     await storage.prefs.set(PREF_KEY, mode)
   } catch {

@@ -12,7 +12,7 @@ import { canWatchVideo, openCurrentSongVideo, usesJsVideoSurface } from '../../f
 import { usePlayerStore } from '../../features/player/store/index.js'
 import { getPlatformTarget } from '../../native/platform-target.js'
 import type { Song } from '../../models/song.js'
-import { ConfirmDialog } from './ConfirmDialog.js'
+import { DeleteConfirmDialog } from './DeleteConfirmDialog.js'
 import { GlobalMenu } from './GlobalMenu.js'
 import { buildSongMenuItems } from './song-menu-items.js'
 import { toast } from './toast-store.js'
@@ -134,13 +134,14 @@ export function SongRowOverlays() {
     }
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = (deleteFiles: boolean) => {
     const song = deleteSong
     cancelDelete()
     if (!song) return
-    void getSongsApi().deleteSong(song.id)
+    void (deleteFiles ? getSongsApi().deleteSong(song.id, { deleteFiles }) : getSongsApi().deleteSong(song.id))
       .then(() => {
-        void queryClient.invalidateQueries({ queryKey: ['songs'] })
+        void queryClient.invalidateQueries({ queryKey: ['library'] })
+        void queryClient.invalidateQueries({ queryKey: ['playlist'] })
       })
       /*
        * Without this the failure path is completely mute: the dialog closes on
@@ -170,7 +171,9 @@ export function SongRowOverlays() {
         songIds={manageTagsSongIds}
         onClose={closeManageTags}
       />
-      <ConfirmDialog
+      <DeleteConfirmDialog
+        option={deleteSong?.type === 'local' ? 'files' : undefined}
+        targetKey={deleteSong?.id}
         show={deleteSong != null}
         title={t('songMenu.deleteSong')}
         message={t('songMenu.deleteMessage')}

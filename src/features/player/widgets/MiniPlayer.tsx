@@ -1,3 +1,4 @@
+import { useEffect, useSyncExternalStore } from '@lynx-js/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
@@ -7,6 +8,10 @@ import { useCapsuleMaterialStyle } from '../../../shared/ui/capsule-material.js'
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { useFavoriteToggle } from '../../library/data/favorites.js'
 import { cachedSongIdentity } from '../domain/offline-cache.js'
+import { loadMiniPlayerControls, miniPlayerControls } from '../data/mini-player-controls.js'
+import { writeDefaultPlayMode } from '../../settings/data/settings-prefs.js'
+import type { IconName } from '../../../shared/ui/icons.js'
+import type { PlayMode } from '../domain/play-mode.js'
 import { hasNext, hasPrev, progressOf, usePlayerStore } from '../store/index.js'
 import '../../../shared/ui/overlay-motion.css'
 import './MiniPlayer.css'
@@ -44,6 +49,9 @@ export function MiniPlayer() {
   const progress = usePlayerStore(progressOf)
   const canNext = usePlayerStore(hasNext)
   const canPrev = usePlayerStore(hasPrev)
+  const playMode = usePlayerStore((s) => s.playMode)
+  const controls = useSyncExternalStore(miniPlayerControls.subscribe, () => miniPlayerControls.getState().mode)
+  useEffect(() => { void loadMiniPlayerControls() }, [])
   const { isFavorite, toggle: toggleFavorite, isPending: isFavPending } =
     useFavoriteToggle(song?.id ?? 0, song != null && !cachedSongIdentity(song))
 
@@ -72,7 +80,7 @@ export function MiniPlayer() {
           {subtitle ? <text className='mini-player__subtitle'>{subtitle}</text> : null}
         </view>
         <view className='mini-player__transport'>
-          <view
+          {controls !== 'playOnly' && <view
             className={canPrev
               ? 'mini-player__btn'
               : 'mini-player__btn mini-player__btn--disabled'}
@@ -82,7 +90,7 @@ export function MiniPlayer() {
             accessibility-traits={accessibilityTrait(canPrev)}
           >
             <Icon name='skip-prev' size={22} color={ICON_COLORS.content} />
-          </view>
+          </view>}
           <view
             className='mini-player__play-hit'
             catchtap={() => usePlayerStore.getState().togglePlay()}
@@ -93,7 +101,7 @@ export function MiniPlayer() {
               <Icon name={isPlaying ? 'pause' : 'play'} size={18} color={ICON_COLORS.primaryContent} />
             </view>
           </view>
-          <view
+          {controls !== 'playOnly' && <view
             className={canNext
               ? 'mini-player__btn'
               : 'mini-player__btn mini-player__btn--disabled'}
@@ -103,7 +111,20 @@ export function MiniPlayer() {
             accessibility-traits={accessibilityTrait(canNext)}
           >
             <Icon name='skip-next' size={22} color={ICON_COLORS.content} />
-          </view>
+          </view>}
+          {controls === 'prevNextMode' && <view
+            className='mini-player__btn'
+            catchtap={() => {
+              const player = usePlayerStore.getState()
+              player.cyclePlayMode()
+              void writeDefaultPlayMode(usePlayerStore.getState().playMode)
+            }}
+            accessibility-element={true}
+            accessibility-label={t(`player.${{ order: 'modeOrder', loop: 'modeLoop', single: 'modeSingle', random: 'modeRandom', singlePlay: 'modeSinglePlay' }[playMode]}`)}
+            data-testid='mini-play-mode'
+          >
+            <Icon name={({ order: 'order', loop: 'repeat', single: 'repeat-one', random: 'shuffle', singlePlay: 'play' } satisfies Record<PlayMode, IconName>)[playMode]} size={20} color={ICON_COLORS.content} />
+          </view>}
         </view>
         {(!cachedSongIdentity(song)) && <view
           className={isFavPending

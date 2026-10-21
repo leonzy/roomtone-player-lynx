@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Icon, ICON_COLORS, activeAccentIconColor } from '../../../shared/ui/Icon.js'
 import { readPlaylistViewMode, writePlaylistViewMode, type PlaylistViewMode } from '../../playlist/data/playlist-view-prefs.js'
+import { subscribePreferencesApplied } from '../../../core/storage/user-preference-events.js'
 import { setLastLibrarySearch } from '../data/last-library-search.js'
 import {
   libraryBrowseConfigOrFallback,
@@ -82,7 +83,11 @@ export function LibraryPage() {
 
   const [viewMode, setViewMode] = useState<PlaylistViewMode>('grid')
   useEffect(() => {
-    void readPlaylistViewMode().then(setViewMode)
+    let alive = true
+    const reload = () => { void readPlaylistViewMode().then(mode => { if (alive) setViewMode(mode) }) }
+    reload()
+    const stop = subscribePreferencesApplied(reload)
+    return () => { alive = false; stop() }
   }, [])
   const onToggleViewMode = () => {
     const next = viewMode === 'grid' ? 'list' : 'grid'

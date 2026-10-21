@@ -29,8 +29,13 @@ export class AppLifecycle {
   }
 
   static enterBackground(): void {
+    if (!AppLifecycle.foreground) return
     AppLifecycle.foreground = false
     AppLifecycle.pending = false
+    if (AppLifecycle.ready) {
+      const payload: ResumePayload = { state: 'paused' }
+      AppLifecycle.context?.sendGlobalEvent('SongloftLifecycle.paused', [payload])
+    }
   }
 
   static detach(context: LynxContext): void {

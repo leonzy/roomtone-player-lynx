@@ -19,7 +19,12 @@ test('foreground before first screen is delivered once after readiness, with an 
   assert.equal(h.events.length, 0)
   client.onFirstScreen(); client.onFirstScreen(); h.AppLifecycle.enterForeground()
   assert.deepEqual(h.events, [['SongloftLifecycle.resumed', [{ state: 'resumed' }]]])
-  h.AppLifecycle.enterBackground(); h.AppLifecycle.enterForeground(); assert.equal(h.events.length, 2)
+  h.AppLifecycle.enterBackground(); h.AppLifecycle.enterBackground(); h.AppLifecycle.enterForeground()
+  assert.deepEqual(h.events, [
+    ['SongloftLifecycle.resumed', [{ state: 'resumed' }]],
+    ['SongloftLifecycle.paused', [{ state: 'paused' }]],
+    ['SongloftLifecycle.resumed', [{ state: 'resumed' }]],
+  ])
 })
 
 test('a background transition before readiness cancels the pending resume', () => {

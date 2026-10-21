@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Now playing, playback controls and favorites</string>
+    <string name="widget_empty">Choose a song to play</string>
+    <string name="widget_open">Open Songloft player</string>
+    <string name="widget_play">Play</string>
+    <string name="widget_pause">Pause</string>
+    <string name="widget_previous">Previous track</string>
+    <string name="widget_next">Next track</string>
+    <string name="widget_favorite">Toggle favorite</string>
+    <style name="WidgetTransportButton">
+        <item name="android:layout_width">48dp</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:padding">12dp</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:tint">#FFFFFF</item>
+    </style>
+</resources>

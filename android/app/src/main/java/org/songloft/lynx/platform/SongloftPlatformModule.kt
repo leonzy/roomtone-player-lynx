@@ -34,6 +34,16 @@ import java.util.zip.ZipOutputStream
 class SongloftPlatformModule(context: Context) : LynxModule(context) {
 
     @LynxMethod
+    fun updateHomeWidget(json: String) {
+        org.songloft.lynx.widget.NowPlayingWidget.update(mContext, json)
+    }
+
+    @LynxMethod
+    fun consumeWidgetAction(callback: Callback) {
+        callback.invoke(org.songloft.lynx.widget.NowPlayingWidget.consumeAction())
+    }
+
+    @LynxMethod
     fun getCookies(origin: String, callback: Callback) {
         mainHandler.post {
             try {

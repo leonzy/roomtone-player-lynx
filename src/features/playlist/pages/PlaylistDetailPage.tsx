@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from '@lynx-js/react'
 import { useNavigate, useParams } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Input } from '@lynx-js/lynx-ui-input'
 import { SortableRoot, SortableItem, SortableItemArea } from '@lynx-js/lynx-ui-sortable'
@@ -13,6 +14,7 @@ import { performRouteBack } from '../../../core/navigation/route-back-action.js'
 import { useBackHandler } from '../../../shared/nav/use-back-handler.js'
 import { useScrollNotifier } from '../../../shared/nav/scroll-visibility.js'
 import { ConfirmDialog } from '../../../shared/ui/ConfirmDialog.js'
+import { DeleteConfirmDialog } from '../../../shared/ui/DeleteConfirmDialog.js'
 import { PopoverMenu } from '../../../shared/ui/PopoverMenu.js'
 import { toast } from '../../../shared/ui/toast-store.js'
 import { useDebounce } from '../../library/data/use-debounce.js'
@@ -46,6 +48,7 @@ import './PlaylistDetailPage.css'
 
 export function PlaylistDetailPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { onScroll: onScrollEdge } = useScrollNotifier()
   const { t } = useTranslation()
   const cacheBatch = useCacheBatchSubmission()
@@ -135,6 +138,8 @@ export function PlaylistDetailPage() {
     return () => { delete obj.setShowDesc }
   }, [])
   const [menuOpen, setMenuOpen] = useState(false)
+  const [permanentSortBusy, setPermanentSortBusy] = useState(false)
+  const [pendingSort, setPendingSort] = useState<'name_asc' | 'name_desc' | 'number_prefix' | 'shuffle' | null>(null)
   const [sortMode, setSortMode] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -227,12 +232,29 @@ export function PlaylistDetailPage() {
     sortMutation.mutate({ sortBy: opt.key, sortOrder: order })
   }
 
-  const onDelete = () => {
-    deleteMutation.mutate(id, {
+  const onDelete = (deleteSongs: boolean) => {
+    deleteMutation.mutate(deleteSongs ? { id, deleteSongs } : id, {
       onSuccess: () => {
         void navigate({ to: '/library', search: { view: 'playlist_normal' } })
       },
     })
+  }
+
+  const permanentlySort = async () => {
+    const action = pendingSort
+    setPendingSort(null)
+    if (!action || permanentSortBusy) return
+    setPermanentSortBusy(true)
+    try {
+      await getPlaylistApi().sortPlaylistSongs(id, action)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['playlist', 'songs', id] }),
+        queryClient.invalidateQueries({ queryKey: ['playlist', 'detail', id] }),
+      ])
+      toast.success(t('playlist.permanentSorted'))
+    } catch (error) {
+      toast.error(String(error instanceof Error ? error.message : error))
+    } finally { setPermanentSortBusy(false) }
   }
 
   /* Editing lives on its own route now — the detail page is render-mode-free
@@ -358,6 +380,10 @@ export function PlaylistDetailPage() {
                       ...(!isBuiltIn && canSort
                         ? [{ key: 'sort', label: t('playlist.sortSongs'), icon: 'sort' as const }]
                         : []),
+                      ...(!keyword && canSort && !permanentSortBusy
+                        ? (['name_asc', 'name_desc', 'number_prefix', 'shuffle'] as const).map(action => ({
+                          key: `permanent_${action}`, label: t(`playlist.permanent_${action}`), icon: 'sort' as const,
+                        })) : []),
                       ...(!isBuiltIn
                         ? [
                           { key: 'edit', label: t('playlist.editPlaylist'), icon: 'brush' as const },
@@ -380,6 +406,7 @@ export function PlaylistDetailPage() {
                       else if (key === 'pin') togglePin()
                       else if (key === 'editCover') void navigate({ to: '/playlists/$id/edit', params: { id: String(id) }, search: { coverOnly: true } })
                       else if (key === 'sort') enterSortMode()
+                      else if (key.startsWith('permanent_')) setPendingSort(key.slice(10) as typeof pendingSort)
                       else if (key === 'edit') onStartEdit()
                       else if (key === 'visibility') toggleVisibility()
                       else if (key === 'delete') setPendingConfirm({ kind: 'delete-playlist' })
@@ -606,7 +633,9 @@ export function PlaylistDetailPage() {
         row-tail × removed immediately; removing from a playlist is not as final
         as deleting a song but it still deserves a stated consequence.
       */}
-      <ConfirmDialog
+      <DeleteConfirmDialog
+        option={confirmContent?.kind === 'delete-playlist' ? 'orphanSongs' : undefined}
+        targetKey={id}
         show={pendingConfirm != null}
         title={confirmContent?.kind === 'delete-playlist'
           ? t('playlist.deleteTitle')
@@ -619,10 +648,10 @@ export function PlaylistDetailPage() {
         confirmLabel={confirmContent?.kind === 'delete-playlist'
           ? t('playlist.deletePlaylist')
           : t('playlist.removeSong')}
-        onConfirm={() => {
+        onConfirm={(deleteSongs) => {
           const pending = pendingConfirm
           setPendingConfirm(null)
-          if (pending?.kind === 'delete-playlist') onDelete()
+          if (pending?.kind === 'delete-playlist') onDelete(deleteSongs)
           else if (pending?.kind === 'remove-song') removeSongMutation.mutate(pending.song.id)
           else if (pending?.kind === 'remove-batch') batchRemove()
         }}
@@ -630,6 +659,16 @@ export function PlaylistDetailPage() {
         testId='playlist-delete-dialog'
         confirmTestId='playlist-delete-confirm'
         cancelTestId='playlist-delete-cancel'
+      />
+      <ConfirmDialog
+        show={pendingSort != null}
+        title={t('playlist.permanentSortTitle')}
+        message={t('playlist.permanentSortMessage')}
+        confirmLabel={t('playlist.sortSongs')}
+        onConfirm={() => { void permanentlySort() }}
+        onCancel={() => setPendingSort(null)}
+        testId='playlist-permanent-sort-dialog'
+        confirmTestId='playlist-permanent-sort-confirm'
       />
       {/* Mounted only while open, so entering the page costs no history request. */}
       {showHistory && playlistCtx

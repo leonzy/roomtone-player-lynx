@@ -127,6 +127,11 @@ class MainActivity : Activity() {
             params.pushMap(JavaOnlyMap.from(payload))
             lynxView?.sendGlobalEvent(name, params)
         }
+        org.songloft.lynx.widget.NowPlayingWidget.attach(view) { action ->
+            val params = JavaOnlyArray()
+            params.pushMap(JavaOnlyMap.from(mapOf("action" to action)))
+            view.sendGlobalEvent("SongloftWidget.action", params)
+        }
 
         // `LynxLoadMeta` carries the globalProps *into* the load, so the very
         // first frame already knows the system theme — no flash of the wrong one.
@@ -171,6 +176,13 @@ class MainActivity : Activity() {
         val params = JavaOnlyArray()
         params.pushMap(JavaOnlyMap.from(emptyMap<String, Any>()))
         lynxView?.sendGlobalEvent(EVENT_APP_RESUMED, params)
+    }
+
+    override fun onPause() {
+        val params = JavaOnlyArray()
+        params.pushMap(JavaOnlyMap.from(emptyMap<String, Any>()))
+        lynxView?.sendGlobalEvent("SongloftLifecycle.paused", params)
+        super.onPause()
     }
 
     /**
@@ -251,6 +263,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        org.songloft.lynx.widget.NowPlayingWidget.detach(lynxView)
         contentResolver.unregisterContentObserver(motionObserver)
         if (Build.VERSION.SDK_INT >= 34) {
             contrastListener?.let { getSystemService(UiModeManager::class.java).removeContrastChangeListener(it) }

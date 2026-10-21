@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import vm from 'node:vm'
 import { afterEach, expect, test, vi } from 'vitest'
+import { DEFAULT_SHORTCUT_BINDINGS } from '../features/player/domain/shortcut-bindings.js'
 
 interface Host { configure(state: Record<string, unknown>): void; destroy(): void }
 interface Dom { window: Window & typeof globalThis }
@@ -112,4 +113,22 @@ test('loading the script twice keeps configuration but emits one action; destroy
   host().destroy()
   expect(key({ key: ' ' }).defaultPrevented).toBe(false)
   expect(send).toHaveBeenCalledTimes(1)
+})
+
+test('custom bindings replace defaults, allow seek repeats and protect recording from playback', () => {
+  const { key, host, send } = setup()
+  const bindings = { ...DEFAULT_SHORTCUT_BINDINGS, toggle: { code: 'KeyP', ctrl: false, meta: false, alt: false, shift: true } }
+  const state = { enabled: true, canPlay: true, canNext: true, canPrev: true, volume: 50, bindings }
+  host().configure(state)
+  expect(key({ code: 'Space', key: ' ' }).defaultPrevented).toBe(false)
+  expect(key({ code: 'KeyP', key: 'P', shiftKey: true }).defaultPrevented).toBe(true)
+  expect(send).toHaveBeenLastCalledWith('SongloftKeyboard.action', [{ action: 'toggle' }])
+  expect(key({ code: 'ArrowRight', key: 'ArrowRight', repeat: true }).defaultPrevented).toBe(true)
+  expect(send).toHaveBeenLastCalledWith('SongloftKeyboard.action', [{ action: 'seekForward' }])
+  host().configure({ ...state, canPlay: false, recording: 'mute' })
+  key({ code: 'KeyK', key: 'k', altKey: true })
+  expect(send).toHaveBeenLastCalledWith('SongloftKeyboard.binding', [{ action: 'mute', binding: { code: 'KeyK', ctrl: false, meta: false, shift: false, alt: true } }])
+  expect(key({ code: 'KeyL', key: 'l', ctrlKey: true }).defaultPrevented).toBe(false)
+  key({ code: 'Escape', key: 'Escape' })
+  expect(send).toHaveBeenLastCalledWith('SongloftKeyboard.binding', [{ action: 'mute', binding: null }])
 })

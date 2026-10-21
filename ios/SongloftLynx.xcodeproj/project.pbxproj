@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B10000000000000000000002 /* HomeWidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* HomeWidgetStore.swift */; };
+		B20000000000000000000002 /* NowPlayingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* NowPlayingWidget.swift */; };
+		B2000000000000000000000E /* SongloftWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B20000000000000000000003 /* SongloftWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B20000000000000000000015 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000012 /* Localizable.strings */; };
 		AE0000000000000000000001 /* PlaybackBackgroundTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE0000000000000000000011 /* PlaybackBackgroundTask.swift */; };
 		AF0000000000000000000001 /* SongloftTabGlassUI.m in Sources */ = {isa = PBXBuildFile; fileRef = AF0000000000000000000011 /* SongloftTabGlassUI.m */; };
 		AD0000000000000000000001 /* PluginTemplateTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000000000000000000011 /* PluginTemplateTransfer.swift */; };
@@ -41,7 +45,22 @@
 		B8AB53797D6BCB41C5BECE68 /* libPods-SongloftLynx.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D3E9A174D02DA94EF6B01346 /* libPods-SongloftLynx.a */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		B20000000000000000000010 = {isa = PBXContainerItemProxy; containerPortal = AA0000000000000000000001; proxyType = 1; remoteGlobalIDString = B20000000000000000000004; remoteInfo = SongloftWidgets; };
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B2000000000000000000000F /* Embed App Extensions */ = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 13; files = (B2000000000000000000000E, ); name = "Embed App Extensions"; runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		B10000000000000000000001 /* HomeWidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetStore.swift; sourceTree = "<group>"; };
+		B20000000000000000000001 /* NowPlayingWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingWidget.swift; sourceTree = "<group>"; };
+		B20000000000000000000003 /* SongloftWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; path = SongloftWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B2000000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B2000000000000000000000D /* SongloftWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SongloftWidgets.entitlements; sourceTree = "<group>"; };
+		B20000000000000000000013 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		B20000000000000000000014 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		AE0000000000000000000011 /* PlaybackBackgroundTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackBackgroundTask.swift; sourceTree = "<group>"; };
 		AF0000000000000000000011 /* SongloftTabGlassUI.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SongloftTabGlassUI.m; sourceTree = "<group>"; };
 		AF0000000000000000000012 /* SongloftTabGlassUI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SongloftTabGlassUI.h; sourceTree = "<group>"; };
@@ -84,6 +103,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		B20000000000000000000006 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		AA0000000000000000000010 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -95,6 +115,12 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		B2000000000000000000000B /* SongloftWidgets */ = {
+			isa = PBXGroup;
+			children = (B20000000000000000000001, B2000000000000000000000C, B2000000000000000000000D, B20000000000000000000012, );
+			path = SongloftWidgets;
+			sourceTree = "<group>";
+		};
 		2B3DFCF377CCEBF688A4B2C5 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -107,6 +133,7 @@
 			isa = PBXGroup;
 			children = (
 				AA0000000000000000000004 /* SongloftLynx */,
+				B2000000000000000000000B /* SongloftWidgets */,
 				AA0000000000000000000003 /* Products */,
 				C971F870715663CE7C313751 /* Pods */,
 				2B3DFCF377CCEBF688A4B2C5 /* Frameworks */,
@@ -117,6 +144,7 @@
 			isa = PBXGroup;
 			children = (
 				AA0000000000000000000008 /* SongloftLynx.app */,
+				B20000000000000000000003 /* SongloftWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -128,6 +156,7 @@
 				AF0000000000000000000012 /* SongloftTabGlassUI.h */,
 				AF0000000000000000000013 /* SongloftTabGlassMotion.h */,
 				AA0000000000000000000014 /* AppDelegate.swift */,
+				B10000000000000000000001 /* HomeWidgetStore.swift */,
 				AA0000000000000000000015 /* SceneDelegate.swift */,
 				AA0000000000000000000016 /* ViewController.swift */,
 				AA0000000000000000000017 /* SongloftTemplateProvider.swift */,
@@ -176,6 +205,17 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		B20000000000000000000004 /* SongloftWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B20000000000000000000008;
+			buildPhases = (B20000000000000000000005, B20000000000000000000006, B20000000000000000000007, );
+			buildRules = ();
+			dependencies = ();
+			name = SongloftWidgets;
+			productName = SongloftWidgets;
+			productReference = B20000000000000000000003;
+			productType = "com.apple.product-type.app-extension";
+		};
 		AA0000000000000000000007 /* SongloftLynx */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AA000000000000000000000A /* Build configuration list for PBXNativeTarget "SongloftLynx" */;
@@ -185,10 +225,12 @@
 				AA0000000000000000000010 /* Frameworks */,
 				AA0000000000000000000011 /* Resources */,
 				1B4F25884BF24E80DBD9F2FA /* [CP] Copy Pods Resources */,
+				B2000000000000000000000F /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B20000000000000000000011 /* PBXTargetDependency */,
 			);
 			name = SongloftLynx;
 			productName = SongloftLynx;
@@ -217,6 +259,7 @@
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
 			);
 			mainGroup = AA0000000000000000000002;
 			productRefGroup = AA0000000000000000000003 /* Products */;
@@ -224,11 +267,13 @@
 			projectRoot = "";
 			targets = (
 				AA0000000000000000000007 /* SongloftLynx */,
+				B20000000000000000000004 /* SongloftWidgets */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		B20000000000000000000007 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (B20000000000000000000015, ); runOnlyForDeploymentPostprocessing = 0; };
 		AA0000000000000000000011 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -284,12 +329,14 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		B20000000000000000000005 /* Widget Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B20000000000000000000002, ); runOnlyForDeploymentPostprocessing = 0; };
 		AA000000000000000000000F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				AF0000000000000000000001 /* SongloftTabGlassUI.m in Sources */,
 				AA0000000000000000000020 /* AppDelegate.swift in Sources */,
+				B10000000000000000000002 /* HomeWidgetStore.swift in Sources */,
 				AA0000000000000000000021 /* SceneDelegate.swift in Sources */,
 				AA0000000000000000000022 /* ViewController.swift in Sources */,
 				AA0000000000000000000023 /* SongloftTemplateProvider.swift in Sources */,
@@ -321,7 +368,53 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		B20000000000000000000011 = {isa = PBXTargetDependency; target = B20000000000000000000004; targetProxy = B20000000000000000000010; };
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		B20000000000000000000012 /* Localizable.strings */ = {isa = PBXVariantGroup; children = (B20000000000000000000013, B20000000000000000000014, ); name = Localizable.strings; sourceTree = "<group>"; };
+/* End PBXVariantGroup section */
+
 /* Begin XCBuildConfiguration section */
+		B20000000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = SongloftWidgets/SongloftWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SongloftWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../../Frameworks", );
+				MARKETING_VERSION = 0.1.5;
+				PRODUCT_BUNDLE_IDENTIFIER = org.songloft.lynx.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B2000000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = SongloftWidgets/SongloftWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SongloftWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../../Frameworks", );
+				MARKETING_VERSION = 0.1.5;
+				PRODUCT_BUNDLE_IDENTIFIER = org.songloft.lynx.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		AA000000000000000000000B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -444,6 +537,7 @@
 			baseConfigurationReference = F6CF18F52AA4E9A635199544 /* Pods-SongloftLynx.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SongloftLynx/SongloftLynx.entitlements;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -471,6 +565,7 @@
 			baseConfigurationReference = 0DB3DFE43924D58FBFD6E648 /* Pods-SongloftLynx.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SongloftLynx/SongloftLynx.entitlements;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -496,6 +591,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		B20000000000000000000008 /* Widget configurations */ = {isa = XCConfigurationList; buildConfigurations = (B20000000000000000000009, B2000000000000000000000A, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 		AA0000000000000000000009 /* Build configuration list for PBXProject "SongloftLynx" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

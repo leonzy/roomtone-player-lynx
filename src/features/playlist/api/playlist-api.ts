@@ -187,8 +187,18 @@ export class PlaylistApi {
     return parsePlaylist(res.data)
   }
 
-  async deletePlaylist(id: number): Promise<void> {
-    await this.client.delete(`${apiPrefix}/playlists/${id}`)
+  async deletePlaylist(id: number, options?: { deleteSongs?: boolean }): Promise<void> {
+    await this.client.delete(`${apiPrefix}/playlists/${id}`, {
+      query: options?.deleteSongs ? { delete_songs: true } : undefined,
+    })
+  }
+
+  async batchDeletePlaylists({ ids, deleteSongs = false }: { ids: number[]; deleteSongs?: boolean }): Promise<void> {
+    await this.client.post(`${apiPrefix}/playlists/batch-delete`, { ids, delete_songs: deleteSongs })
+  }
+
+  async sortPlaylistSongs(id: number, action: 'name_asc' | 'name_desc' | 'number_prefix' | 'shuffle'): Promise<void> {
+    await this.client.post(`${apiPrefix}/playlists/${id}/songs/sort`, { action })
   }
 
   /**

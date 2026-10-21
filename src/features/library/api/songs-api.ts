@@ -287,8 +287,10 @@ export class SongsApi {
     return parseAudioTracks(res.data)
   }
 
-  async deleteSong(id: number): Promise<void> {
-    await this.client.delete(`${apiPrefix}/songs/${id}`)
+  async deleteSong(id: number, options?: { deleteFiles?: boolean }): Promise<void> {
+    await this.client.delete(`${apiPrefix}/songs/${id}`, {
+      query: options?.deleteFiles ? { delete_files: true } : undefined,
+    })
   }
 
   /**

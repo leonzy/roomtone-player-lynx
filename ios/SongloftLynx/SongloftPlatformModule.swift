@@ -17,6 +17,8 @@ final class SongloftPlatformModule: NSObject, LynxModule {
 
   @objc static var methodLookup: [String: String] {
     [
+      "updateHomeWidget": NSStringFromSelector(#selector(SongloftPlatformModule.updateHomeWidget(_:))),
+      "consumeWidgetAction": NSStringFromSelector(#selector(SongloftPlatformModule.consumeWidgetAction(_:))),
       "setKeepScreenOn": NSStringFromSelector(#selector(SongloftPlatformModule.setKeepScreenOn(_:))),
       "openURL": NSStringFromSelector(#selector(SongloftPlatformModule.openURL(_:))),
       "getCookies": NSStringFromSelector(#selector(SongloftPlatformModule.getCookies(_:callback:))),
@@ -45,6 +47,14 @@ final class SongloftPlatformModule: NSObject, LynxModule {
         #selector(SongloftPlatformModule.shareLogArchive(_:authHeader:fileName:callback:))
       ),
     ]
+  }
+
+  @objc func updateHomeWidget(_ json: String) {
+    DispatchQueue.main.async { HomeWidgetStore.update(json) }
+  }
+
+  @objc func consumeWidgetAction(_ callback: @escaping (String) -> Void) {
+    DispatchQueue.main.async { callback(HomeWidgetStore.consumeAction()) }
   }
 
   @objc func getCookies(_ origin: String, callback: @escaping LynxCallbackBlock) {

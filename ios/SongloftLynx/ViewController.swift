@@ -98,6 +98,9 @@ class ViewController: UIViewController {
     SongloftPlatformModule.setSceneActive(active)
     guard sceneActive != active else { return }
     sceneActive = active
+    if !active {
+      lynxView?.sendGlobalEvent("SongloftLifecycle.paused", withParams: [["state": "paused"]])
+    }
     resumePending = active
     flushResume()
   }
@@ -107,9 +110,13 @@ class ViewController: UIViewController {
     resumePending = false
     pushAppearance()
     lynxView.sendGlobalEvent("SongloftLifecycle.resumed", withParams: [["state": "resumed"]])
+    HomeWidgetStore.actionEmitter = { [weak self] action in
+      self?.lynxView?.sendGlobalEvent("SongloftWidget.action", withParams: [["action": action]])
+    }
   }
 
   deinit {
+    HomeWidgetStore.detach()
     SongloftPlatformModule.resetScreenAwake()
     for observer in accessibilityObservers {
       NotificationCenter.default.removeObserver(observer)

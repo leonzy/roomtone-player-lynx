@@ -66,6 +66,13 @@
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:exported="false" />
 
+        <receiver android:name=".widget.NowPlayingWidget" android:exported="false" android:label="Songloft">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/now_playing_widget" />
+        </receiver>
+
         <activity
             android:name=".cache.CacheDirectoryPickerActivity"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"

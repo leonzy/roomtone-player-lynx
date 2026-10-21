@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">正在播放、播放控制与收藏</string>
+    <string name="widget_empty">选择歌曲开始播放</string>
+    <string name="widget_open">打开 Songloft 播放器</string>
+    <string name="widget_play">播放</string>
+    <string name="widget_pause">暂停</string>
+    <string name="widget_previous">上一首</string>
+    <string name="widget_next">下一首</string>
+    <string name="widget_favorite">切换收藏</string>
+</resources>

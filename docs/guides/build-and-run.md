@@ -75,6 +75,10 @@ pnpm run ios:run     # build + 装进已启动的模拟器 + 启动
 - **`ios:build` 是两次 `xcodebuild -project/-target` 而不是一次 `-workspace/-scheme/-destination`**：这台 Xcode（26.6 / SDK iphoneos26.5）报告**没有**可用运行目标（`iOS 26.5 is not installed`，缺 iOS 平台组件，只有独立的 18.3 / 26.0 模拟器运行时），所以任何 `-destination` 形式都会失败。legacy 的 `-target + -sdk` 路径不需要 destination。因为 app target 在 CocoaPods workspace 之外构建，必须先构建 Pods aggregate，且两次构建**共享 `SYMROOT`**，app 才能在它的 xcconfig 指定的 `PODS_CONFIGURATION_BUILD_DIR` 找到 `libPods-*.a`。装上 iOS 平台组件后，优先改回 `-workspace ... -destination 'generic/platform=iOS Simulator'`。
 - **`ios:run` 需要已 boot 的模拟器**（`xcrun simctl boot <udid>; open -a Simulator`）。模拟器的 localhost **就是**开发机，所以没有 `adb reverse` 的对应步骤。
 
+Xcode 27.1 的 SDK 会拒绝部分 Pods 声明的 iOS 9/10/12 部署目标。本应用最低版本已经是 iOS 15；手动执行上述两次 `xcodebuild` 时可分别传入 `IPHONEOS_DEPLOYMENT_TARGET=15.0`，让依赖使用同一最低版本。若 `xcode-select -p` 指向 Command Line Tools，先检查 `/Applications/Xcode.app` 是否存在；为本次命令设置 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` 即可，无需切换全局配置。
+
+同一环境还会把 Lynx 4.0.1 忽略 `std::future` 返回值和使用旧 UIKit API 的警告当作错误。本批对 Pods 构建额外传入 `'OTHER_CPLUSPLUSFLAGS=$(inherited) -Wno-error=unused-result'`，并在临时生成的 Pods 工程中为 Lynx 的 Objective-C/Objective-C++ 文件追加 `-Wno-error=deprecated-declarations`，仅为 `LynxTextLayoutManager.m` 追加 `-Wno-error=deprecated-implementations`。两类警告仍输出，未修改依赖源码、入库工程或应用检查；复现脚本与结果见 [移植记录](../project/feature-port-20261021.md)。带兼容参数的构建与默认命令的失败须分别记录。
+
 **改了 bundle 或原生代码后，`simctl install` 不会替换已在运行的进程** —— 必须先 `xcrun simctl terminate <udid> org.songloft.lynx`。`e2e:ios:setup` 也是「已装就不重装」（`scripts/e2e-ios-setup.mjs`），所以 `ios:build` 之后要自己 terminate + install，否则测的是旧包。这条曾导致「修了也没用」的错误结论。
 
 ## HarmonyOS
@@ -107,6 +111,10 @@ hvigorw clean assembleHap --mode module -p product=default -p buildMode=release 
 - **模块注册**：HarmonyOS 侧的模块注册在 `pages/Index.ets`（`this.modules.set(name, { moduleClass, param })`，**按 LynxView 逐视图注册**，不是 Android/iOS 那种全局 `registerModule`）；HTTP service 替换仍在 `EntryAbility.ets`。两处分工由契约闸门锁定（`native-module-contract.test.ts` 的 `harmonyIndex` / `harmonyEntry` 两个 read）。
 - **无等价 API 的模块**：FloatingLyric、LiveActivity 在鸿蒙上无对应能力，TS 侧由 `NativeModules` 探测降级为 no-op。
 - **验证方式**：DevEco Studio 内 Build > Build Hap(s)/APP(s)。真机调试需 HarmonyOS NEXT 设备或模拟器 + `hdc`（类似 `adb`）。
+
+## iOS 小组件签名
+
+iOS 小组件签名：工程包含 `SongloftWidgets` 扩展，app 与扩展都需要 App Group `group.org.songloft.lynx` 的 entitlement 和对应 provisioning profile。两个 target 的营销版本随统一版本脚本同步；源码结构解析不能替代 Xcode 编译/签名。功能与设备验收边界见 [移植记录](../project/feature-port-20261021.md)。
 
 ## Web
 

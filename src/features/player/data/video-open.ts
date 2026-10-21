@@ -50,7 +50,7 @@ export type VideoOpenOutcome = 'opened' | 'noTrack' | 'transcodeFailed'
  * player. The two entry points agree through this predicate.
  */
 export function usesJsVideoSurface(): boolean {
-  return getPlatformTarget() === 'android' || isWebPlatform()
+  return ['android', 'ios', 'harmony'].includes(getPlatformTarget()) || isWebPlatform()
 }
 
 /**

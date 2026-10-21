@@ -1,0 +1,34 @@
+.video-subtitle {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: calc(24px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.72);
+  border-radius: var(--radius-md);
+  z-index: 1;
+}
+
+.video-subtitle--raised {
+  bottom: calc(160px + var(--safe-bottom));
+}
+
+.video-subtitle__text {
+  overflow: hidden;
+  color: #ffffff;
+  font-size: calc(22px * var(--font-scale));
+  font-weight: var(--weight-bold);
+  text-align: center;
+  text-shadow: 0 1px 4px #000000;
+}
+
+.video-subtitle__translation {
+  overflow: hidden;
+  color: #ffffff;
+  font-size: var(--font-footnote);
+  text-align: center;
+  margin-top: var(--space-1);
+}

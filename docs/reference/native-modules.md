@@ -127,7 +127,7 @@ HarmonyOS 的两个 EQ 方法仍无 DSP 实现：新增 `equalizer` 能力位为
 
 **闸门锁住的不变量**：5 个方法两侧齐备；`"secure"` 拼写在两个宿主里逐字一致（写错会让 token 落进非敏感区，而 `secure.get` 一直读空的那个）。
 
-### 2.3 `SongloftPlatform`（11 方法）
+### 2.3 `SongloftPlatform`（11 个基础方法，另有可选扩展）
 
 | 方法 | Kotlin 签名 | iOS 选择器 | 形状 |
 |---|---|---|---|
@@ -142,6 +142,8 @@ HarmonyOS 的两个 EQ 方法仍无 DSP 实现：新增 `equalizer` 能力位为
 | `logRead` | `logRead(callback: Callback)` | `logRead(_:)` | Callback `(error, content)` |
 | `shareFile` | `shareFile(base64: String, fileName: String, mimeType: String, callback: Callback)` | `shareFile(_:fileName:mimeType:callback:)` | Callback `(error)` |
 | `shareLogArchive` | `shareLogArchive(backendLogUrl: String, authHeader: String, fileName: String, callback: Callback)` | `shareLogArchive(_:authHeader:fileName:callback:)` | Callback `(error, resultJson)` |
+
+2026-10-21 可选扩展：Android/iOS 增加 `updateHomeWidget(json)`、`consumeWidgetAction(callback)` 与 `SongloftWidget.action`；Web 视频增加 `fullscreenState` / `setFullscreen` 与 `SongloftVideo.fullscreenChanged`；四端增加歌词帧循环消费的可选 `SongloftLifecycle.paused`。完整参数、旧壳降级、iOS App Group 及验证边界见 [功能移植记录](../project/feature-port-20261021.md#新增可选宿主契约) / [English](../en/project/feature-port-20261021.md#optional-host-contract)。这些方法不属于原有必需 ABI，必须运行时探测。
 
 `setKeepScreenOn` 由歌词页常亮偏好消费（本机 key `player_lyrics_keep_screen_on`，默认 false）。JS 只在当前 `/player` 的歌词可见时请求，返回封面/进入子路由/卸载即释放。Android 在主线程设置 Activity 的 `FLAG_KEEP_SCREEN_ON`（系统在后台不保持屏幕）；iOS 将请求与 scene 活跃状态合并，在 scene 失活及根控制器销毁时清理；HarmonyOS 将请求与 Ability 前台状态合并，串行调用 `setWindowKeepScreenOn`，窗口销毁后释放。Web 的 Worker 方法转交 `web/screen-awake-host.js`，只在页面可见时请求 Screen Wake Lock，隐藏时释放、恢复可见时重获；尚未完成的请求在关闭后返回也会立即释放。浏览器不支持/拒绝和旧原生壳缺方法均安全降级。源码接线与单元测试不替代各端实际熄屏验收。
 
@@ -205,7 +207,7 @@ Callback 形状，参数为单个 JSON 字符串（facade 一律传 `'{}'`）。
 | `close` | `close(args: String, callback: Callback)` | `close(_:callback:)` | `{}` |
 | `isOpen` | `isOpen(args: String, callback: Callback)` | `isOpen(_:callback:)` | `{result: boolean}` |
 
-**事件**：无。历史上两端发过 `SongloftVideo.closed`（Android `EVENT_CLOSED` / iOS `eventClosed`），但 JS 零监听、是个死线，批72（`895aa97`）已删——真要通知 JS 时再按「能力探测器与首个消费点同批落地」重新加。
+**事件**：Web 新增可选 `SongloftVideo.fullscreenChanged`，由共享视频页面消费；参数和旧壳降级见 [移植记录](../project/feature-port-20261021.md#新增可选宿主契约)。历史原生 `SongloftVideo.closed`（Android `EVENT_CLOSED` / iOS `eventClosed`）因 JS 无监听在批72（`895aa97`）删除，本批不恢复。
 
 **平台边界（2026-10-06 源码复核）**：四端都有视频宿主代码。**画面归宿主、控件归 JS**：Android 是 `MainActivity` 视图树里、Lynx 视图之下的 `SurfaceView`（`setZOrderMediaOverlay(true)`），iOS 是下层 UIView 内的 `AVPlayerLayer`，HarmonyOS 是 `Index.ets` 的 XComponent，Web 是主线程 `<video>`。输运控件（播放/暂停/进度/标题）由 Lynx `/player/video` 页绘制。HarmonyOS 已注册模块，因此存在性探测会返回 `true`；这不代表其编译、表面生命周期与真实播放已验收。
 

@@ -1,6 +1,28 @@
 import { getSongloftStorage } from '../../../core/storage/index.js'
 import type { SongloftStorage } from '../../../core/storage/types.js'
 import type { ScaleMode } from '../../../native/video.js'
+import { createStore } from 'zustand/vanilla'
+
+export const videoSubtitles = createStore<{ enabled: boolean }>(() => ({ enabled: true }))
+const PREF_VIDEO_SUBTITLES = 'video_subtitles_enabled'
+let subtitleRevision = 0
+let subtitleWrites = Promise.resolve()
+
+export async function loadVideoSubtitles(): Promise<void> {
+  const revision = subtitleRevision
+  try {
+    await subtitleWrites
+    const saved = await getSongloftStorage().prefs.get(PREF_VIDEO_SUBTITLES)
+    if (revision === subtitleRevision) videoSubtitles.setState({ enabled: saved !== 'false' })
+  } catch { /* Subtitles remain usable without persistent storage. */ }
+}
+
+export function changeVideoSubtitles(enabled: boolean): void {
+  subtitleRevision++
+  videoSubtitles.setState({ enabled })
+  const storage = getSongloftStorage()
+  subtitleWrites = subtitleWrites.then(() => storage.prefs.set(PREF_VIDEO_SUBTITLES, String(enabled))).catch(() => {})
+}
 
 export const PREF_VIDEO_SCALE_MODE = 'video_scale_mode'
 

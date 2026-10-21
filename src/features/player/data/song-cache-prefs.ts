@@ -1,4 +1,5 @@
 import { getSongloftStorage } from '../../../core/storage/index.js'
+import { preferenceChanged } from '../../../core/storage/user-preference-events.js'
 import type { SongloftStorage } from '../../../core/storage/types.js'
 
 /**
@@ -36,6 +37,7 @@ export async function writeLocalCacheMaxSize(
   bytes: number,
   storage: SongloftStorage = getSongloftStorage(),
 ): Promise<void> {
+  preferenceChanged({ local_cache_max_size: bytes })
   try {
     // prefs stores strings; `coerceMaxSize` parses it back on read.
     await storage.prefs.set(PREF_LOCAL_CACHE_MAX_SIZE, String(bytes))

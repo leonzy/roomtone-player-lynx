@@ -9,6 +9,7 @@ import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { getPlatformCapabilities } from '../../../native/platform-capabilities.js'
 import { getSongCacheSize, clearSongCache } from '../../player/data/song-cache.js'
 import { readLocalCacheMaxSize, writeLocalCacheMaxSize } from '../../player/data/song-cache-prefs.js'
+import { subscribePreferencesApplied } from '../../../core/storage/user-preference-events.js'
 import { useCacheConfigQuery, useCacheStatsQuery } from '../data/cache-query.js'
 import {
   useCleanCacheMutation,
@@ -180,8 +181,10 @@ export function CacheManagePage() {
     if (!songCacheCapable) return
     let alive = true
     void getSongCacheSize().then((s) => { if (alive) setDeviceCacheSize(s) })
-    void readLocalCacheMaxSize().then((m) => { if (alive) setDeviceMaxSize(m) })
-    return () => { alive = false }
+    const reload = () => { void readLocalCacheMaxSize().then((m) => { if (alive) setDeviceMaxSize(m) }) }
+    reload()
+    const stop = subscribePreferencesApplied(reload)
+    return () => { alive = false; stop() }
   }, [songCacheCapable])
 
   const onClearDeviceTap = () => {

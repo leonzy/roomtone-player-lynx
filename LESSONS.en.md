@@ -10,6 +10,37 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### WIDGET-001: Widget actions must not depend on the first audio load
+
+- Scope: 2026-10-21 feature port, uncommitted worktree based on `1ef324864b88c679a7b0378eff24cfef3de4f167`; no linked Issue.
+- Rule: Bind widget actions to the current LynxView. Mark it ready after JS registers listeners and consumes the cold action; do not borrow the lazily initialized audio event sink. Detach only the owning view and consume a queued action once.
+- Failure: With APK `5b3e9f9…e70b8`, the first desktop Play after restoring an unloaded paused queue only opened the app. Actual failed screenshots/results: `/home/hanxi/work/songloft-review/lynx-current-device-20261021/before-fix-*`.
+- Done right: Four `WidgetActionDelivery` JUnit checks cover readiness, cold delivery, destruction and replacement; the independent-channel wiring gate fails against the old implementation. APK `86b5c0c8…0c093e` passes nine actual checks, including native progress, Next after process restart and stale thumbnail removal. See the batch record for the later APK with the shared video-page fix.
+- Seen 1× (2026-10-21). Status: lesson; emulator uses Reduce Transparency, physical and other-platform devices remain untested.
+
+### VIDEO-001: Closing a video surface also requires leaving its controls
+
+- Scope: Same-day feature port, automatic advance at MV end; no linked Issue.
+- Rule: The video page follows the opened song reference. Leave it after switching to audio or another MV; host `close()` does not guarantee a `closed` navigation event. Ordinary progress changes must not navigate.
+- Failure: Actual Android MV completion closed the picture but left the audio lyrics on the video page. Evidence: `mv-auto-advance-before-fix.png` in the same review directory. Both mounted regressions fail against the old implementation because navigation never happens.
+- Done right: `FullVideoPage` requests its parent route once on a song-reference change; unmount retains existing video, timer and browser-fullscreen cleanup. Tests cover MV→audio and MV→MV; actual device results are recorded in the [batch record](docs/en/project/feature-port-20261021.md).
+- Seen 1× (2026-10-21). Status: lesson; component tests do not establish host-device acceptance.
+
+### BUILD-001: Probe Xcode installation, selection and runtime devices separately
+
+- Scope: Native follow-up for the 2026-10-21 feature port, uncommitted worktree based on `1ef324864b88c679a7b0378eff24cfef3de4f167`; no linked Issue.
+- Rule: Local Linux, an initial SSH timeout, or Command Line Tools being selected does not establish that a configured remote Mac lacks Xcode. Check connectivity, Xcode.app, SDKs, simulator runtimes and devices separately. Set `DEVELOPER_DIR` per build rather than changing global selection, and never print credentials from SSH configuration.
+- Evidence and Done right: Retrying the existing `mac` alias found Xcode 27.1. Command-local selection enabled `xcodebuild -list` and a WidgetKit extension build. Runtime/device lists were empty, so signing and device screenshots remain open. Logs and compatibility conditions are in [acceptance](docs/en/project/feature-port-20261021.md).
+- Seen 1× (2026-10-21). Status: lesson; below the three-date promotion threshold.
+
+### TEST-002: Wait for an actual host progress report
+
+- Scope: Android playback/home-widget acceptance on the uncommitted feature-port worktree based on `1ef324864b88c679a7b0378eff24cfef3de4f167`; no linked Issue.
+- Rule: An arbitrary wait shorter than the host reporting interval cannot establish stalled playback. Bound the wait for the same song to advance, then verify pause stability. Neither `isPlaying=true` nor an icon change proves progress.
+- Evidence: On 2026-10-21 APK `d8dc8b7c…a9807d` falsely failed a 300ms sample; waiting for an actual report observed 44312 → 44815ms, then desktop pause held 45314ms. See [acceptance](docs/en/project/feature-port-20261021.md) and `widget-final-result.json` in its evidence directory.
+- Done right: Wait at most five seconds for unchanged song ID and increased position; take two stable paused readings and independently match the installed APK checksum. Record native progress, screenshots and server side effects separately.
+- Seen 1× (2026-10-21). Status: lesson; below the three-date promotion threshold.
+
 ### AUDIO-001: Preserve live playback intent and explicitly forward system pause
 
 - Scope: songloft-org/songloft#531, four audio hosts and the shared player store; baseline `f3f78b3aae6e74323b963a9e8c940bf74b3613b5`.

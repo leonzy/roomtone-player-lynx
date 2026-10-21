@@ -9,6 +9,7 @@
 import { appConfig } from '../../../core/config/app-config.js'
 import type { PlayMode } from '../../../core/config/constants.js'
 import { getSongloftStorage } from '../../../core/storage/index.js'
+import { preferenceChanged } from '../../../core/storage/user-preference-events.js'
 import type { SongloftStorage } from '../../../core/storage/types.js'
 import { applyInsecureTls } from '../../../native/native-platform.js'
 import {
@@ -150,6 +151,7 @@ export async function writeAudioQuality(
   quality: AudioQuality,
   storage: SongloftStorage = getSongloftStorage(),
 ): Promise<void> {
+  preferenceChanged({ audio_quality: quality })
   await tryWritePref(storage, PREF_AUDIO_QUALITY, quality)
 }
 

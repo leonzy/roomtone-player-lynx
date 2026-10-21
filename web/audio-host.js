@@ -251,9 +251,31 @@
   video.addEventListener('loadedmetadata', emitVideoSize)
   video.addEventListener('resize', emitVideoSize)
 
+  var browserFullscreen = null
+  function fullscreenHost() {
+    if (!browserFullscreen && window.__SONGLOFT_CREATE_VIDEO_FULLSCREEN__) {
+      browserFullscreen = window.__SONGLOFT_CREATE_VIDEO_FULLSCREEN__(document,
+        function () { return videoOpen },
+        function (value) { sendEvent('SongloftVideo.fullscreenChanged', value) })
+    }
+    return browserFullscreen
+  }
+
   var videoHandlers = {
+    fullscreenState: function () {
+      var host = fullscreenHost()
+      return JSON.stringify(host ? host.state() : { supported: false, active: false })
+    },
+    setFullscreen: function (args) {
+      var host = fullscreenHost()
+      if (!host) return Promise.resolve(JSON.stringify({ supported: false, active: false }))
+      var options = {}
+      try { options = JSON.parse(args[0] || '{}') } catch (_) {}
+      return host.set(options.enabled === true, String(options.label || 'Fullscreen')).then(JSON.stringify)
+    },
     open: openVideoStream,
     close: function () {
+      if (browserFullscreen) void browserFullscreen.close().catch(function () {})
       var primary = videoPrimary
       var url = audioSrcUrl
       var resumeAt = video.currentTime || audio.currentTime || 0
@@ -467,6 +489,10 @@
       lynxView.sendGlobalEvent(name, [data])
     } catch (_) {}
   }
+
+  document.addEventListener('visibilitychange', function () {
+    sendEvent(document.visibilityState === 'visible' ? 'SongloftLifecycle.resumed' : 'SongloftLifecycle.paused', {})
+  })
 
   function emitState(newState) {
     if (state === newState) return

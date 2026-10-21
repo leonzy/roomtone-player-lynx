@@ -42,6 +42,24 @@ const repoRoot = path.resolve(__dirname, '../..')
 const read = (relative: string): string =>
   readFileSync(path.join(repoRoot, relative), 'utf8')
 
+test('iOS cold widget actions return a scalar callback matching the JS consumer', () => {
+  const platform = read('ios/SongloftLynx/SongloftPlatformModule.swift')
+  const signature = platform.match(/@objc func consumeWidgetAction\([^\n]+/)?.[0]
+  expect(signature).toBe('@objc func consumeWidgetAction(_ callback: @escaping (String) -> Void) {')
+  expect(platform).toContain('callback(HomeWidgetStore.consumeAction())')
+})
+
+test('Android widget actions attach to the page before JS loads and do not require an audio sink', () => {
+  const activity = read('android/app/src/main/java/org/songloft/lynx/MainActivity.kt')
+  const widget = read('android/app/src/main/java/org/songloft/lynx/widget/NowPlayingWidget.kt')
+  const attach = activity.indexOf('NowPlayingWidget.attach(view)')
+  expect(attach).toBeGreaterThan(-1)
+  expect(attach).toBeLessThan(activity.indexOf('view.loadTemplate(meta.build())'))
+  expect(activity.includes('NowPlayingWidget.detach(lynxView)')).toBe(true)
+  expect(widget.includes('SongloftAudioEngine.sink')).toBe(false)
+  expect(widget.includes('actionDelivery.dispatch(action)')).toBe(true)
+})
+
 test('Android onResume emits the lifecycle event consumed by plugin WebViews', () => {
   const activity = read('android/app/src/main/java/org/songloft/lynx/MainActivity.kt')
   const event = activity.match(/const val EVENT_APP_RESUMED = "([^"]+)"/)

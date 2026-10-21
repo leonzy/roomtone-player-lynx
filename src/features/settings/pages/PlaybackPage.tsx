@@ -5,9 +5,12 @@ import { getFloatingLyricModule } from '../../../native/floating-lyric.js'
 import { getPlatformCapabilities } from '../../../native/platform-capabilities.js'
 import { setAudioQualityCache, setNormalizeEnabled } from '../../player/store/player-store.js'
 import { useLyricStore } from '../../player/store/lyric-store.js'
-import { webShortcuts } from '../../player/data/web-shortcuts.js'
+import { resetShortcutBindings, webShortcuts } from '../../player/data/web-shortcuts.js'
+import { SHORTCUT_ACTIONS, shortcutLabel } from '../../player/domain/shortcut-bindings.js'
 import { hasPlaybackKeys } from '../../../native/web-playback-keys.js'
+import { MINI_PLAYER_CONTROLS, changeMiniPlayerControls, loadMiniPlayerControls, miniPlayerControls } from '../../player/data/mini-player-controls.js'
 import { getSettingsApi } from '../api/index.js'
+import { subscribePreferencesApplied } from '../../../core/storage/user-preference-events.js'
 import { changeLyricsScreenAwake, loadLyricsScreenAwake, lyricsScreenAwake } from '../data/lyrics-screen-awake.js'
 import {
   type AudioQuality,
@@ -65,12 +68,16 @@ const FLOATING_LYRIC_OPACITY_OPTIONS: FloatingLyricOpacity[] = [0.2, 0.4, 0.6, 0
  */
 export function PlaybackPage() {
   const [shortcutsEnabled, setShortcutsEnabled] = useState(webShortcuts.getState().enabled)
+  const [shortcutPrefs, setShortcutPrefs] = useState(webShortcuts.getState())
   useEffect(() => {
-    const stop = webShortcuts.subscribe(state => setShortcutsEnabled(state.enabled))
+    const stop = webShortcuts.subscribe(state => { setShortcutsEnabled(state.enabled); setShortcutPrefs(state) })
     setShortcutsEnabled(webShortcuts.getState().enabled)
-    return stop
+    setShortcutPrefs(webShortcuts.getState())
+    return () => { stop(); webShortcuts.setState({ recording: null }) }
   }, [])
   const { t } = useTranslation()
+  const miniControls = useSyncExternalStore(miniPlayerControls.subscribe, () => miniPlayerControls.getState().mode)
+  useEffect(() => { void loadMiniPlayerControls() }, [])
   const songTitleScrolling = useSyncExternalStore(subscribeSongTitleScrolling, getSongTitleScrolling)
   const lyricsKeepScreenOn = useSyncExternalStore(lyricsScreenAwake.subscribe, () => lyricsScreenAwake.getState().enabled)
   useEffect(() => { void loadLyricsScreenAwake() }, [])
@@ -79,6 +86,13 @@ export function PlaybackPage() {
   const [audioQuality, setAudioQuality] = useState<AudioQuality>('original')
   const [autoResume, setAutoResume] = useState(false)
   const [normalize, setNormalize] = useState(false)
+  useEffect(() => {
+    let alive = true
+    const stop = subscribePreferencesApplied(() => {
+      void readAudioQuality().then(value => { if (alive) setAudioQuality(value) })
+    })
+    return () => { alive = false; stop() }
+  }, [])
 
   // ── Lyrics state ─────────────────────────────────────────────────────────
   const [autoEnterLyrics, setAutoEnterLyrics] = useState(false)
@@ -194,15 +208,36 @@ export function PlaybackPage() {
         />
       </SettingsSection>
 
+      <SettingsSection title={t('settings.miniPlayerControls')}>
+        {MINI_PLAYER_CONTROLS.map(mode => <SettingsRow
+          key={mode}
+          title={t(`settings.miniControls_${mode}`)}
+          selected={miniControls === mode}
+          trailingIcon={miniControls === mode ? 'check' : undefined}
+          onTap={() => changeMiniPlayerControls(mode)}
+          testId={`mini-controls-${mode}`}
+        />)}
+      </SettingsSection>
+
       {hasPlaybackKeys() && <SettingsSection title={t('settings.keyboardShortcuts')}>
         <SwitchRow
           icon='music'
           title={t('settings.keyboardShortcuts')}
-          subtitle={t('settings.keyboardShortcutsMap')}
+          subtitle={t('settings.shortcutHelp')}
           checked={shortcutsEnabled}
           onChange={next => webShortcuts.getState().setEnabled(next)}
           testId='settings-keyboard-shortcuts'
         />
+        {SHORTCUT_ACTIONS.map(action => <SettingsRow
+          key={action}
+          title={t(`settings.shortcut_${action}`)}
+          subtitle={shortcutPrefs.recording === action ? t('settings.shortcutRecording') : shortcutLabel(shortcutPrefs.bindings[action])}
+          selected={shortcutPrefs.recording === action}
+          onTap={() => webShortcuts.setState({ recording: shortcutPrefs.recording === action ? null : action, bindingError: false })}
+          testId={`shortcut-${action}`}
+        />)}
+        {shortcutPrefs.bindingError && <SettingsRow title={t('settings.shortcutConflict')} testId='shortcut-conflict' />}
+        <SettingsRow title={t('settings.shortcutReset')} onTap={resetShortcutBindings} testId='shortcut-reset' />
       </SettingsSection>}
 
       {/* ── Lyrics ─────────────────────────────────────────────────────── */}

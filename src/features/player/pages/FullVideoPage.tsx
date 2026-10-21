@@ -17,6 +17,9 @@ import { setFullVideoActive } from '../../../shared/theme/video-surface-model.js
 import { progressOf, usePlayerStore } from '../store/index.js'
 import { openCurrentSongVideo } from '../data/video-open.js'
 import { SeekBar } from '../widgets/SeekBar.js'
+import { VideoSubtitleOverlay } from '../widgets/VideoSubtitleOverlay.js'
+import { changeVideoSubtitles, loadVideoSubtitles, videoSubtitles } from '../data/video-prefs.js'
+import { getWebVideoFullscreen, hasWebVideoFullscreen, setWebVideoFullscreen, subscribeWebVideoFullscreen } from '../../../native/web-video-fullscreen.js'
 import './FullVideoPage.css'
 
 function formatPosition(positionMs: number): string {
@@ -78,9 +81,44 @@ export function FullVideoPage() {
   const [container, setContainer] = useState<{ width: number; height: number } | null>(null)
   const [videoSize, setVideoSize] = useState<VideoSize | null>(null)
   const [orientationLocked, setOrientationLocked] = useState(false)
+  const [subtitles, setSubtitles] = useState(videoSubtitles.getState().enabled)
+  const [browserFullscreen, setBrowserFullscreen] = useState(false)
+  const [fullscreenSupported, setFullscreenSupported] = useState(false)
+  useEffect(() => {
+    const stop = videoSubtitles.subscribe((state) => setSubtitles(state.enabled))
+    void loadVideoSubtitles()
+    return stop
+  }, [])
+  useEffect(() => {
+    let alive = true
+    if (hasWebVideoFullscreen())
+      void getWebVideoFullscreen()
+        .then((state) => {
+          if (alive) {
+            setFullscreenSupported(state.supported)
+            setBrowserFullscreen(state.active)
+          }
+        })
+        .catch(() => {})
+    const stop = subscribeWebVideoFullscreen(setBrowserFullscreen)
+    return () => {
+      alive = false
+      stop()
+      void setWebVideoFullscreen({ enabled: false }).catch(() => {})
+    }
+  }, [])
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const song = usePlayerStore((s) => s.currentSong)
+  const openedSongRef = useRef(song)
+  const songChangeHandledRef = useRef(false)
+  useEffect(() => {
+    // The player closes the outgoing track's native surface on this same
+    // reference change. Leave its controls too, including MV → audio advance.
+    if (song === openedSongRef.current || songChangeHandledRef.current) return
+    songChangeHandledRef.current = true
+    performRouteBack()
+  }, [song])
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const isBuffering = usePlayerStore((s) => s.isBuffering)
   const currentTime = usePlayerStore((s) => s.currentTime)
@@ -115,7 +153,7 @@ export function FullVideoPage() {
       if (cancelled) return
       if (outcome === 'noTrack') setNote(t('player.videoNoTrack'))
       else if (outcome === 'transcodeFailed') setNote(t('player.videoTranscodeFailed'))
-    })
+    }).catch(() => { if (!cancelled) setNote(t('player.videoUnavailable')) })
     // Prime video size — if the picture is already decoded we skip the wait
     // for the event and lay out on the first frame instead.
     void getVideoModule().getVideoSize().then((size) => {
@@ -250,6 +288,7 @@ export function FullVideoPage() {
         )
         : null}
 
+      <VideoSubtitleOverlay enabled={subtitles} controlsVisible={chromeVisible} />
       <view
         className={`full-video__chrome ${chromeVisible ? '' : 'full-video__chrome--hidden'}`}
       >
@@ -315,7 +354,27 @@ export function FullVideoPage() {
             >
               <Icon name={scaleMode === 'fit' ? 'maximize' : 'minimize'} size={22} color='#ffffff' />
             </view>
-            <view className='full-video__tool full-video__tool--ghost' />
+            <view className='full-video__tool'
+              catchtap={() => { showChrome(); changeVideoSubtitles(!subtitles) }}
+              data-testid='video-subtitle-toggle'
+              accessibility-element={true}
+              accessibility-label={t(subtitles ? 'player.videoSubtitlesOff' : 'player.videoSubtitlesOn')}
+            >
+              <text className='full-video__time'>{t(subtitles ? 'player.videoSubtitlesEnabled' : 'player.videoSubtitlesDisabled')}</text>
+            </view>
+            {fullscreenSupported && <view className='full-video__tool'
+              catchtap={() => {
+                showChrome()
+                void setWebVideoFullscreen({ enabled: !browserFullscreen, label: t('player.videoFullscreenEnter') })
+                  .then(state => setBrowserFullscreen(state.active))
+                  .catch(() => setNote(t('player.videoFullscreenFailed')))
+              }}
+              data-testid='video-browser-fullscreen'
+              accessibility-element={true}
+              accessibility-label={t(browserFullscreen ? 'player.videoFullscreenExit' : 'player.videoFullscreenEnter')}
+            >
+              <Icon name={browserFullscreen ? 'minimize' : 'maximize'} size={22} color='#ffffff' />
+            </view>}
           </view>
         </view>
       </view>

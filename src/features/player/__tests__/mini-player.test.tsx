@@ -29,8 +29,27 @@ vi.mock('../store/player-store.js', async () => {
 })
 
 const { MiniPlayer } = await import('../widgets/MiniPlayer.js')
+const { changeMiniPlayerControls, miniPlayerControls } = await import('../data/mini-player-controls.js')
+const { createMemoryStorage, setSongloftStorage } = await import('../../../core/storage/index.js')
 
-afterEach(() => vi.clearAllMocks())
+afterEach(() => { vi.clearAllMocks(); miniPlayerControls.setState({ mode: 'prevNext' }); setSongloftStorage(createMemoryStorage()) })
+
+test('button preferences update the mounted mini player and survive storage reload', async () => {
+  setSongloftStorage(createMemoryStorage())
+  render(<MiniPlayer />)
+  await act(async () => { await Promise.resolve() })
+  const query = getQueriesForElement(elementTree.root!)
+  await act(async () => { changeMiniPlayerControls('playOnly') })
+  expect(query.queryByTestId('icon-play')).toBeInTheDocument()
+  expect(query.queryByTestId('icon-skip-next')).not.toBeInTheDocument()
+  await act(async () => { changeMiniPlayerControls('prevNextMode') })
+  expect(query.queryByTestId('icon-skip-next')).toBeInTheDocument()
+  expect(query.queryByTestId('mini-play-mode')).toBeInTheDocument()
+  const { loadMiniPlayerControls } = await import('../data/mini-player-controls.js')
+  miniPlayerControls.setState({ mode: 'playOnly' })
+  await act(async () => { await loadMiniPlayerControls() })
+  expect(query.queryByTestId('mini-play-mode')).toBeInTheDocument()
+})
 
 test('shows the current song title, subtitle and play control', async () => {
   render(<MiniPlayer />)

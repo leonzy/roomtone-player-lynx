@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+功能移植提交授权（2026-10-21）：用户现已明确要求「提交推送」。只提交并推送本批功能移植及父指针，保留并发首页/Flutter 工作；不继承其他任务的写授权。最终提交与 CI 以交付记录为准，下方未提交描述保留为历史验收快照。
+
+功能移植最终追加（2026-10-21）：修复 Android 首次桌面播放丢失及 MV 切音频后的空白视频页；独立副本的类型、双产物/Web、421 项相关回归、89 项发布检查和 4 项原生单测/Android 构建通过。最终 APK `4f0f5870…c76ba1` 的 9 项桌面实测与 Web/Android MV 结束返回均通过，11 张新截图见 `/home/hanxi/work/songloft-review/lynx-current-device-20261021/review.html`。独立副本不含并发首页任务的新功能；共享目录改动保留。全量重跑中止及各次失败已留档，iOS/HarmonyOS 设备与签名、真机、默认玻璃仍未验。未提交/推送/发布；详情以 [本批最终记录](feature-port-20261021.md) 为准，下方功能移植段落是前一阶段快照。
+
+功能移植（2026-10-21）：当前批次仅授权实现、验证和提供审核截图，未授权提交/推送/发布；不继承下方历史授权。五项优先功能与 MV 字幕、Web 全屏、平滑歌词、Android/iOS 小组件源码已补齐；先前 3653 项全量测试和最后歌单调整的 124 项复验通过。追加 iOS 冷启动回调/封面修正后，319 项相关测试、类型、生产双产物、89 项发布检查通过；最新 Android Debug、HarmonyOS clean release HAP 和带 Xcode 27 兼容条件的 iOS app/WidgetKit 编译通过。14 张真实浏览器/Android RemoteViews 截图保存在 `/home/hanxi/work/songloft-review/lynx-features-20261021/review.html`，新包/日志另存 `lynx-native-followup-20261021`；旧桌面截图不冒充新 APK 设备实测。iOS/HarmonyOS 签名、设备与新增截图，真机及默认玻璃效果仍开放。范围、契约与证据见 [本批记录](feature-port-20261021.md) / [English](../en/project/feature-port-20261021.md)。
+
 #531 后续（2026-10-20）：本会话已授权 Flutter/Lynx 修复、提交、推送并回复 Issue。Lynx 直播断流保持当前台无限重连，系统暂停/播放意图经四端宿主明确传递；验证对象、实际播放与 Not run 见 [记录](issue-531.md)。本批授权优先于下方历史快照，最终 SHA/CI/评论以交付为准；不打正式版 tag、不关闭 Issue。
 
 升级补审（2026-10-21）：首批 CI 已通过；继续以原授权补齐 `audio.remoteIntent.v1` 不可变宿主能力门控，防止旧壳只更新 JS 后缺少系统控制事件。88 项发布检查通过；最终构建、提交、父指针、CI 与评论以同一验证记录为准，播放核心未再改动。
