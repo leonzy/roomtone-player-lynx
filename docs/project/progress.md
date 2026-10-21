@@ -10,6 +10,12 @@ English: The user explicitly authorized committing and pushing the feature port 
 
 English: Fixed first desktop Play delivery and navigation after MV→audio advance. The isolated snapshot passes 421 affected tests, 89 release checks, four native tests, types, production outputs/Web and Android build. Final APK `4f0f5870…c76ba1` passes nine widget checks; Web/Android return correctly at natural MV completion. Eleven screenshots are linked above. Concurrent home work is preserved; mixed builds are rejected and interrupted/full-run/launch failures retained. iOS/HarmonyOS devices, signing, hardware and default glass remain untested. No commit/push/release; see the paired final records.
 
+## 2026-10-21 · #532 首页收藏卡片显示
+
+新增独立的「收藏／电台收藏」首页显示开关，默认开启，按服务器与账号保存在本机。65 项相关测试、类型、双产物和真实 Web 操作通过；全量 3661 项通过，另一个文件依赖加载超时后单独 3 项复跑通过。已获本会话提交、推送和回复授权，原生设备未跑。详情与证据见 [中文](issue-532.md) / [English](../en/project/issue-532.md)。
+
+English: Added independent home Favorites / Radio favorites switches, enabled by default and stored locally per server/account. The 65 affected tests, typecheck, dual build and actual Web checks pass. The broad run passed 3661 tests; the remaining file passed 3 tests on retry after a dependency-load timeout. This session authorizes commit/push/reply; native devices were not tested and stable publication remains separate. See the paired records above.
+
 ## 2026-10-21 · 指定 Flutter 功能移植
 
 仅处理五项优先补齐、MV 字幕、Web 真正全屏、平滑逐字歌词和 Android/iOS 桌面小组件。3653 项测试、类型、Lynx/Web 生产构建、89 项发布检查及 Android 编译通过；实际浏览器确认全屏中的视频继续播放、字幕不随控制栏隐藏、偏好拉取/持久化、永久排序与生成文件删除。Android RemoteViews 桌面实测暂停、切歌、收藏，14 张审核截图见 `/home/hanxi/work/songloft-review/lynx-features-20261021/review.html`。同日追加修正 iOS 冷启动回调和首次无封面快照；319 项相关测试及类型/生产构建/89 项发布检查再通过。当前 Android Debug APK、HarmonyOS clean release HAP、带 Xcode 27 兼容条件的 iOS app/WidgetKit 编译与包检查通过，新证据另存 `lynx-native-followup-20261021`，与原桌面截图对应的旧 APK 分开记录。iOS/HarmonyOS 签名、设备/截图、真机和默认玻璃效果仍开放；未提交/推送/发布。范围、可选宿主契约、环境失败与证据见 [记录](feature-port-20261021.md) / [English](../en/project/feature-port-20261021.md)。

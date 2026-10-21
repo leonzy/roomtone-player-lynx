@@ -1,5 +1,6 @@
 import type { PlaylistListResponse, Playlist } from '../../../models/playlist.js'
 import { flattenPlaylists } from '../../playlist/data/pagination.js'
+import { DEFAULT_HOME_FAVORITES, isHomePlaylistVisible, type HomeFavoritesVisibility } from '../domain/home-favorites.js'
 
 /**
  * Pure selectors deriving the home page's view-model from the playlist infinite
@@ -21,8 +22,9 @@ export const HOME_SECTION_LIMIT = 6
 export function homeSectionItems(
   pages: readonly PlaylistListResponse[] | undefined,
   limit: number = HOME_SECTION_LIMIT,
+  visibility: HomeFavoritesVisibility = DEFAULT_HOME_FAVORITES,
 ): Playlist[] {
-  const all = flattenPlaylists(pages)
+  const all = flattenPlaylists(pages).filter(playlist => isHomePlaylistVisible(playlist, visibility))
   return limit > 0 ? all.slice(0, limit) : all
 }
 

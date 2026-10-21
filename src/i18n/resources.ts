@@ -191,6 +191,10 @@ export const en = {
   },
   home: {
     greetingNight: 'Good night',
+    showFavorites: 'Show Favorites on home',
+    showFavoritesDesc: 'Only controls the home card. Library access, songs and favorites stay available. Saved on this device for this server and account.',
+    showRadioFavorites: 'Show Radio favorites on home',
+    showRadioFavoritesDesc: 'Only controls the home card when the radio section is shown. Saved on this device for this server and account.',
     showRadios: 'Show radio section',
     showRadiosDesc: 'Show My Radios on the home page. This choice stays on this device.',
     layoutTitle: 'Home playlist layout',
@@ -1417,6 +1421,10 @@ export const zh: TranslationTree = {
   },
   home: {
     greetingNight: '晚安',
+    showFavorites: '在首页显示收藏',
+    showFavoritesDesc: '仅控制首页卡片，曲库入口、歌曲和收藏功能照常可用。按服务器和账号保存在本机。',
+    showRadioFavorites: '在首页显示电台收藏',
+    showRadioFavoritesDesc: '仅控制电台区块中的首页卡片，需开启「显示电台区块」。按服务器和账号保存在本机。',
     showRadios: '显示电台区块',
     showRadiosDesc: '在首页显示「我的电台」，选择保存在本机。',
     layoutTitle: '首页歌单布局',

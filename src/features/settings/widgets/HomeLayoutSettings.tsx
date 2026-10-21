@@ -3,11 +3,13 @@ import { changeHomeConfig, useHomeConfig } from '../../home/data/home-layout.js'
 import { HOME_COLUMNS, HOME_MAX_ITEMS, HOME_ROWS, type HomeLayout } from '../../home/domain/home-layout.js'
 import { SettingsSection } from './SettingsSection.js'
 import { SwitchRow } from './SwitchRow.js'
+import { useHomeFavoritesVisibility } from '../../home/data/home-favorites.js'
 import './HomeLayoutSettings.css'
 
 export function HomeLayoutSettings() {
   const { t } = useTranslation()
   const config = useHomeConfig()
+  const favorites = useHomeFavoritesVisibility()
   const layouts: { value: HomeLayout; label: string }[] = [
     { value: 'adaptive', label: t('home.layoutAdaptive') },
     { value: 'carousel', label: t('home.layoutCarousel') },
@@ -15,6 +17,12 @@ export function HomeLayoutSettings() {
     { value: 'list', label: t('home.layoutList') },
   ]
   return <SettingsSection title={t('home.layoutTitle')}>
+    <SwitchRow title={t('home.showFavorites')} subtitle={t('home.showFavoritesDesc')}
+      checked={favorites.config.showFavorites} onChange={showFavorites => { void favorites.change({ showFavorites }) }}
+      testId='home-show-favorites' />
+    <SwitchRow title={t('home.showRadioFavorites')} subtitle={t('home.showRadioFavoritesDesc')}
+      checked={favorites.config.showRadioFavorites} onChange={showRadioFavorites => { void favorites.change({ showRadioFavorites }) }}
+      testId='home-show-radio-favorites' />
     <SwitchRow title={t('home.showRadios')} subtitle={t('home.showRadiosDesc')}
       checked={config.showRadios} onChange={showRadios => { void changeHomeConfig({ showRadios }) }}
       testId='home-show-radios' />

@@ -52,6 +52,18 @@ describe('homeSectionItems', () => {
     expect(homeSectionItems([page([1, 2, 3], 3)], 2)).toHaveLength(2)
     expect(homeSectionItems([page([1, 2, 3], 3)], 0)).toHaveLength(3)
   })
+
+  test('filters built-in identity before the card limit without altering shared pages', () => {
+    const favorites = { ...pl(1), isBuiltIn: true, labels: ['built_in'], name: 'Renamed favorites' }
+    const radioFavorites = { ...pl(2), type: 'radio' as const, isBuiltIn: true, labels: ['built_in'] }
+    const sameName = { ...pl(3), name: '收藏' }
+    const pages = [{ playlists: [favorites, radioFavorites, sameName, pl(4)], total: 4 }]
+    const visibility = { showFavorites: false, showRadioFavorites: false }
+    expect(homeSectionItems(pages, 2, visibility).map(p => p.id)).toEqual([3, 4])
+    expect(pages[0]!.playlists.map(p => p.id)).toEqual([1, 2, 3, 4])
+    expect(favorites.labels).toEqual(['built_in'])
+    expect(homeSectionItems(pages, 0, { showFavorites: true, showRadioFavorites: false }).map(p => p.id)).toEqual([1, 3, 4])
+  })
 })
 
 // `homeSectionTotal` / `homeStats` are gone: the stats panel reads `/songs/stats`

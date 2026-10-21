@@ -22,6 +22,7 @@ import { HomeSection } from '../widgets/HomeSection.js'
 import { StatsStrip } from '../widgets/StatsStrip.js'
 import { useHomeConfig } from '../data/home-layout.js'
 import { homeGridColumns, homeItemLimit } from '../domain/home-layout.js'
+import { useHomeFavoritesVisibility } from '../data/home-favorites.js'
 
 import './HomePage.css'
 
@@ -44,6 +45,7 @@ export function HomePage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const homeConfig = useHomeConfig()
+  const { config: favoritesVisibility } = useHomeFavoritesVisibility()
   const normal = useHomePlaylists('normal')
   const radio = useHomePlaylists('radio', homeConfig.showRadios)
   // Library totals come from `/songs/stats`, not from the two sections' `total`
@@ -63,19 +65,20 @@ export function HomePage() {
     ? (isBento ? 4 : 6) : (homeIsWide ? 3 : 2)
   const columns = homeGridColumns(sectionWidth, homeConfig.columns, autoColumns)
   const sectionLimit = homeItemLimit(homeConfig, columns, homeIsWide)
-  const normalItems = homeSectionItems(normal.data?.pages, sectionLimit)
-  const radioItems = homeSectionItems(radio.data?.pages, sectionLimit)
+  const normalItems = homeSectionItems(normal.data?.pages, sectionLimit, favoritesVisibility)
+  const radioItems = homeSectionItems(radio.data?.pages, sectionLimit, favoritesVisibility)
   const cursors = useRef<Record<string, number>>({})
   useEffect(() => {
     for (const [type, query] of [['normal', normal], ['radio', radio]] as const) {
       if (type === 'radio' && !homeConfig.showRadios) continue
       const count = homeSectionItems(query.data?.pages, 0).length
-      if (!query.hasNextPage || query.isFetchingNextPage || query.isFetchNextPageError || count >= sectionLimit) continue
+      const visibleCount = homeSectionItems(query.data?.pages, 0, favoritesVisibility).length
+      if (!query.hasNextPage || query.isFetchingNextPage || query.isFetchNextPageError || visibleCount >= sectionLimit) continue
       if (cursors.current[type] === count) continue
       cursors.current[type] = count
       void query.fetchNextPage()
     }
-  }, [sectionLimit, homeConfig.showRadios, normal.data, radio.data, normal.isFetchingNextPage, radio.isFetchingNextPage])
+  }, [sectionLimit, homeConfig.showRadios, favoritesVisibility.showFavorites, favoritesVisibility.showRadioFavorites, normal.data, radio.data, normal.isFetchingNextPage, radio.isFetchingNextPage])
   const stats = statsQuery.data ?? EMPTY_LIBRARY_STATS
 
   const normalFailed = normal.isError

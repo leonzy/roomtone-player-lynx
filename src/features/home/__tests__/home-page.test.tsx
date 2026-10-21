@@ -20,7 +20,8 @@ import type { Playlist } from '../../../models/playlist.js'
  * run against the injected data; assertions check the rendered structure
  * (greeting, section titles, card names, stats, states), not fixtures echoed back.
  */
-const { normalHook, radioHook, statsHook, breakpointHook } = vi.hoisted(() => ({
+const { normalHook, radioHook, statsHook, breakpointHook, favoritesHook } = vi.hoisted(() => ({
+  favoritesHook: vi.fn(),
   breakpointHook: vi.fn(),
   normalHook: vi.fn(),
   radioHook: vi.fn(),
@@ -43,6 +44,10 @@ vi.mock('../../jsplugin/widgets/PluginGrid.js', () => ({
 
 vi.mock('../data/home-query.js', () => ({
   useHomePlaylists: (type: string) => (type === 'radio' ? radioHook() : normalHook()),
+}))
+
+vi.mock('../data/home-favorites.js', () => ({
+  useHomeFavoritesVisibility: () => favoritesHook(),
 }))
 
 vi.mock('../../../shared/responsive/use-shell-seeded-breakpoint.js', () => ({
@@ -99,6 +104,7 @@ function stats(over: Record<string, number> = {}) {
 }
 
 beforeEach(async () => {
+  favoritesHook.mockReturnValue({ config: { showFavorites: true, showRadioFavorites: true } })
   await changeHomeConfig({ showRadios: true })
   breakpointHook.mockReturnValue({ width: 390, isWide: false, breakpoint: 'mobile', onLayoutChange: () => {} })
   normalHook.mockReturnValue(result([{ playlists: [], total: 0 }]))
@@ -115,6 +121,25 @@ async function renderPage() {
   })
   return getQueriesForElement(elementTree.root!)
 }
+
+test('home-only favorites switches filter built-ins and refill the visible card budget', async () => {
+  await changeHomeConfig({ layout: 'grid', columns: 2, rows: 1 })
+  favoritesHook.mockReturnValue({ config: { showFavorites: false, showRadioFavorites: false } })
+  const favorites = makePlaylist(1, { name: 'Favorites', isBuiltIn: true, labels: ['built_in'] })
+  const radioFavorites = makePlaylist(2, { name: 'Radio favorites', isBuiltIn: true, labels: ['built_in'], type: 'radio' })
+  const fetchNextPage = vi.fn()
+  normalHook.mockReturnValue(result([{ playlists: [favorites, makePlaylist(3)], total: 3 }], {
+    hasNextPage: true, isFetchingNextPage: false, fetchNextPage,
+  }))
+  radioHook.mockReturnValue(result([{ playlists: [radioFavorites, makePlaylist(4, { type: 'radio' })], total: 2 }]))
+  const q = await renderPage()
+  expect(q.queryByText('Favorites')).toBeNull()
+  expect(q.queryByText('Radio favorites')).toBeNull()
+  expect(q.getByText('Playlist 3')).toBeTruthy()
+  expect(q.getByText('Playlist 4')).toBeTruthy()
+  expect(fetchNextPage).toHaveBeenCalledTimes(1)
+  expect(favorites.labels).toEqual(['built_in'])
+})
 
 test('a layout larger than one API page fills its budget and stops after enough cards load', async () => {
   await changeHomeConfig({ layout: 'carousel' })
