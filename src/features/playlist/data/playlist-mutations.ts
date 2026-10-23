@@ -57,6 +57,11 @@ export function useAddSongsMutation(playlistId: number) {
       void queryClient.invalidateQueries({
         queryKey: playlistQueryKeys.detail(playlistId),
       })
+      // The picker's exclusion set: after adding, the songs just added must
+      // drop out the next time it opens.
+      void queryClient.invalidateQueries({
+        queryKey: playlistQueryKeys.songIds(playlistId),
+      })
     },
   })
 }

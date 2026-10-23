@@ -18,6 +18,7 @@ import {
   PREF_LOCAL_CACHE_MAX_SIZE,
 } from '../../player/data/song-cache-prefs.js'
 import { setAudioQualityCache, usePlayerStore } from '../../player/store/player-store.js'
+import { PREF_VOLUME } from '../../player/data/volume-prefs.js'
 import { getSettingsApi } from '../api/index.js'
 import { PreferenceSync } from '../domain/preference-sync.js'
 import { PREF_AUDIO_QUALITY, PREF_DEFAULT_PLAY_MODE, readAudioQuality } from './settings-prefs.js'
@@ -28,7 +29,7 @@ const PREF_KEYS: Record<keyof UserPreferences, string> = {
   playlist_view_mode: 'playlist_view_mode',
   audio_quality: PREF_AUDIO_QUALITY,
   local_cache_max_size: PREF_LOCAL_CACHE_MAX_SIZE,
-  volume: 'player_volume',
+  volume: PREF_VOLUME,
 }
 
 let dispose: (() => void) | undefined

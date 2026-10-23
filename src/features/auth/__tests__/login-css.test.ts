@@ -63,3 +63,14 @@ test('no Muse colour aliases survive in the login CSS', () => {
   const ALIAS = /var\(--(?:content|content-2|content-muted|paper|line|neutral-faint|primary|primary-content|primary-faint|danger)\)/
   expect(ALIAS.test(CSS), 'LoginPage.css still carries a Muse colour alias').toBe(false)
 })
+
+/*
+ * Regression (songloft-org/songloft#536): on iOS the form could not scroll, so
+ * the login button was unreachable on short viewports (landscape, or a portrait
+ * screen with the keyboard up). A Lynx scroll-view sized by `flex: 1` alone is
+ * content-sized and never scrolls — it needs an explicit bounded height, the
+ * same rule every other scroll page in the app follows.
+ */
+test('the login scroll view has a bounded height', () => {
+  expect(ruleFor('.login__scroll')).toMatch(/height:\s*100%/)
+})

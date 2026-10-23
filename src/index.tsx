@@ -18,6 +18,7 @@ import { readDefaultPlayMode } from './features/settings/data/settings-prefs.js'
 import {
   usePlayerStore,
   restorePlaybackState,
+  restoreVolume,
 } from './features/player/store/index.js'
 import { navigateAutoEnterLyricsIfNeeded } from './features/player/data/auto-enter-lyrics.js'
 import { syncFloatingLyricOverlay } from './features/settings/domain/floating-lyric-overlay.js'
@@ -136,6 +137,9 @@ void (async () => {
     initializeCacheContext()
     const savedMode = await readDefaultPlayMode()
     usePlayerStore.getState().setPlayMode(savedMode)
+    // Before playback restore: auto-resume may start playing immediately, and
+    // the host otherwise applies its own default volume.
+    await restoreVolume()
     await restorePlaybackState()
     // Restores the overlay the user left switched on. Deliberately grant-checking
     // only (never `requestPermission`): that opens a system screen, and one that

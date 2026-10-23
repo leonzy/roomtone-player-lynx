@@ -58,6 +58,12 @@ export interface SongRowOverlayState {
   infoSong: Song | null
   /** The song whose edit dialog is open; null while closed. */
   editSong: Song | null
+  /**
+   * The mini-player volume popover; null while closed. An open popover whose
+   * measured anchor is null (no invoke bridge / failed measurement) docks at
+   * {@link DOCKED_POSITION} instead of refusing to open.
+   */
+  miniVolume: { anchor: AnchorMeasurement | null } | null
   openMenu: (params: OpenMenuParams) => void
   closeMenu: () => void
   openAddToPlaylist: (params: OpenAddToPlaylistParams) => void
@@ -70,6 +76,8 @@ export interface SongRowOverlayState {
   closeInfo: () => void
   openEdit: (song: Song) => void
   closeEdit: () => void
+  openMiniVolume: (anchor?: AnchorMeasurement | null) => void
+  closeMiniVolume: () => void
 }
 
 /**
@@ -136,6 +144,7 @@ export const useSongRowOverlays = create<SongRowOverlayState>((set) => ({
   deleteSong: null,
   infoSong: null,
   editSong: null,
+  miniVolume: null,
   openMenu: ({ song, anchor, row }) =>
     set({
       menuSong: song,
@@ -147,6 +156,7 @@ export const useSongRowOverlays = create<SongRowOverlayState>((set) => ({
       deleteSong: null,
       infoSong: null,
       editSong: null,
+      miniVolume: null,
     }),
   closeMenu: () => set({ menuSong: null, menuAnchor: null, menuRow: null }),
   openAddToPlaylist: ({ songIds, onAdded }) =>
@@ -160,6 +170,7 @@ export const useSongRowOverlays = create<SongRowOverlayState>((set) => ({
       deleteSong: null,
       infoSong: null,
       editSong: null,
+      miniVolume: null,
     }),
   closeAddToPlaylist: () => set({ addToPlaylistSongIds: [], addToPlaylistOnAdded: null }),
   openManageTags: (songIds) =>
@@ -173,6 +184,7 @@ export const useSongRowOverlays = create<SongRowOverlayState>((set) => ({
       deleteSong: null,
       infoSong: null,
       editSong: null,
+      miniVolume: null,
     }),
   closeManageTags: () => set({ manageTagsSongIds: [] }),
   requestDelete: (song) =>
@@ -186,6 +198,7 @@ export const useSongRowOverlays = create<SongRowOverlayState>((set) => ({
       manageTagsSongIds: [],
       infoSong: null,
       editSong: null,
+      miniVolume: null,
     }),
   cancelDelete: () => set({ deleteSong: null }),
   openInfo: (song) =>
@@ -199,6 +212,7 @@ export const useSongRowOverlays = create<SongRowOverlayState>((set) => ({
       manageTagsSongIds: [],
       deleteSong: null,
       editSong: null,
+      miniVolume: null,
     }),
   closeInfo: () => set({ infoSong: null }),
   openEdit: (song) =>
@@ -212,8 +226,23 @@ export const useSongRowOverlays = create<SongRowOverlayState>((set) => ({
       manageTagsSongIds: [],
       deleteSong: null,
       infoSong: null,
+      miniVolume: null,
     }),
   closeEdit: () => set({ editSong: null }),
+  openMiniVolume: (anchor) =>
+    set({
+      miniVolume: { anchor: anchor ?? null },
+      menuSong: null,
+      menuAnchor: null,
+      menuRow: null,
+      addToPlaylistSongIds: [],
+      addToPlaylistOnAdded: null,
+      manageTagsSongIds: [],
+      deleteSong: null,
+      infoSong: null,
+      editSong: null,
+    }),
+  closeMiniVolume: () => set({ miniVolume: null }),
 }))
 
 /**
@@ -229,4 +258,7 @@ export const songRowOverlays = {
     useSongRowOverlays.getState().openManageTags(songIds),
   openInfo: (song: Song) => useSongRowOverlays.getState().openInfo(song),
   openEdit: (song: Song) => useSongRowOverlays.getState().openEdit(song),
+  openMiniVolume: (anchor?: AnchorMeasurement | null) =>
+    useSongRowOverlays.getState().openMiniVolume(anchor),
+  closeMiniVolume: () => useSongRowOverlays.getState().closeMiniVolume(),
 }

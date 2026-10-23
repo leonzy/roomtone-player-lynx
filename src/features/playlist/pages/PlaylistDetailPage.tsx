@@ -23,6 +23,7 @@ import { SongListRow } from '../../library/widgets/SongListRow.js'
 import { PlaylistSongList } from '../widgets/PlaylistSongList.js'
 import { PlaylistDescPanel } from '../widgets/PlaylistDescPanel.js'
 import { PlaylistToolbar } from '../widgets/PlaylistToolbar.js'
+import { AddSongsToPlaylistSheet } from '../widgets/AddSongsToPlaylistSheet.js'
 import { getPlaylistApi } from '../api/index.js'
 import { songGroupInitial } from '../domain/song-title-initial.js'
 import { playlistContext } from '../../player/domain/playback-context.js'
@@ -138,6 +139,7 @@ export function PlaylistDetailPage() {
     return () => { delete obj.setShowDesc }
   }, [])
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showAddSongs, setShowAddSongs] = useState(false)
   const [permanentSortBusy, setPermanentSortBusy] = useState(false)
   const [pendingSort, setPendingSort] = useState<'name_asc' | 'name_desc' | 'number_prefix' | 'shuffle' | null>(null)
   const [sortMode, setSortMode] = useState(false)
@@ -366,6 +368,14 @@ export function PlaylistDetailPage() {
                       <Icon name='more' size={20} color={ICON_COLORS.content2} />
                     }
                     items={[
+                      /*
+                       * Add songs first: it is the one create action in this
+                       * menu. Available for built-in playlists too — adding to
+                       * Favorites is a legitimate destination, and the backend
+                       * accepts it (only its usual *update* guards skip
+                       * built-ins).
+                       */
+                      { key: 'addSongs', label: t('playlist.addSongs'), icon: 'plus' as const },
                       ...(canCacheBatch && playlist?.type !== 'radio'
                         ? [{ key: 'cache', label: cacheBatch.busy ? t('common.loading') : t('cacheTasks.wholePlaylist'), icon: 'download' as const }]
                         : []),
@@ -402,7 +412,8 @@ export function PlaylistDetailPage() {
                         : []),
                     ]}
                     onSelect={(key) => {
-                      if (key === 'cache') { if (!cacheBatch.busy) void cacheBatch.beginPlaylist(id) }
+                      if (key === 'addSongs') setShowAddSongs(true)
+                      else if (key === 'cache') { if (!cacheBatch.busy) void cacheBatch.beginPlaylist(id) }
                       else if (key === 'pin') togglePin()
                       else if (key === 'editCover') void navigate({ to: '/playlists/$id/edit', params: { id: String(id) }, search: { coverOnly: true } })
                       else if (key === 'sort') enterSortMode()
@@ -484,6 +495,7 @@ export function PlaylistDetailPage() {
             sortOptions={sortOptions}
             onSelectSort={onSelectSort}
             onPlayAll={playAll}
+            onAddSongs={() => setShowAddSongs(true)}
             selectMode={selectMode}
             onToggleSelect={selectMode ? exitSelectMode : enterSelectMode}
             hasSongs={songs.length > 0}
@@ -683,6 +695,15 @@ export function PlaylistDetailPage() {
         : null}
       {/* Same mount-only-while-open pattern as the history panel above. */}
       {cacheBatch.confirmation}
+      {showAddSongs && id > 0
+        ? (
+          <AddSongsToPlaylistSheet
+            playlistId={id}
+            playlistType={playlist?.type ?? 'normal'}
+            onClose={() => setShowAddSongs(false)}
+          />
+        )
+        : null}
       {showDesc && playlist?.description
         ? (
           <PlaylistDescPanel

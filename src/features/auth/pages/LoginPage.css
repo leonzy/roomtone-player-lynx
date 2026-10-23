@@ -38,6 +38,12 @@
   flex: 1;
   min-height: 0;
   width: 100%;
+  /* Lynx needs an explicit height for a scroll-view to become a real scroll
+     container — `flex: 1` alone leaves it content-sized, so on a short viewport
+     (an iPhone in landscape, or the portrait screen under the keyboard) the
+     form below the fold is clipped and unreachable. Same rule and reason as
+     `.subpage__scroll` / `.playlist-detail__scroll`. */
+  height: 100%;
 }
 .login__content {
   display: flex;

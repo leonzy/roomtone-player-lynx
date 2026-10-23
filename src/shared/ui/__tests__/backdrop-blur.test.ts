@@ -172,6 +172,7 @@ const EXPECTED_SCRIM_SITES = [
   'features/player/widgets/PlayHistoryPanel.tsx',
   'features/player/widgets/PlaylistDrawer.tsx',
   'features/player/widgets/SleepTimerSheet.tsx',
+  'features/playlist/widgets/AddSongsToPlaylistSheet.tsx',
   'features/playlist/widgets/AddToPlaylistSheet.tsx',
   'features/playlist/widgets/PlaylistDescPanel.tsx',
   'features/playlist/widgets/SongCoverPicker.tsx',

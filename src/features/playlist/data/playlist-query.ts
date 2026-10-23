@@ -21,6 +21,13 @@ export const playlistQueryKeys = {
   detail: (id: number) => ['playlist', 'detail', id] as const,
   songs: (id: number, filters: PlaylistSongsFilters) =>
     ['playlist', 'songs', id, filters] as const,
+  /**
+   * Every song id in the playlist — the picker's exclusion set. Read from the
+   * backend rather than from the loaded pages: the detail list is paged, so
+   * its pages cannot answer "is this song already in the playlist?" for any
+   * song the user has not scrolled to.
+   */
+  songIds: (id: number) => ['playlist', 'song-ids', id] as const,
 }
 
 /** Infinite playlist list for the given filters. */

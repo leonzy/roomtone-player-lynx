@@ -104,6 +104,23 @@ vi.mock('../data/playlist-mutations.js', () => ({
   useSetVisibilityMutation: visibilityMutationHook,
   useSetPinnedMutation: pinnedMutationHook,
   useUpdateSortMutation: sortMutationHook,
+  useAddSongsMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}))
+
+/*
+ * The picker owns its queries and has a test of its own; here only the page's
+ * entry wiring matters — which entry opens it and what playlist context it
+ * receives.
+ */
+vi.mock('../widgets/AddSongsToPlaylistSheet.js', () => ({
+  AddSongsToPlaylistSheet: ({ playlistId, playlistType }: {
+    playlistId: number
+    playlistType: string
+  }) => (
+    <view data-testid='add-songs-sheet-stub'>
+      <text>{`${playlistId}:${playlistType}`}</text>
+    </view>
+  ),
 }))
 
 vi.mock('../../library/widgets/VirtualList.js', async () =>
@@ -325,9 +342,33 @@ test('more menu offers only pin for built-in playlists', async () => {
   await openMoreMenu(queries)
 
   expect(queries.queryByTestId('popover-item-pin')).toBeInTheDocument()
+  // Adding songs is allowed for built-ins too — Favorites is a destination.
+  expect(queries.queryByTestId('popover-item-addSongs')).toBeInTheDocument()
   expect(queries.queryByTestId('popover-item-edit')).not.toBeInTheDocument()
   expect(queries.queryByTestId('popover-item-visibility')).not.toBeInTheDocument()
   expect(queries.queryByTestId('popover-item-delete')).not.toBeInTheDocument()
+})
+
+test('the toolbar add entry opens the picker for this playlist', async () => {
+  songsHook.mockReturnValue(songsResult([{ songs: [makeSong(1)], total: 1 }]))
+  const queries = await renderPage()
+
+  expect(queries.queryByTestId('add-songs-sheet-stub')).not.toBeInTheDocument()
+  fireEvent.tap(queries.getByTestId('playlist-toolbar-add'), {})
+  await act(async () => { await Promise.resolve() })
+
+  expect(queries.getByText('7:normal')).toBeInTheDocument()
+})
+
+test('the more menu add entry opens the picker and passes the playlist type', async () => {
+  detailHook.mockReturnValue(detailResult(makePlaylist({ type: 'radio' })))
+  const queries = await renderPage()
+  await openMoreMenu(queries)
+
+  fireEvent.tap(queries.getByTestId('popover-item-addSongs')!, {})
+  await act(async () => { await Promise.resolve() })
+
+  expect(queries.getByText('7:radio')).toBeInTheDocument()
 })
 
 test('shows the play-history button for built-in playlists too', async () => {

@@ -100,9 +100,14 @@ final class SongloftAudioEngine {
   /// Playback rate the JS store asked for; re-applied on every `play()` because
   /// `AVPlayer.rate` is reset to 1.0 whenever playback restarts.
   private var speed: Float = 1.0
+  /// App-level volume multiplier. `AVPlayer.volume` does not survive a player
+  /// replacement, so it is stored here and re-applied in `ensurePlayer()`.
+  /// Deliberately *not* `AVAudioSession.outputVolume`: that is the system
+  /// volume, which the in-app slider does not control (and reporting it made
+  /// the slider jump back on every lock-screen/hardware-key change).
+  private var volume: Float = 1.0
   private var isFavorite = false
   private var remoteCommandsInstalled = false
-  private var volumeObservation: NSKeyValueObservation?
   private var currentLyricLine: String?
   // nil preserves the legacy one-argument API's comments-only behavior.
   private var notificationLyricInTitle: Bool?
@@ -291,7 +296,8 @@ final class SongloftAudioEngine {
   }
 
   func setVolume(_ volume: Float) {
-    player?.volume = min(max(volume, 0), 1)
+    self.volume = min(max(volume, 0), 1)
+    player?.volume = self.volume
   }
 
   func setSpeed(_ rate: Float) {
@@ -326,19 +332,8 @@ final class SongloftAudioEngine {
   }
 
   func getVolume() {
-    let vol = AVAudioSession.sharedInstance().outputVolume
-    let volume = Int(round(Double(vol) * 100))
+    let volume = Int(round(Double(self.volume) * 100))
     emit(Self.eventVolumeChanged, ["volume": Double(volume)])
-  }
-
-  func startVolumeObserver() {
-    guard volumeObservation == nil else { return }
-    let session = AVAudioSession.sharedInstance()
-    volumeObservation = session.observe(\.outputVolume, options: [.new]) { [weak self] _, change in
-      guard let self, let newValue = change.newValue else { return }
-      let volume = Int(round(Double(newValue) * 100))
-      self.emit(Self.eventVolumeChanged, ["volume": Double(volume)])
-    }
   }
 
   /// Full teardown — called by the module's `dispose()`.
@@ -356,7 +351,6 @@ final class SongloftAudioEngine {
     itemStatusObservation = nil
     timeControlObservation = nil
     presentationSizeObservation = nil
-    volumeObservation = nil
     if let endObserver {
       NotificationCenter.default.removeObserver(endObserver)
     }
@@ -470,6 +464,7 @@ final class SongloftAudioEngine {
     installLifecycleObservers()
     let created = AVPlayer()
     created.automaticallyWaitsToMinimizeStalling = true
+    created.volume = volume
     timeControlObservation = created.observe(\.timeControlStatus, options: [.new]) {
       [weak self] player, _ in
       self?.runOnMain { self?.onTimeControlStatus(of: player) }
@@ -563,7 +558,6 @@ final class SongloftAudioEngine {
     let session = AVAudioSession.sharedInstance()
     try? session.setCategory(.playback, mode: .default)
     try? session.setActive(true)
-    startVolumeObserver()
   }
 
   private func observe(item: AVPlayerItem) {

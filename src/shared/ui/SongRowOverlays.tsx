@@ -10,6 +10,7 @@ import { ManageTagsSheet } from '../../features/library/widgets/ManageTagsSheet.
 import { AddToPlaylistSheet } from '../../features/playlist/widgets/AddToPlaylistSheet.js'
 import { canWatchVideo, openCurrentSongVideo, usesJsVideoSurface } from '../../features/player/data/video-open.js'
 import { usePlayerStore } from '../../features/player/store/index.js'
+import { MiniPlayerVolumePanel } from '../../features/player/widgets/MiniPlayerVolumePanel.js'
 import { getPlatformTarget } from '../../native/platform-target.js'
 import type { Song } from '../../models/song.js'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog.js'
@@ -201,6 +202,8 @@ export function SongRowOverlays() {
         song={editSong}
         onClose={closeEdit}
       />
+      {/* Root-mounted so the capsule's `overflow: hidden` cannot clip it. */}
+      <MiniPlayerVolumePanel />
     </>
   )
 }

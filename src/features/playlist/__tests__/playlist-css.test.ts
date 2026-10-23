@@ -13,6 +13,8 @@ const DETAIL = readFileSync(resolve(SRC, 'features/playlist/pages/PlaylistDetail
   .replace(/\/\*[\s\S]*?\*\//g, '')
 const LIST = readFileSync(resolve(SRC, 'features/playlist/widgets/PlaylistsView.css'), 'utf8')
   .replace(/\/\*[\s\S]*?\*\//g, '')
+const PICKER = readFileSync(resolve(SRC, 'features/playlist/widgets/AddSongsToPlaylistSheet.css'), 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
 
 function ruleFor(css: string, selector: string): string {
   const escaped = selector.replace(/[.+*?^${}()|[\]\\]/g, '\\$&')
@@ -54,6 +56,18 @@ test('the card name is subhead, the card cover is responsive-square with the sma
   expect(cover, 'cover fills its column, not a fixed 104px').toMatch(/width:\s*100%/)
   expect(cover).toMatch(/aspect-ratio:\s*1/)
   expect(cover).toMatch(/border-radius:\s*var\(--radius-sm\)/)
+})
+
+test('the add-songs sheet is a bounded root overlay with a fixed-height panel', () => {
+  const root = ruleFor(PICKER, '.playlist-add-songs')
+  expect(root).toMatch(/position:\s*fixed/)
+  expect(root).toMatch(/z-index:\s*100/)
+  // A `max-height` panel with a `flex: 1` list collapses to its header on
+  // device — see `PlayHistoryPanel.css`; the picker takes its height up front.
+  const panel = ruleFor(PICKER, '.playlist-add-songs__panel')
+  expect(panel).toMatch(/height:\s*\d+%/)
+  expect(panel).not.toMatch(/max-height/)
+  expect(ruleFor(PICKER, '.playlist-add-songs__list')).toMatch(/flex:\s*1/)
 })
 
 test('no Muse colour aliases survive anywhere in the playlist feature CSS', () => {

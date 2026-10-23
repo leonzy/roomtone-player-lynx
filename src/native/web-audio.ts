@@ -247,7 +247,9 @@ export class WebSongloftAudio implements SongloftAudio {
 
   async updateNotificationLyric(_lyric: string | null, _inTitle?: boolean): Promise<void> {}
 
-  async getVolume(): Promise<void> {}
+  async getVolume(): Promise<void> {
+    this.dispatch({ type: 'volumeChanged', volume: Math.round(this.volume * 100) })
+  }
 
   // ── equalizer (Web Audio API BiquadFilterNode chain) ──
 

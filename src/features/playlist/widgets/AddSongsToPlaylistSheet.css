@@ -1,0 +1,163 @@
+/*
+ * Add-songs picker — same overlay shape as `AddToPlaylistSheet.css`: a fixed
+ * root, an absolute backdrop, and a bottom panel with a material fill.
+ */
+
+.playlist-add-songs {
+  position: fixed;
+  /* Explicit offsets: a fixed box with auto offsets falls back to its static
+     position, which for a page-level overlay is below the scroll content. */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+}
+
+.playlist-add-songs__backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--backdrop);
+}
+
+.playlist-add-songs__panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  /* A fixed height, not `max-height`: an absolutely positioned panel with no
+     `top` is sized shrink-to-fit, and a `flex: 1` scroll region contributes
+     nothing to that height (the bug documented in `PlayHistoryPanel.css`). */
+  height: 72%;
+  background-color: transparent;
+  background-image: none;
+  border: 1px solid var(--material-border);
+  border-top-left-radius: var(--radius-sheet);
+  border-top-right-radius: var(--radius-sheet);
+  box-shadow: var(--shadow-md);
+  /* Docked at the viewport's bottom edge — its own padding keeps the last row
+     off the home indicator (`--safe-bottom`, 0 where there is none). */
+  padding-bottom: calc(var(--space-4) + var(--safe-bottom));
+}
+
+.playlist-add-songs__handle-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3) 0;
+}
+
+.playlist-add-songs__handle {
+  width: 36px;
+  height: 5px;
+  border-radius: 2.5px;
+  background-color: var(--opaque-separator);
+}
+
+.playlist-add-songs__header {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: row;
+  align-items: center;
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  border-bottom-width: 1px;
+  border-bottom-color: var(--separator);
+}
+
+.playlist-add-songs__title {
+  flex: 1;
+  color: var(--label);
+  font-size: var(--font-title3);
+  font-weight: var(--weight-bold);
+  line-height: var(--font-title2);
+}
+
+.playlist-add-songs__confirm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-target);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  background-color: var(--accent);
+}
+
+.playlist-add-songs__confirm--disabled {
+  opacity: 0.4;
+}
+
+.playlist-add-songs__confirm-text {
+  color: var(--accent-content);
+  font-size: var(--font-subhead);
+  font-weight: var(--weight-semibold);
+}
+
+.playlist-add-songs__search-bar {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-4);
+}
+
+/* Filled Apple search field — the fill is the structure, no hairline
+   (same as `.playlist-detail__search-input`). */
+.playlist-add-songs__search {
+  width: 100%;
+  height: var(--control-height-sm);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--tertiary-system-fill);
+  font-size: var(--font-body);
+  color: var(--label);
+  -x-placeholder-color: var(--secondary-label);
+}
+
+.playlist-add-songs__list {
+  flex: 1;
+}
+
+.playlist-add-songs__state {
+  padding: var(--space-6) var(--space-4);
+  font-size: var(--font-footnote);
+  color: var(--secondary-label);
+  text-align: center;
+}
+
+.playlist-add-songs__state-block {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+}
+
+.playlist-add-songs__retry {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--accent);
+}
+
+.playlist-add-songs__retry-text {
+  font-size: var(--font-subhead);
+  color: var(--accent);
+}
+
+.playlist-add-songs__footer {
+  padding: var(--space-3) 0;
+  font-size: var(--font-caption1);
+  color: var(--secondary-label);
+  text-align: center;
+}
+
+.playlist-add-songs__footer-retry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-target);
+}

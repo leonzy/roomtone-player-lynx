@@ -12,6 +12,7 @@ import { resolveVideoSourceKind } from '../../../core/network/video-source.js'
 import { readAudioQuality, readAutoResume, readNormalize, readPlaybackSpeed, writePlaybackSpeed } from '../../settings/data/settings-prefs.js'
 import { DEFAULT_VIDEO_SCALE_MODE, readVideoScaleMode, writeVideoScaleMode } from '../data/video-prefs.js'
 import { clearSavedPlaybackState, loadPlaybackState, savePlaybackState } from '../data/playback-persistence.js'
+import { readVolume, writeVolume } from '../data/volume-prefs.js'
 import type { Song } from '../../../models/song.js'
 import {
   DEFAULT_DURATION_MS,
@@ -223,6 +224,27 @@ function markCurrentPlayed(): void {
 /** Countdown interval handle for `duration` sleep timers (module-scoped). */
 let sleepIntervalHandle: number | null = null
 const SLEEP_TICK_MS = 1_000
+
+// ── volume persistence ──
+// A slider drag fires `setVolume` on every step; persist once it settles rather
+// than crossing the storage bridge each time.
+const VOLUME_WRITE_DEBOUNCE_MS = 400
+let volumeWriteTimer: ReturnType<typeof setTimeout> | null = null
+/**
+ * False until {@link restoreVolume} has applied (or decided there is nothing to
+ * apply). Gates the host's `volumeChanged` events: Android reports the media
+ * stream and iOS a fresh `AVPlayer` reports 1.0, so a startup event arriving
+ * before the saved preference was applied would overwrite it.
+ */
+let volumeRestored = false
+
+function persistVolume(volume: number): void {
+  if (volumeWriteTimer != null) clearTimeout(volumeWriteTimer)
+  volumeWriteTimer = setTimeout(() => {
+    volumeWriteTimer = null
+    void writeVolume(volume)
+  }, VOLUME_WRITE_DEBOUNCE_MS)
+}
 
 const INITIAL: PlayerData = {
   currentSong: undefined,
@@ -1008,6 +1030,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         return
       }
       set({ volume: clamped })
+      // A user action outranks the startup gate: persist it and let subsequent
+      // host events (Android's system-stream echo) flow through.
+      volumeRestored = true
+      persistVolume(clamped)
       await audio.setVolume(clamped / 100)
     },
 
@@ -1484,17 +1510,18 @@ audio.on('remoteCommand', (e) => {
 })
 
 /**
- * System volume sync: when the hardware volume buttons change the media stream,
- * the native side emits `volumeChanged` with the new 0–100 value. Update the
- * store so the UI slider stays in sync.
+ * Volume sync: when the hardware volume buttons change the media stream (or
+ * `restoreVolume` asks the host for its current value), the native side emits
+ * `volumeChanged` with the new 0–100 value. Update the store so the UI slider
+ * stays in sync, and remember it locally so the next launch starts there.
  */
 audio.on('volumeChanged', (e) => {
   if (useDlnaStore.getState().activeDevice) return
-  usePlayerStore.setState({ volume: Math.round(e.volume) })
+  if (!volumeRestored) return
+  const volume = Math.min(100, Math.max(0, Math.round(e.volume)))
+  usePlayerStore.setState({ volume })
+  persistVolume(volume)
 })
-
-// Request initial system volume on startup so the store reflects reality.
-void audio.getVolume()
 
 configureDlnaPlayer({
   async pauseLocal() {
@@ -1688,6 +1715,39 @@ usePlayerStore.subscribe((state, prev) => {
   if (resolveVideoSourceKind(outgoing, getPlatformTarget()) === 'none') return
   void getVideoModule().close()
 })
+
+/**
+ * Apply the locally saved volume before playback can start — `restorePlaybackState`
+ * may auto-resume, and on iOS a freshly created `AVPlayer` starts at 1.0.
+ *
+ * With nothing saved (first launch) adopt whatever the host reports instead. Must
+ * run before {@link restorePlaybackState}; the `volumeChanged` handler ignores
+ * events until this finishes so a late startup event cannot clobber the preference.
+ *
+ * Android is deliberately excluded from the saved value: its volume is the
+ * OS-owned media stream (persisted by the system, changed with the hardware
+ * keys), so re-applying a remembered app value on launch would override a change
+ * the user made outside the app. Flutter's mobile build treats it the same way.
+ */
+export async function restoreVolume(): Promise<void> {
+  if (volumeRestored) return
+  const systemOwnsVolume = getPlatformTarget() === 'android'
+  const saved = systemOwnsVolume ? null : await readVolume().catch(() => null)
+  volumeRestored = true
+  if (saved != null) {
+    usePlayerStore.setState({ volume: saved })
+    await audio.setVolume(saved / 100).catch(() => {})
+    return
+  }
+  await audio.getVolume()
+}
+
+/** Test hook: forget the restore gate and drop any debounced write. */
+export function resetVolumePersistenceForTests(): void {
+  if (volumeWriteTimer != null) clearTimeout(volumeWriteTimer)
+  volumeWriteTimer = null
+  volumeRestored = false
+}
 
 export async function restorePlaybackState(): Promise<void> {
   const restoreGeneration = _loadGeneration

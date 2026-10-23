@@ -1,0 +1,35 @@
+/*
+ * Mini-player volume popover. The panel reuses the shared popover surface
+ * (`.popover-menu` / `.popover-panel`) and gets its offsets inline from
+ * `placePanel`; only the body layout is specific to this panel.
+ */
+
+.mini-volume__backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+}
+
+/* Narrow column, sized to the vertical slider (same shape as the full
+   player's `.player-volume-panel`). `min-width: 0` overrides the shared
+   panel's 140px floor. */
+.mini-volume-panel {
+  min-width: 0;
+  width: 84px;
+}
+
+.mini-volume-panel__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-2) 0;
+}
+
+.mini-volume-panel__label {
+  font-size: var(--font-caption1);
+  color: var(--secondary-label);
+  margin-bottom: var(--space-2);
+}

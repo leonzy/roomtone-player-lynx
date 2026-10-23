@@ -21,6 +21,8 @@ export interface PlaylistToolbarProps {
   sortOptions: ReadonlyArray<PlaylistSortOption>
   onSelectSort: (key: string) => void
   onPlayAll: () => void
+  /** Opens the song picker. */
+  onAddSongs: () => void
   selectMode: boolean
   onToggleSelect: () => void
   /** Disables play-all / select when there is nothing to act on. */
@@ -34,8 +36,9 @@ export interface PlaylistToolbarProps {
  *
  * Not a reuse of `LibraryToolbar` itself: the two sorts have different data
  * models (a single persisted `LibrarySortId` there vs. `sortBy`+`sortOrder`
- * written through the backend sort mutation here), and the library toolbar
- * carries an add-songs button this page does not want.
+ * written through the backend sort mutation here). It does carry the same
+ * add-songs entry, next to play-all — adding songs is a primary action here
+ * too, and this page is where the destination is already known.
  */
 export function PlaylistToolbar({
   currentSort,
@@ -43,6 +46,7 @@ export function PlaylistToolbar({
   sortOptions,
   onSelectSort,
   onPlayAll,
+  onAddSongs,
   selectMode,
   onToggleSelect,
   hasSongs,
@@ -63,6 +67,15 @@ export function PlaylistToolbar({
       >
         <Icon name='play' size={14} color={ICON_COLORS.content} />
         <text className='playlist-toolbar__btn-text'>{t('playlist.playAll')}</text>
+      </view>
+
+      <view
+        className='playlist-toolbar__btn'
+        bindtap={onAddSongs}
+        data-testid='playlist-toolbar-add'
+      >
+        <Icon name='plus' size={14} color={ICON_COLORS.content} />
+        <text className='playlist-toolbar__btn-text'>{t('playlist.addSongs')}</text>
       </view>
 
       <view className='playlist-toolbar__spacer' />

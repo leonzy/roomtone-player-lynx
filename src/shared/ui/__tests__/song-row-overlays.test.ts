@@ -50,6 +50,7 @@ beforeEach(() => {
   s.cancelDelete()
   s.closeInfo()
   s.closeEdit()
+  s.closeMiniVolume()
 })
 
 test('openMenu records the song and row context, clearing the other overlays', () => {
@@ -197,6 +198,37 @@ test('each close action clears only its own overlay', () => {
   expect(useSongRowOverlays.getState().addToPlaylistSongIds).toEqual([4])
   useSongRowOverlays.getState().closeAddToPlaylist()
   expect(useSongRowOverlays.getState().addToPlaylistSongIds).toEqual([])
+})
+
+/*
+ * The mini-player volume popover rides the same store because it is
+ * root-mounted too: the capsule's `overflow: hidden` would clip an in-tree
+ * panel. It is a popover, not a modal, so it takes no song — only the measured
+ * trigger box (null = docked when the host cannot measure).
+ */
+test('openMiniVolume records the anchor and closes every other overlay', () => {
+  const song = makeSong(9)
+  useSongRowOverlays.getState().openMenu({ song })
+  useSongRowOverlays.getState().openMiniVolume(null)
+
+  const s = useSongRowOverlays.getState()
+  expect(s.miniVolume).toEqual({ anchor: null })
+  expect(s.menuSong).toBeNull()
+  expect(s.addToPlaylistSongIds).toEqual([])
+  expect(s.deleteSong).toBeNull()
+  expect(s.infoSong).toBeNull()
+  expect(s.editSong).toBeNull()
+})
+
+test('closeMiniVolume leaves the other slots alone', () => {
+  useSongRowOverlays.getState().openMiniVolume(null)
+  useSongRowOverlays.getState().closeMenu()
+  useSongRowOverlays.getState().closeMiniVolume()
+  expect(useSongRowOverlays.getState().miniVolume).toBeNull()
+
+  useSongRowOverlays.getState().openAddToPlaylist({ songIds: [1] })
+  useSongRowOverlays.getState().closeMiniVolume()
+  expect(useSongRowOverlays.getState().addToPlaylistSongIds).toEqual([1])
 })
 
 /*
