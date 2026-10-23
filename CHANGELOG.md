@@ -2,6 +2,20 @@
 
 此文件记录 Songloft Player（Lynx）的版本变更，仅提供中文版本。版本 tag 的 Release 发布成功后，由 CI 根据 Conventional Commits 分类追加记录并提交到 `main`；滚动 dev 记录见 [GitHub Releases](https://github.com/songloft-org/songloft-player-lynx/releases/tag/dev)。
 
+## [v0.1.6] - 2026-10-23
+### :sparkles: 新增功能
+- [`bc238b4`](https://github.com/songloft-org/songloft-player-lynx/commit/bc238b45ff0b566628fe8cddedb0c3b91f2f24ea) - **player**: 补齐偏好管理、MV 字幕及手机桌面小组件 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`cfc847d`](https://github.com/songloft-org/songloft-player-lynx/commit/cfc847da5fadc03fae116be4c05dfce16de6f6bc) - **home**: 支持首页收藏歌单显示设置 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`fc71ead`](https://github.com/songloft-org/songloft-player-lynx/commit/fc71ead7299c6b177ec98af8609020cc0a9f3eee) - **player**: 补齐 songloft-org/songloft[#536](https://github.com/songloft-org/songloft-player-lynx/pull/536) 音量持久化、登录滚动与歌单加歌 *(提交者 [@hanxi](https://github.com/hanxi))*
+- [`a7404f1`](https://github.com/songloft-org/songloft-player-lynx/commit/a7404f1653374326c7d8395fd985f29476319ff8) - **player**: mini player 按钮对齐 Flutter *(提交者 [@hanxi](https://github.com/hanxi))*
+
+### :memo: 文档更新
+- [`8dd440d`](https://github.com/songloft-org/songloft-player-lynx/commit/8dd440de1e764133f4dffda0c57847a2849ca9c7) - **changelog**: 更新 v0.1.5 变更记录 *(提交者 [@github-actions[bot]](https://github.com/apps/github-actions))*
+
+### :wrench: 维护工作
+- [`73f68df`](https://github.com/songloft-org/songloft-player-lynx/commit/73f68dfa0f85632cdbfd579e249312cb3eb49fc4) - **release**: 发布 0.1.6 *(提交者 [@hanxi](https://github.com/hanxi))*
+
+
 ## [v0.1.5] - 2026-10-20
 ### :bug: 问题修复
 - [`384225c`](https://github.com/songloft-org/songloft-player-lynx/commit/384225c13b44cdc733b66c79c8d04ff318ef5a1b) - **player**: 电台断流持续重连并响应系统暂停停止 *(提交者 [@hanxi](https://github.com/hanxi))*
@@ -713,3 +727,4 @@
 [v0.1.2]: https://github.com/songloft-org/songloft-player-lynx/compare/v0.1.1...v0.1.2
 [v0.1.4]: https://github.com/songloft-org/songloft-player-lynx/compare/v0.1.3...v0.1.4
 [v0.1.5]: https://github.com/songloft-org/songloft-player-lynx/compare/v0.1.4...v0.1.5
+[v0.1.6]: https://github.com/songloft-org/songloft-player-lynx/compare/v0.1.5...v0.1.6
