@@ -104,6 +104,24 @@ test('selecting song info opens the global info dialog for the current song', as
   expect(openInfoSpy).toHaveBeenCalledWith(song)
 })
 
+test('defaults to the full player trigger and forwards the mini-player placement', () => {
+  render(<PlayerMoreMenu song={song} onOpenSleepTimer={() => {}} timerActive={false} />)
+  expect(popoverProps.current.placement).toBe('bottom-end')
+  expect(popoverProps.current.triggerClassName).toBe('full-player__icon-btn')
+
+  render(
+    <PlayerMoreMenu
+      song={song}
+      onOpenSleepTimer={() => {}}
+      timerActive={false}
+      placement='top-end'
+      triggerClassName='mini-player__btn mini-player__wide-action'
+    />,
+  )
+  expect(popoverProps.current.placement).toBe('top-end')
+  expect(popoverProps.current.triggerClassName).toBe('mini-player__btn mini-player__wide-action')
+})
+
 test('unsupported EQ has no menu entry while other playback actions remain', () => {
   capability.equalizer = false
   try {

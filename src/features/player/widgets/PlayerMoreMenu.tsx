@@ -11,6 +11,7 @@ import { ConfirmDialog } from '../../../shared/ui/ConfirmDialog.js'
 import { toast } from '../../../shared/ui/toast-store.js'
 import { PopoverMenu } from '../../../shared/ui/PopoverMenu.js'
 import type { PopoverMenuItem } from '../../../shared/ui/PopoverMenu.js'
+import type { Placement } from '../../../shared/ui/anchored-overlay.js'
 import { getCacheInfo } from '../data/song-cache.js'
 import { indexedSongCacheAvailable } from '../data/indexed-song-cache.js'
 import { getIndexedCacheInfo } from '../data/cache-context.js'
@@ -25,6 +26,18 @@ export interface PlayerMoreMenuProps {
   song: Song | null
   onOpenSleepTimer: () => void
   timerActive: boolean
+  /** Where the panel opens. The mini player anchors it upward from the bottom. */
+  placement?: Placement
+  /** Glyph box. The mini-player row uses the same 20px as its secondary icons. */
+  iconSize?: number
+  /** Trigger styling. Defaults to the full player's top-bar icon button. */
+  triggerClassName?: string
+  /** Test id for the trigger glyph, for screens with more than one `⋯`. */
+  triggerTestId?: string
+  /** Accessible name. Defaults to "More". */
+  triggerAccessibilityLabel?: string
+  /** Keep the trigger's tap from bubbling to a tappable ancestor (mini player). */
+  stopTriggerPropagation?: boolean
 }
 
 /**
@@ -52,7 +65,17 @@ export interface PlayerMoreMenuProps {
  *    it. The decision logic lives in `song-cache-actions.ts`; this component owns the
  *    video confirm dialog and the toasts.
  */
-export function PlayerMoreMenu({ song, onOpenSleepTimer, timerActive }: PlayerMoreMenuProps) {
+export function PlayerMoreMenu({
+  song,
+  onOpenSleepTimer,
+  timerActive,
+  placement = 'bottom-end',
+  iconSize = 22,
+  triggerClassName = 'full-player__icon-btn',
+  triggerTestId,
+  triggerAccessibilityLabel,
+  stopTriggerPropagation,
+}: PlayerMoreMenuProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [show, setShow] = useState(false)
@@ -174,13 +197,16 @@ export function PlayerMoreMenu({ song, onOpenSleepTimer, timerActive }: PlayerMo
       <PopoverMenu
         show={show}
         onShowChange={setShow}
-        placement='bottom-end'
-        triggerClassName='full-player__icon-btn'
+        placement={placement}
+        triggerClassName={triggerClassName}
+        triggerAccessibilityLabel={triggerAccessibilityLabel ?? t('player.more')}
+        stopTriggerPropagation={stopTriggerPropagation}
         trigger={
           <Icon
             name='more'
-            size={22}
+            size={iconSize}
             color={timerActive ? ICON_COLORS.primary : ICON_COLORS.content}
+            testId={triggerTestId}
           />
         }
         items={items}

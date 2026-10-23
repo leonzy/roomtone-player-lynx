@@ -100,3 +100,17 @@ test('favorite is hidden on narrow, visible on wide', () => {
   expect(block(rules(), '.mini-player__favorite')).toMatch(/display:\s*none/)
   expect(block(rules(), '.shell--wide .mini-player__favorite')).toMatch(/display:\s*flex/)
 })
+
+/* The volume entry point is wide-only for the same reason: no room in a
+   phone-width capsule, where hardware keys already control it. */
+test('volume trigger is hidden on narrow, visible on wide', () => {
+  expect(block(rules(), '.mini-player__volume')).toMatch(/display:\s*none/)
+  expect(block(rules(), '.shell--wide .mini-player__volume')).toMatch(/display:\s*flex/)
+})
+
+/* Queue and overflow join the row only at tablet width, like Flutter's dense
+   capsule; phones open the full player for them. */
+test('queue and overflow entries are hidden on narrow, visible on wide', () => {
+  expect(block(rules(), '.mini-player__wide-action')).toMatch(/display:\s*none/)
+  expect(block(rules(), '.shell--wide .mini-player__wide-action')).toMatch(/display:\s*flex/)
+})

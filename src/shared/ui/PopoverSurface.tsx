@@ -14,6 +14,14 @@ export interface PopoverSurfaceProps {
   onShowChange: (show: boolean) => void
   trigger: ReactNode
   triggerClassName?: string
+  /** See `PopoverMenuProps.triggerAccessibilityLabel`. */
+  triggerAccessibilityLabel?: string
+  /**
+   * Use `catchtap` on the trigger so the tap does not bubble to a tappable
+   * ancestor. The mini player needs this: its root opens the full player, and
+   * a `bindtap` trigger would both open the menu and navigate away.
+   */
+  stopTriggerPropagation?: boolean
   placement: Placement
   /**
    * Overrides the generated anchor id. For an owner that has to address the same
@@ -65,6 +73,8 @@ export function PopoverSurface({
   onShowChange,
   trigger,
   triggerClassName,
+  triggerAccessibilityLabel,
+  stopTriggerPropagation,
   placement,
   anchorId: anchorIdProp,
   panelClassName,
@@ -93,7 +103,15 @@ export function PopoverSurface({
 
   return (
     <>
-      <view id={anchorId} className={triggerClassName} bindtap={onTriggerTap}>
+      <view
+        id={anchorId}
+        className={triggerClassName}
+        {...(stopTriggerPropagation
+          ? { catchtap: onTriggerTap }
+          : { bindtap: onTriggerTap })}
+        accessibility-element={triggerAccessibilityLabel == null ? undefined : true}
+        accessibility-label={triggerAccessibilityLabel}
+      >
         {trigger}
       </view>
       {show

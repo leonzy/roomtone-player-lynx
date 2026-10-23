@@ -154,3 +154,29 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 - Fix evidence: source worktree `faec7a428a9675dc1d3e5c98191d963555b8616c409e93658daae6f651e8389b`; five regressions fail with the isolated old widget, the final 36 related tests pass, and browser records confirm dev/stable payloads and rejection/retry. See [progress](docs/project/progress.md). Actual binary replacement and Android devices remain untested; the Git commit containing this entry records the fix.
 - Done right: `SettingsApi.startUpgrade(channel)` sends `{version_type: channel}`. About tests use the real API class, transport tests inspect JSON, and browser fixtures reject the wrong channel and record requests, beyond button-presence checks.
 - Seen **1×**: 2026-10-14. Existing API rules apply; the three-date promotion threshold has not been met.
+
+### UI-004: A scroll-view needs an explicit height; flex is not a substitute
+
+- Scope: Lynx/Web scroll containers and bottom panels, songloft-org/songloft#536.
+- Rule: A `<scroll-view>` with only `flex: 1` does not automatically get a bounded viewport height; content may expand it and no scrolling occurs. Give full-height scroll pages `height: 100%`; an absolute bottom panel needs an explicit `height: %` on the panel (not `max-height`) before its `flex: 1` body can scroll. Pages whose content may exceed a short viewport must be verified at landscape / keyboard-open heights.
+- Failure evidence: `.login__scroll` in `LoginPage.css` originally had only `flex: 1`, leaving the login button unreachable on short viewports. The added `login-css` gate requires `height: 100%` in that rule and fails on the old CSS.
+- Done right: Headless Chrome at 390×420 measured `.login__scroll` at scrollHeight 426 / clientHeight 356, and the button is fully visible after scrolling (`/home/hanxi/songloft-ui-verify/login-390x420-{top,bottom}.png`). The add-songs panel uses `height: 72%`, with a scrollable list at 1280×800.
+- Not run: iOS/Android/HarmonyOS devices; Web evidence does not cover native gestures or soft-keyboard behavior.
+- Seen 1× (2026-10-23). Status: lesson; below the three-date promotion threshold.
+
+### AUDIO-002: Persist app-level volume and keep platform volume semantics distinct
+
+- Scope: volume restore on all hosts, iOS AVPlayer multiplier and the Web host, songloft-org/songloft#536.
+- Rule: The store's 0–100 volume is an app-level setting. Persist it to the `player_volume` pref (shared with preference sync), and run `restoreVolume` before restoring playback so auto-resume does not start at the host default. Android volume belongs to the system media stream and must not overwrite the saved value. iOS records the app-level multiplier and re-applies it whenever a player is created; it must not read or observe `AVAudioSession.outputVolume` (that is system volume, unrelated to the app slider, and made the slider jump back). Host `volumeChanged` must not overwrite the local preference before restore completes.
+- Evidence: The old iOS implementation read system volume and lost the multiplier when replacing the player; Web `getVolume` was a no-op. The new `volume-persistence` regressions cover debounced writes, startup restore and event gating. Headless Chrome measured the wide mini-player panel dragged 50% → 30% and still at 30% after a full reload.
+- Done right: `volume-prefs.ts` owns the shared key and coercion, with a 400 ms debounced write. The mini-player trigger is wide-only, and its panel mounts in root overlays so the capsule cannot clip it. Screenshots: `/home/hanxi/songloft-ui-verify/volume-*.png`.
+- Not run: iOS/Android/HarmonyOS devices; hardware keys, lock screen and Bluetooth paths remain unverified.
+- Seen 1× (2026-10-23). Status: lesson; below the three-date promotion threshold.
+
+### UI-005: A popover trigger inside a tappable ancestor must stop propagation
+
+- Scope: popover triggers embedded in the Lynx mini player and the shared PopoverSurface; no linked issue (mini-player button parity batch).
+- Rule: Lynx `bindtap` bubbles to ancestors. A popover trigger placed inside an element with its own `bindtap` (such as the mini-player root navigating to `/player`) must use `catchtap`, or the same gesture opens the menu and navigates away. Shared trigger components should expose an explicit stop-propagation switch instead of relying on callers to wrap the trigger in another view.
+- Failure evidence: The first headless-Chrome run tapping the mini-player "more" button landed on `/player` instead of the menu; the trigger bubbled through `bindtap` to the capsule root's navigation. In tests `fireEvent.tap` also only reaches `bindtap`; call `eventMap['catchEvent:tap']` directly.
+- Done right: `PopoverSurface` supports `stopTriggerPropagation` (bindtap→catchtap switch) and the mini player passes `stopTriggerPropagation={true}`; the real browser opens the menu without navigating (`/home/hanxi/songloft-ui-verify/mp-mini-more-menu.png`).
+- Seen 1× (2026-10-23). Status: lesson; below the three-date promotion threshold.

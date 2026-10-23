@@ -253,3 +253,28 @@
 .mini-player__favorite--pending {
   opacity: 0.5;
 }
+
+/* Volume trigger. Hidden on narrow for the same reason as the favorite:
+   the transport cluster already fills a phone-width capsule, and hardware
+   keys are the natural volume control there. */
+.mini-player__volume {
+  display: none;
+  margin-left: var(--space-1);
+}
+
+.shell--wide .mini-player__volume {
+  display: flex;
+}
+
+/* Queue and overflow. Wide-only for the same reason as the favorite and
+   volume: the transport cluster already fills a phone-width capsule, and the
+   full player carries the same entries. `display: none` keeps the nodes —
+   including `PlayerMoreMenu`'s hooks — mounted across a breakpoint change. */
+.mini-player__wide-action {
+  display: none;
+  margin-left: var(--space-1);
+}
+
+.shell--wide .mini-player__wide-action {
+  display: flex;
+}

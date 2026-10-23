@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { afterEach, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { act, fireEvent, getQueriesForElement, render } from '@lynx-js/react/testing-library'
 
 /**
@@ -14,12 +14,35 @@ vi.mock('react-i18next', async () =>
   (await import('../../../__tests__/_render-mocks.js')).mockReactI18next(),
 )
 vi.mock('@tanstack/react-router', () => ({ useNavigate: () => () => {} }))
+// The testing env's SelectorQuery never answers `boundingClientRect`, so the
+// real measure would leave its callback pending. Answer "no measurement"
+// synchronously — the same path a host without the invoke bridge takes, which
+// opens the panel docked rather than not at all.
+vi.mock('../../../shared/ui/anchored-overlay.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  useTapAnchor: () => ({
+    anchorId: 'mini-volume-anchor',
+    anchorSelector: '#mini-volume-anchor',
+    measure: (done: (result: null) => void) => done(null),
+  }),
+}))
 vi.mock('../../library/data/favorites.js', () => ({
   useIsFavorite: () => false,
   useFavoriteToggle: () => ({ isFavorite: false, toggle: vi.fn(), isPending: false }),
   getFavoriteState: async () => false,
   toggleFavoriteNonReact: async () => {},
 }))
+// PlayerMoreMenu is part of the wide cluster now; these two stand-ins keep the
+// renderer from touching native stores/query observers (same mocks as
+// player-more-menu.test.tsx).
+vi.mock('../data/audio-tracks-query.js', () => ({
+  useAudioTracks: () => ({ data: [], isPending: false, isError: false, refetch: async () => {} }),
+}))
+vi.mock('../store/dlna-store.js', async (original) => {
+  const actual = await original<typeof import('../store/dlna-store.js')>()
+  const { makeDlnaStoreMock } = await import('../../../__tests__/_render-mocks.js')
+  return makeDlnaStoreMock(actual)
+})
 vi.mock('../store/player-store.js', async () => {
   const actual = await vi.importActual<typeof import('../store/player-store.js')>(
     '../store/player-store.js',
@@ -31,6 +54,11 @@ vi.mock('../store/player-store.js', async () => {
 const { MiniPlayer } = await import('../widgets/MiniPlayer.js')
 const { changeMiniPlayerControls, miniPlayerControls } = await import('../data/mini-player-controls.js')
 const { createMemoryStorage, setSongloftStorage } = await import('../../../core/storage/index.js')
+const { setShellWidth } = await import('../../../shared/nav/shell-navigation.js')
+
+// The play-mode button is gated on the measured shell width; the test renderer
+// has no layout, so seed it with a phone width.
+beforeEach(() => { setShellWidth(390) })
 
 afterEach(() => { vi.clearAllMocks(); miniPlayerControls.setState({ mode: 'prevNext' }); setSongloftStorage(createMemoryStorage()) })
 
@@ -112,4 +140,101 @@ test('tapping a skip button calls the store action', async () => {
   await act(async () => {
     fireEvent.tap(prevBtn!)
   })
+})
+
+/**
+ * Volume entry point (songloft-org/songloft#536). The button is wide-only via
+ * CSS, so it is always rendered; tapping it hands the measured anchor to the
+ * root overlay store, where `MiniPlayerVolumePanel` picks it up. Unmounting
+ * the mini player must close that root-mounted panel.
+ */
+test('the volume button opens the root volume panel and closes it on unmount', async () => {
+  const { useSongRowOverlays } = await import('../../../shared/ui/song-row-overlays.js')
+  useSongRowOverlays.getState().closeMiniVolume()
+
+  const view = render(<MiniPlayer />)
+  await act(async () => {
+    await Promise.resolve()
+  })
+  const { queryByTestId } = getQueriesForElement(elementTree.root!)
+
+  expect(queryByTestId('mini-volume-btn')).toBeInTheDocument()
+  expect(queryByTestId('icon-volume')).toBeInTheDocument()
+
+  /*
+   * `fireEvent.tap` only reaches `bindtap`: the test renderer keys bubbling
+   * handlers as `catchEvent:tap`, and its event map is the only handle on one.
+   * Invoke it directly so the trigger's own wiring (measure → open) is still
+   * exercised. (The play button uses the same mechanism.)
+   */
+  const trigger = queryByTestId('mini-volume-btn') as unknown as {
+    eventMap: Record<string, (event: { stopPropagation: () => void }) => void>
+  }
+  const onTap = trigger.eventMap['catchEvent:tap']
+  expect(onTap, 'volume trigger must stop the tap from opening /player').toBeTypeOf('function')
+
+  await act(async () => {
+    onTap!({ stopPropagation: () => {} })
+  })
+  // No invoke bridge in the test env: open anyway, docked.
+  expect(useSongRowOverlays.getState().miniVolume).toEqual({ anchor: null })
+
+  await act(async () => {
+    view.unmount()
+  })
+  expect(useSongRowOverlays.getState().miniVolume).toBeNull()
+})
+
+/**
+ * The fourth transport button (play mode) needs ~44px more than the three
+ * buttons do. Below 340px — Flutter's `_kPlayModeMinWidth` — the preference
+ * survives but the button drops out so the title keeps its width.
+ */
+test('the play-mode button drops out below 340px and returns above it', async () => {
+  setShellWidth(320)
+  render(<MiniPlayer />)
+  await act(async () => { await Promise.resolve() })
+  const query = getQueriesForElement(elementTree.root!)
+
+  await act(async () => { changeMiniPlayerControls('prevNextMode') })
+  expect(query.queryByTestId('mini-play-mode')).not.toBeInTheDocument()
+
+  await act(async () => { setShellWidth(390) })
+  expect(query.queryByTestId('mini-play-mode')).toBeInTheDocument()
+})
+
+/**
+ * Wide-only secondary entries, mirroring Flutter's dense capsule: queue opens
+ * the existing queue drawer, overflow opens the same menu as the full player's
+ * `⋯`. CSS keeps both hidden on phones (`mini-player-css.test.ts`).
+ */
+test('renders the queue and overflow entries', async () => {
+  render(<MiniPlayer />)
+  await act(async () => { await Promise.resolve() })
+  const { queryByTestId } = getQueriesForElement(elementTree.root!)
+
+  expect(queryByTestId('mini-queue-btn')).toBeInTheDocument()
+  expect(queryByTestId('icon-queue')).toBeInTheDocument()
+  expect(queryByTestId('mini-more-btn')).toBeInTheDocument()
+})
+
+test('the overflow entry opens the more menu above the capsule', async () => {
+  render(<MiniPlayer />)
+  await act(async () => { await Promise.resolve() })
+  const query = getQueriesForElement(elementTree.root!)
+
+  // `bindtap` lives on the trigger wrapper; the glyph itself is its child.
+  const trigger = query.getByTestId('mini-more-btn').parentElement as unknown as {
+    eventMap: Record<string, (event: { stopPropagation: () => void }) => void>
+  }
+  const onTap = trigger.eventMap['catchEvent:tap']
+  // catchtap, not bindtap: the capsule root opens /player, so a bubbling
+  // trigger would open the menu and navigate away in the same gesture.
+  expect(onTap, 'mini more trigger must stop the tap from opening /player').toBeTypeOf('function')
+
+  await act(async () => {
+    onTap!({ stopPropagation: () => {} })
+    await Promise.resolve()
+  })
+  expect(query.queryByTestId('popover-backdrop')).toBeInTheDocument()
 })

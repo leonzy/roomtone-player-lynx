@@ -31,6 +31,14 @@ export interface PopoverMenuProps {
    */
   trigger: ReactNode
   triggerClassName?: string
+  /**
+   * Accessible name for the trigger. Icon-only triggers need one in Lynx:
+   * `accessibility-label` on a bare `<view>` is never focused without
+   * `accessibility-element` (see `a11y-label.test.ts`).
+   */
+  triggerAccessibilityLabel?: string
+  /** See `PopoverSurfaceProps.stopTriggerPropagation`. */
+  stopTriggerPropagation?: boolean
   items: PopoverMenuItem[]
   onSelect: (key: string) => void
   placement?: Placement
@@ -59,6 +67,8 @@ export function PopoverMenu({
   anchorId,
   contentClassName,
   hideCheckmark,
+  triggerAccessibilityLabel,
+  stopTriggerPropagation,
 }: PopoverMenuProps) {
   return (
     <PopoverSurface
@@ -66,6 +76,8 @@ export function PopoverMenu({
       onShowChange={onShowChange}
       trigger={trigger}
       triggerClassName={triggerClassName}
+      triggerAccessibilityLabel={triggerAccessibilityLabel}
+      stopTriggerPropagation={stopTriggerPropagation}
       placement={placement}
       anchorId={anchorId}
       panelClassName={contentClassName ? `popover-menu ${contentClassName}` : 'popover-menu'}

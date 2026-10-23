@@ -4,6 +4,24 @@
 
 English: The user explicitly authorized committing and pushing the feature port and parent gitlink. Concurrent home/Flutter work is preserved. Uncommitted statements below are historical snapshots; final commit/CI records govern delivery.
 
+## 2026-10-23 · mini player 按钮对齐 Flutter
+
+对照 Flutter 补齐 Lynx mini player 按钮：宽屏（shell ≥600px）新增队列入口（复用 PlaylistDrawer）与「更多」弹层（复用 PlayerMoreMenu，`top-end` 锚定，内含歌曲信息/均衡器/睡眠定时器），窄屏不变但播放模式按钮增加 340px 宽度降级（对齐 Flutter `_kPlayModeMinWidth`）；歌词按钮不加（胶囊主体点击已进播放页），投射/音轨保持在菜单内。`PopoverSurface`/`PopoverMenu`/`PlayerMoreMenu` 相应增加 placement、trigger 样式与 `stopTriggerPropagation` 透传——可点击祖先内的触发器必须 catchtap（LESSONS UI-005）。
+
+验证：347 文件 / 3693 项全量测试、`tsc -b`、Lynx/Web 双产物、嵌入 Web 打包与 Go 后端构建通过；新增 5 项测试覆盖 340px 降级、宽屏入口渲染、更多菜单 catchtap、wide-action CSS 与 placement 透传。Docker 无头 Chrome 实测 390×844 仅传输键、1024×768 显示收藏+传输+音量+队列+更多、队列抽屉与更多菜单正常打开且不导航、320px prevNextMode 下播放模式按钮消失。截图 `/home/hanxi/songloft-ui-verify/mp-mini-{390,1024,queue-drawer,more-menu,320-gate}.png`。Not run：iOS/Android/HarmonyOS 真机。本批未提交、推送、发布或写 Issue 评论。
+
+English: Brought the Lynx mini player buttons in line with Flutter: at wide shells (≥600px) a queue entry (reusing PlaylistDrawer) and a "more" popover (reusing PlayerMoreMenu, anchored `top-end`, holding song info / equalizer / sleep timer) join the row, while narrow screens stay unchanged except a 340px width gate for the play-mode button (mirroring Flutter `_kPlayModeMinWidth`); no lyrics button (the capsule body already opens the player), and cast/audio-track remain in the menu. PopoverSurface/PopoverMenu/PlayerMoreMenu gained placement, trigger style and `stopTriggerPropagation` passthrough — a trigger inside a tappable ancestor must catchtap (LESSONS UI-005).
+
+Verification: the 347-file / 3693-test suite, `tsc -b`, dual Lynx/Web build, embedded Web packaging and Go backend build pass; five new tests cover the 340px gate, wide-entry rendering, the more-menu catchtap, the wide-action CSS and placement forwarding. Headless Chrome measured transport-only at 390×844, favorite + transport + volume + queue + more at 1024×768, a queue drawer and more menu that open without navigating, and the play-mode button gone at 320px under prevNextMode. Screenshots: `/home/hanxi/songloft-ui-verify/mp-mini-{390,1024,queue-drawer,more-menu,320-gate}.png`. Not run: iOS/Android/HarmonyOS devices. No commit, push, release or issue comment.
+
+## 2026-10-23 · songloft-org/songloft#536 Lynx 缺口补齐
+
+按 #536 补齐三项：① 应用音量持久化并补宽屏 mini player 音量入口（修复 iOS 换播放器丢失倍率、Web 不回读、启动按宿主默认音量续播）；② 登录页滚动容器补 `height: 100%`，短视口不再无法到达登录按钮；③ 歌单详情新增「添加歌曲」选择器，按后端完整 ID 集隐藏已加入歌曲并镜像 `CanAddSong` 的类型规则。
+
+验证：347 文件 / 3688 项全量测试、`tsc -b`、Lynx/Web 双产物（`main.lynx.bundle` 4119.1 kB、`main.web.bundle` 4087.6 kB）、嵌入 Web 打包与 Go 后端构建通过。Docker 无头 Chrome 实测：390×420 登录页 `scroll-view` 为 scrollHeight 426 / clientHeight 356，滚到底后按钮可见；1280×800 宽屏 mini player 音量面板由 50% 拖到 30%，整页刷新后仍为 30%；歌单选择器不显示已加入的 Test Song 4，选中两首添加后 toast「Added 2 songs」且歌单从 1 首变 3 首。截图、脚本与日志在 `/home/hanxi/songloft-ui-verify/`，全量测试日志 `/tmp/lynx-full-test.log`。Not run：iOS/Android/HarmonyOS 真机与模拟器。本批未提交、推送、发布或写 Issue 评论。
+
+English: Closed the three #536 gaps: ① persisted app-level volume and added the wide mini-player volume entry (fixing iOS multiplier loss on player replacement, Web readback, and startup playback at the host default); ② gave the login scroll view `height: 100%` so short viewports can reach the button; ③ added a playlist "add songs" picker that hides already-added songs using the full backend id set and mirrors `CanAddSong` type rules. The 347-file / 3688-test suite, `tsc -b`, dual Lynx/Web build (`main.lynx.bundle` 4119.1 kB, `main.web.bundle` 4087.6 kB), embedded Web packaging and Go backend build pass. Headless Chrome verifies login scrolling at 390×420 (scrollHeight 426 / clientHeight 356), volume dragged 50% → 30% on the wide mini player and still 30% after a full reload, and a picker that omits the pre-added Test Song 4, then adds two songs with an "Added 2 songs" toast (playlist 1 → 3 songs). Evidence lives in `/home/hanxi/songloft-ui-verify/`; the full test log is `/tmp/lynx-full-test.log`. Not run: iOS/Android/HarmonyOS devices or simulators. No commit, push, release or issue comment.
+
 ## 2026-10-21 · 功能移植最终设备补验
 
 修复首次桌面播放通道和 MV 切音频后的页面退出。独立副本的 421 项相关测试、89 项发布检查、4 项原生单测、类型、双产物/Web 与 Android 构建通过；最终包 `4f0f5870…c76ba1` 的 9 项小组件实测及 Web/Android MV 自然结束返回均通过。11 张最终截图：`/home/hanxi/work/songloft-review/lynx-current-device-20261021/review.html`。共享首页任务保留，混合构建包被拒绝；中止的全量及启动失败均留档。iOS/HarmonyOS 设备、签名、真机与默认玻璃仍未验，未提交/推送/发布。详见 [最终记录](feature-port-20261021.md)。

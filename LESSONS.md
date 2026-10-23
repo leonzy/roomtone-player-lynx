@@ -154,3 +154,29 @@
 - 修复证据：源码工作树 `faec7a428a9675dc1d3e5c98191d963555b8616c409e93658daae6f651e8389b`；隔离旧页面的 5 项回归失败，最终相关 36 项通过，浏览器记录正确 dev/stable 请求和拒绝重试。详情见 [progress](docs/project/progress.md)；真实服务端二进制替换及 Android 设备未验，修复提交以包含本条的 Git 记录为准。
 - Done right：`SettingsApi.startUpgrade(channel)` 发 `{version_type: channel}`；关于页使用真实 API 类、传输测试读取 JSON，浏览器夹具拒绝错误通道并记录请求，而不是只确认按钮存在。
 - Seen **1×**：2026-10-14。现有 API 契约继续执行，未达到三日期升级阈值。
+
+### UI-004：scroll-view 必须有显式高度，flex 不能替代
+
+- 范围：Lynx/Web 滚动容器与底部面板，songloft-org/songloft#536。
+- 规则：`<scroll-view>` 只设 `flex: 1` 时不会自动获得受限视口高度，内容可能撑开而不产生滚动。占满剩余空间的滚动页显式写 `height: 100%`；absolute 底部面板要让面板自身有明确 `height: %`（不要用 `max-height` 期待收缩），内部滚动体才可用 `flex: 1`。内容可能超出短视口的页面必须按横屏/键盘弹出后的高度验证滚动。
+- 失败证据：`LoginPage.css` 的 `.login__scroll` 原先只有 `flex: 1`，短视口下登录按钮不可达；新增 `login-css` 闸门要求该规则含 `height: 100%`，旧 CSS 不满足。
+- Done right：Docker 无头 Chrome 390×420 实测 `.login__scroll` 为 scrollHeight 426 / clientHeight 356，滚到底后按钮完整可见（`/home/hanxi/songloft-ui-verify/login-390x420-{top,bottom}.png`）；新增歌曲面板固定 `height: 72%`，1280×800 下列表可滚动。
+- Not run：iOS/Android/HarmonyOS 真机；Web 结果不代表原生手势与软键盘行为。
+- Seen 1× (2026-10-23)。状态：经验，未达到三日期升级阈值。
+
+### AUDIO-002：应用音量要自己持久化，系统音量语义按平台区分
+
+- 范围：四端音量恢复、iOS AVPlayer 倍率与 Web 宿主，songloft-org/songloft#536。
+- 规则：store 的 0–100 音量是应用级设置，写入 prefs `player_volume`（与偏好同步共用键），启动时先 `restoreVolume` 再恢复播放，避免自动续播按宿主默认音量出声。Android 的音量归系统媒体流，不能覆盖用户保存值；iOS 记录应用级倍率并在每次创建播放器后重新赋值，不能读取/监听 `AVAudioSession.outputVolume`（那是系统音量，与应用滑杆无关，还会把滑杆弹回）。宿主 `volumeChanged` 在恢复完成前不得覆盖本地偏好。
+- 证据：iOS 旧实现读系统音量且换播放器后丢倍率，Web `getVolume` 为空实现；新增 `volume-persistence` 回归覆盖防抖写入、启动恢复与事件门控。Docker 无头 Chrome 实测宽屏 mini player 面板由 50% 拖到 30%，整页刷新后仍为 30%。
+- Done right：`volume-prefs.ts` 统一键与容错，400ms 防抖写入；mini player 入口为宽屏专用，面板挂根级 overlays 避免被胶囊裁剪。截图 `/home/hanxi/songloft-ui-verify/volume-*.png`。
+- Not run：iOS/Android/HarmonyOS 真机；硬件音量键、锁屏与蓝牙路径未验。
+- Seen 1× (2026-10-23)。状态：经验，未达到三日期升级阈值。
+
+### UI-005：可点击祖先内的弹层触发器必须拦截冒泡
+
+- 范围：Lynx mini player 内嵌 popover 触发器与共享 PopoverSurface；无关联 Issue（mini player 按钮对齐批次）。
+- 规则：Lynx `bindtap` 沿祖先链冒泡；放在自带 `bindtap`（如 mini player 根节点点击导航 `/player`）内的弹层触发器必须用 `catchtap`，否则同一手势既打开菜单又跳页。共享触发组件要显式提供 stopPropagation 开关，不要靠调用方额外包一层 view。
+- 失败证据：Docker 无头 Chrome 首次点击 mini player「更多」后截图落在 `/player` 页而非菜单；触发器经 `bindtap` 冒泡到胶囊根的导航。单测里 `fireEvent.tap` 也只触达 `bindtap`，必须直接调用 `eventMap['catchEvent:tap']`。
+- Done right：`PopoverSurface` 支持 `stopTriggerPropagation`（bindtap→catchtap 切换），mini player 传 `stopTriggerPropagation={true}`；实际浏览器确认菜单打开且不导航（`/home/hanxi/songloft-ui-verify/mp-mini-more-menu.png`）。
+- Seen 1× (2026-10-23)。状态：经验，未达到三日期升级阈值。

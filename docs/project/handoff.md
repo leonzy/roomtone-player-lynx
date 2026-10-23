@@ -1,5 +1,17 @@
 # 工作交接（2026-10-14）
 
+## 2026-10-23 · mini player 按钮对齐 Flutter
+
+当前未提交工作树为 mini player 按钮对齐批次：宽屏新增队列与「更多」弹层、窄屏播放模式 340px 降级、共享弹层触发器支持 catchtap。347 文件 / 3693 项全量测试、`tsc -b`、双产物、嵌入 Web 打包与 Go 构建通过；无头 Chrome 验证 390/1024/320 三档按钮集、队列抽屉与更多菜单。截图 `/home/hanxi/songloft-ui-verify/mp-mini-*.png`，详见 [progress](progress.md#2026-10-23--mini-player-按钮对齐-flutter)。iOS/Android/HarmonyOS 设备未跑；本批未提交、推送、发布或写 Issue 评论，上下方其他授权均不适用于本批。
+
+English: The current uncommitted worktree is the mini-player button parity batch: a wide-only queue entry and "more" popover, a 340px play-mode gate on narrow screens, and a catchtap-capable shared popover trigger. The 347-file / 3693-test suite, `tsc -b`, dual build, embedded Web packaging and Go build pass; headless Chrome verifies the button sets at 390/1024/320 plus the queue drawer and more menu. Screenshots `/home/hanxi/songloft-ui-verify/mp-mini-*.png`; see [progress](progress.md#2026-10-23--mini-player-按钮对齐-flutter). iOS/Android/HarmonyOS devices were not run; no commit, push, release or issue comment was made, and other authorizations above and below do not apply.
+
+## 2026-10-23 · songloft-org/songloft#536 音量 / 登录滚动 / 歌单加歌
+
+当前未提交工作树补齐三项：#536 的应用音量持久化与宽屏 mini player 音量入口、登录页短视口滚动、歌单详情「添加歌曲」选择器（已加入歌曲默认隐藏）。347 文件 / 3688 项全量测试、`tsc -b`、Lynx/Web 双产物、嵌入 Web 打包与 Go 后端构建通过；Docker 无头 Chrome 已实际验证登录页滚动、音量 50%→30% 整页刷新保持、选择器排除已加入歌曲并添加两首。截图与脚本在 `/home/hanxi/songloft-ui-verify/`，详见 [progress](progress.md#2026-10-23--songloft-orgsongloft536-lynx-缺口补齐)。iOS/Android/HarmonyOS 设备未跑；本批未提交、推送、发布或写 Issue 评论，下方历史授权不适用于本批。
+
+English: The current uncommitted worktree closes three #536 items: app-level volume persistence plus a wide mini-player entry, login scrolling on short viewports, and a playlist "add songs" picker that hides already-added songs. The 347-file / 3688-test suite, `tsc -b`, dual Lynx/Web build, embedded Web packaging and Go backend build pass; headless Chrome verifies login scrolling, volume 50%→30% surviving a reload, and the picker excluding an added song before adding two. Evidence is in `/home/hanxi/songloft-ui-verify/`; see [progress](progress.md#2026-10-23--songloft-orgsongloft536-lynx-缺口补齐). iOS/Android/HarmonyOS devices were not run; no commit, push, release or issue comment was made, and older authorizations below do not apply.
+
 功能移植提交授权（2026-10-21）：用户现已明确要求「提交推送」。只提交并推送本批功能移植及父指针，保留并发首页/Flutter 工作；不继承其他任务的写授权。最终提交与 CI 以交付记录为准，下方未提交描述保留为历史验收快照。
 
 功能移植最终追加（2026-10-21）：修复 Android 首次桌面播放丢失及 MV 切音频后的空白视频页；独立副本的类型、双产物/Web、421 项相关回归、89 项发布检查和 4 项原生单测/Android 构建通过。最终 APK `4f0f5870…c76ba1` 的 9 项桌面实测与 Web/Android MV 结束返回均通过，11 张新截图见 `/home/hanxi/work/songloft-review/lynx-current-device-20261021/review.html`。独立副本不含并发首页任务的新功能；共享目录改动保留。全量重跑中止及各次失败已留档，iOS/HarmonyOS 设备与签名、真机、默认玻璃仍未验。未提交/推送/发布；详情以 [本批最终记录](feature-port-20261021.md) 为准，下方功能移植段落是前一阶段快照。

@@ -1,20 +1,33 @@
-import { useEffect, useSyncExternalStore } from '@lynx-js/react'
+import { useEffect, useState, useSyncExternalStore } from '@lynx-js/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { buildCoverUrl } from '../../../core/network/url-helper.js'
+import { getShellWidth, subscribeShellWidth } from '../../../shared/nav/shell-navigation.js'
+import { useTapAnchor } from '../../../shared/ui/anchored-overlay.js'
 import { BackdropBlur } from '../../../shared/ui/BackdropBlur.js'
 import { useCapsuleMaterialStyle } from '../../../shared/ui/capsule-material.js'
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
+import { songRowOverlays } from '../../../shared/ui/song-row-overlays.js'
 import { useFavoriteToggle } from '../../library/data/favorites.js'
 import { cachedSongIdentity } from '../domain/offline-cache.js'
 import { loadMiniPlayerControls, miniPlayerControls } from '../data/mini-player-controls.js'
 import { writeDefaultPlayMode } from '../../settings/data/settings-prefs.js'
 import type { IconName } from '../../../shared/ui/icons.js'
 import type { PlayMode } from '../domain/play-mode.js'
-import { hasNext, hasPrev, progressOf, usePlayerStore } from '../store/index.js'
+import { hasNext, hasPrev, isMuted, progressOf, usePlayerStore } from '../store/index.js'
+import { PlayerMoreMenu } from './PlayerMoreMenu.js'
+import { PlaylistDrawer } from './PlaylistDrawer.js'
+import { SleepTimerSheet } from './SleepTimerSheet.js'
 import '../../../shared/ui/overlay-motion.css'
 import './MiniPlayer.css'
+
+/**
+ * The four-button row (play mode + transport) leaves too little title width
+ * below this. Mirrors Flutter's `_kPlayModeMinWidth` in `mini_player.dart`:
+ * the preference survives, the fourth button just drops out on narrow phones.
+ */
+const PLAY_MODE_MIN_WIDTH = 340
 
 /**
  * Persistent mini-player, mounted in the shell above the bottom nav (narrow) /
@@ -50,8 +63,20 @@ export function MiniPlayer() {
   const canNext = usePlayerStore(hasNext)
   const canPrev = usePlayerStore(hasPrev)
   const playMode = usePlayerStore((s) => s.playMode)
+  const muted = usePlayerStore(isMuted)
+  const sleepTimer = usePlayerStore((s) => s.sleepTimer)
+  const volumeAnchor = useTapAnchor()
   const controls = useSyncExternalStore(miniPlayerControls.subscribe, () => miniPlayerControls.getState().mode)
+  const shellWidth = useSyncExternalStore(subscribeShellWidth, getShellWidth)
+  const [showSleepTimer, setShowSleepTimer] = useState(false)
   useEffect(() => { void loadMiniPlayerControls() }, [])
+  // The volume panel is root-mounted and the queue drawer is store-driven;
+  // leaving the shell (or losing the song) must not leave either floating over
+  // the next page.
+  useEffect(() => () => {
+    songRowOverlays.closeMiniVolume()
+    usePlayerStore.getState().closePlaylistDrawer()
+  }, [])
   const { isFavorite, toggle: toggleFavorite, isPending: isFavPending } =
     useFavoriteToggle(song?.id ?? 0, song != null && !cachedSongIdentity(song))
 
@@ -62,7 +87,8 @@ export function MiniPlayer() {
   const pct = `${Math.round(progress * 100)}%`
 
   return (
-    <view className='mini-player overlay--enter-scale' bindtap={() => navigate({ to: '/player' })}>
+    <>
+      <view className='mini-player overlay--enter-scale' bindtap={() => navigate({ to: '/player' })}>
       {/* Panel-mode blur — same reason as the nav capsule below it: this bar
           floats over scrolling content with no scrim of its own. The root's
           `bindtap` still receives taps, since a child bubbles to it. */}
@@ -112,7 +138,7 @@ export function MiniPlayer() {
           >
             <Icon name='skip-next' size={22} color={ICON_COLORS.content} />
           </view>}
-          {controls === 'prevNextMode' && <view
+          {controls === 'prevNextMode' && shellWidth >= PLAY_MODE_MIN_WIDTH && <view
             className='mini-player__btn'
             catchtap={() => {
               const player = usePlayerStore.getState()
@@ -141,7 +167,53 @@ export function MiniPlayer() {
             color={isFavorite ? ICON_COLORS.primary : ICON_COLORS.content2}
           />
         </view>}
+        {/* Wide-only, like the favorite: phone capsules have no room for a
+            fifth control, and hardware keys cover volume there. */}
+        <view
+          id={volumeAnchor.anchorId}
+          className='mini-player__btn mini-player__volume'
+          catchtap={() => {
+            volumeAnchor.measure((anchor) => songRowOverlays.openMiniVolume(anchor))
+          }}
+          accessibility-element={true}
+          accessibility-label={t('player.volume')}
+          data-testid='mini-volume-btn'
+        >
+          <Icon
+            name={muted ? 'volume-mute' : 'volume'}
+            size={20}
+            color={ICON_COLORS.content2}
+          />
+        </view>
+        {/* Queue and overflow: wide-only, like the favorite and volume. The
+            Flutter dense capsule grows its row with the same set at tablet
+            width; phones keep the transport cluster and open the full player
+            for everything else. */}
+        <view
+          className='mini-player__btn mini-player__wide-action'
+          catchtap={() => usePlayerStore.getState().togglePlaylistDrawer()}
+          accessibility-element={true}
+          accessibility-label={t('player.queue')}
+          data-testid='mini-queue-btn'
+        >
+          <Icon name='queue' size={20} color={ICON_COLORS.content2} />
+        </view>
+        <PlayerMoreMenu
+          song={song}
+          onOpenSleepTimer={() => setShowSleepTimer(true)}
+          timerActive={sleepTimer != null}
+          placement='top-end'
+          iconSize={20}
+          triggerClassName='mini-player__btn mini-player__wide-action'
+          triggerTestId='mini-more-btn'
+          // The capsule root opens the full player on tap; a bubbling trigger
+          // would open the menu and navigate away in the same gesture.
+          stopTriggerPropagation={true}
+        />
       </view>
     </view>
+    <PlaylistDrawer />
+    <SleepTimerSheet show={showSleepTimer} onClose={() => setShowSleepTimer(false)} />
+  </>
   )
 }
