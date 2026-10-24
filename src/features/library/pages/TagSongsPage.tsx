@@ -6,6 +6,7 @@ import { buildCoverUrl } from '../../../core/network/url-helper.js'
 import type { Song } from '../../../models/song.js'
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { usePlayerStore } from '../../player/store/index.js'
+import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
 import { PlayHistoryPanel } from '../../player/widgets/PlayHistoryPanel.js'
 import { flattenSongs } from '../data/pagination.js'
 import { useTagSongsInfiniteQuery } from '../data/song-tags-query.js'
@@ -55,14 +56,12 @@ export function TagSongsPage() {
   }
 
   const playAll = async () => {
-    if (songs.length === 0) return
     try {
-      const res = await getSongsApi().getSongs({ tagId }, { limit: 9999, offset: 0 })
-      if (res.songs.length === 0) {
-        toast.show(t('playlist.emptyPlaylist'))
-        return
-      }
-      await usePlayerStore.getState().playAll(res.songs, playbackCtx)
+      const started = await playAllWithBackgroundFill(
+        (offset, limit) => getSongsApi().getSongs({ tagId }, { limit, offset }),
+        playbackCtx,
+      )
+      if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {
       toast.error(t('playlist.playFailed'))
     }

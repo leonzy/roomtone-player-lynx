@@ -11,6 +11,7 @@ import { EMPTY_LIBRARY_STATS } from '../../../models/library-stats.js'
 import type { Playlist } from '../../../models/playlist.js'
 import { usePlayerStore } from '../../player/store/index.js'
 import { playlistContext } from '../../player/domain/playback-context.js'
+import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
 import { getPlaylistApi } from '../../playlist/api/index.js'
 import { toast } from '../../../shared/ui/toast-store.js'
 import { PluginGrid } from '../../jsplugin/widgets/PluginGrid.js'
@@ -109,17 +110,19 @@ export function HomePage() {
     void navigate({ to: '/playlists/create' })
   }
   // One-tap "play this playlist" from the home cover disc — mirrors PlaylistsView's
-  // onPlayAll: fetch up to 9999 songs, playAll with the playlist context so the play
-  // event lands in that playlist's history. Empty → toast; failure → toast. The
-  // cover's catchtap already stops this from also navigating into the detail page.
+  // onPlayAll. Only the first page blocks the first note; the store's background
+  // loader appends the rest (Flutter `playPlaylistById` parity). Empty → toast;
+  // failure → toast. The cover's catchtap already stops this from also navigating
+  // into the detail page.
   const onPlayAll = async (playlist: Playlist) => {
+    const filters = { sort: playlist.sortBy ?? 'position', order: playlist.sortOrder ?? 'asc' }
     try {
-      const res = await getPlaylistApi().getPlaylistSongs(playlist.id, {}, { limit: 9999, offset: 0 })
-      if (res.songs.length === 0) {
-        toast.show(t('playlist.emptyPlaylist'))
-        return
-      }
-      await usePlayerStore.getState().playAll(res.songs, playlistContext(playlist.id))
+      const started = await playAllWithBackgroundFill(
+        (offset, limit) =>
+          getPlaylistApi().getPlaylistSongs(playlist.id, filters, { limit, offset }),
+        playlistContext(playlist.id),
+      )
+      if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {
       toast.error(t('playlist.playFailed'))
     }

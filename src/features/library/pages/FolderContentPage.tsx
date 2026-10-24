@@ -6,6 +6,7 @@ import type { FolderInfo } from '../../../models/folder.js'
 import type { Song } from '../../../models/song.js'
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { usePlayerStore } from '../../player/store/index.js'
+import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
 import { getSongsApi } from '../api/index.js'
 import { useFoldersQuery } from '../data/folder-query.js'
 import { toast } from '../../../shared/ui/toast-store.js'
@@ -38,36 +39,29 @@ export function FolderContentPage() {
     })
   }
 
-  const onPlayAllFolder = async (folder: FolderInfo) => {
+  const playPathPrefix = async (pathPrefix: string) => {
     try {
-      const pathPrefix = data?.musicPath
-        ? `${data.musicPath}/${folder.path}/`
-        : `${folder.path}/`
-      const res = await getSongsApi().getSongs({ pathPrefix }, { limit: 10000, offset: 0 })
-      if (res.songs.length === 0) {
-        toast.show(t('playlist.emptyPlaylist'))
-        return
-      }
-      await usePlayerStore.getState().playAll(res.songs)
+      const started = await playAllWithBackgroundFill(
+        (offset, limit) => getSongsApi().getSongs({ pathPrefix }, { limit, offset }),
+      )
+      if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {
       toast.error(t('playlist.playFailed'))
     }
   }
 
-  const playAll = async () => {
-    try {
-      const pathPrefix = data?.musicPath
-        ? `${data.musicPath}/${folderPath}/`
-        : `${folderPath}/`
-      const res = await getSongsApi().getSongs({ pathPrefix }, { limit: 10000, offset: 0 })
-      if (res.songs.length === 0) {
-        toast.show(t('playlist.emptyPlaylist'))
-        return
-      }
-      await usePlayerStore.getState().playAll(res.songs)
-    } catch {
-      toast.error(t('playlist.playFailed'))
-    }
+  const onPlayAllFolder = (folder: FolderInfo) => {
+    const pathPrefix = data?.musicPath
+      ? `${data.musicPath}/${folder.path}/`
+      : `${folder.path}/`
+    return playPathPrefix(pathPrefix)
+  }
+
+  const playAll = () => {
+    const pathPrefix = data?.musicPath
+      ? `${data.musicPath}/${folderPath}/`
+      : `${folderPath}/`
+    return playPathPrefix(pathPrefix)
   }
 
   const onTapSong = (_song: Song, index: number) => {

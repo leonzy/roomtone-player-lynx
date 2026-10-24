@@ -10,6 +10,7 @@ import { useDebounce } from '../data/use-debounce.js'
 import { useFoldersQuery } from '../data/folder-query.js'
 import { getSongsApi } from '../api/index.js'
 import { usePlayerStore } from '../../player/store/index.js'
+import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
 import { toast } from '../../../shared/ui/toast-store.js'
 import { MediaListItem } from '../../../shared/ui/MediaListItem.js'
 import { GridSpacers } from '../../../shared/ui/GridSpacers.js'
@@ -39,16 +40,14 @@ export function FolderGridView({ viewMode = 'grid' }: FolderGridViewProps) {
   }
 
   const onPlayAll = async (folder: FolderInfo) => {
+    const pathPrefix = data?.musicPath
+      ? `${data.musicPath}/${folder.path}/`
+      : `${folder.path}/`
     try {
-      const pathPrefix = data?.musicPath
-        ? `${data.musicPath}/${folder.path}/`
-        : `${folder.path}/`
-      const res = await getSongsApi().getSongs({ pathPrefix }, { limit: 10000, offset: 0 })
-      if (res.songs.length === 0) {
-        toast.show(t('playlist.emptyPlaylist'))
-        return
-      }
-      await usePlayerStore.getState().playAll(res.songs)
+      const started = await playAllWithBackgroundFill(
+        (offset, limit) => getSongsApi().getSongs({ pathPrefix }, { limit, offset }),
+      )
+      if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {
       toast.error(t('playlist.playFailed'))
     }

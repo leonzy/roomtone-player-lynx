@@ -11,8 +11,8 @@ import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { DragHandle } from '../../../shared/ui/DragHandle.js'
 import { useBackHandler } from '../../../shared/nav/use-back-handler.js'
 import { useScrollNotifier } from '../../../shared/nav/scroll-visibility.js'
-import { usePlayerStore } from '../../player/store/index.js'
 import { playlistContext } from '../../player/domain/playback-context.js'
+import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
 import { getPlaylistApi } from '../api/index.js'
 import { PopoverMenu } from '../../../shared/ui/PopoverMenu.js'
 import type { PopoverMenuItem } from '../../../shared/ui/PopoverMenu.js'
@@ -101,16 +101,14 @@ export function PlaylistsView(
   ]
 
   const onPlayAll = async (playlist: Playlist) => {
+    const filters = { sort: playlist.sortBy ?? 'position', order: playlist.sortOrder ?? 'asc' }
     try {
-      const res = await getPlaylistApi().getPlaylistSongs(playlist.id, {}, { limit: 9999, offset: 0 })
-      if (res.songs.length === 0) {
-        toast.show(t('playlist.emptyPlaylist'))
-        return
-      }
-      await usePlayerStore.getState().playAll(
-        res.songs,
+      const started = await playAllWithBackgroundFill(
+        (offset, limit) =>
+          getPlaylistApi().getPlaylistSongs(playlist.id, filters, { limit, offset }),
         playlistContext(playlist.id),
       )
+      if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {
       toast.error(t('playlist.playFailed'))
     }

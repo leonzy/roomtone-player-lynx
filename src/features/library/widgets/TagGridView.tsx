@@ -9,7 +9,7 @@ import { useScrollNotifier } from '../../../shared/nav/scroll-visibility.js'
 import { useDebounce } from '../data/use-debounce.js'
 import { flattenTags, useTagListInfiniteQuery } from '../data/song-tags-query.js'
 import { getSongsApi } from '../api/index.js'
-import { usePlayerStore } from '../../player/store/index.js'
+import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
 import { toast } from '../../../shared/ui/toast-store.js'
 import { MediaListItem } from '../../../shared/ui/MediaListItem.js'
 import { GridSpacers } from '../../../shared/ui/GridSpacers.js'
@@ -41,15 +41,11 @@ export function TagGridView({ viewMode = 'grid' }: TagGridViewProps) {
 
   const onPlayAll = async (tag: SongTag) => {
     try {
-      const res = await getSongsApi().getSongs({ tagId: tag.id }, { limit: 9999, offset: 0 })
-      if (res.songs.length === 0) {
-        toast.show(t('playlist.emptyPlaylist'))
-        return
-      }
-      await usePlayerStore.getState().playAll(
-        res.songs,
+      const started = await playAllWithBackgroundFill(
+        (offset, limit) => getSongsApi().getSongs({ tagId: tag.id }, { limit, offset }),
         { type: 'tag' as const, key: String(tag.id) },
       )
+      if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {
       toast.error(t('playlist.playFailed'))
     }

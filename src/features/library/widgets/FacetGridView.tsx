@@ -11,7 +11,7 @@ import { useDebounce } from '../data/use-debounce.js'
 import { useFacetsInfiniteQuery } from '../data/songs-query.js'
 import type { LibraryViewKey } from '../domain/library-views.js'
 import { getSongsApi } from '../api/index.js'
-import { usePlayerStore } from '../../player/store/index.js'
+import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
 import { facetContext } from '../../player/domain/playback-context.js'
 import { toast } from '../../../shared/ui/toast-store.js'
 import { MediaListItem } from '../../../shared/ui/MediaListItem.js'
@@ -45,17 +45,13 @@ export function FacetGridView({ field, viewMode = 'grid' }: FacetGridViewProps) 
   const query = useFacetsInfiniteQuery(field, keyword)
 
   const onPlayAll = async (facet: SongFacet) => {
+    const filters: Record<string, string> = { [field]: facet.value }
     try {
-      const filters: Record<string, string> = { [field]: facet.value }
-      const res = await getSongsApi().getSongs(filters, { limit: 9999, offset: 0 })
-      if (res.songs.length === 0) {
-        toast.show(t('playlist.emptyPlaylist'))
-        return
-      }
-      await usePlayerStore.getState().playAll(
-        res.songs,
+      const started = await playAllWithBackgroundFill(
+        (offset, limit) => getSongsApi().getSongs(filters, { limit, offset }),
         facetContext(field, facet.value),
       )
+      if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {
       toast.error(t('playlist.playFailed'))
     }
