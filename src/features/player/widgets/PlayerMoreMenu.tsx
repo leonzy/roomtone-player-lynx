@@ -36,7 +36,10 @@ export interface PlayerMoreMenuProps {
   triggerTestId?: string
   /** Accessible name. Defaults to "More". */
   triggerAccessibilityLabel?: string
-  /** Keep the trigger's tap from bubbling to a tappable ancestor (mini player). */
+  /**
+   * Keep the trigger, panel and backdrop taps from bubbling to a tappable
+   * ancestor (the mini player, whose root opens the full player).
+   */
   stopTriggerPropagation?: boolean
 }
 

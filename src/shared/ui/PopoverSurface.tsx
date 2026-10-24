@@ -17,9 +17,12 @@ export interface PopoverSurfaceProps {
   /** See `PopoverMenuProps.triggerAccessibilityLabel`. */
   triggerAccessibilityLabel?: string
   /**
-   * Use `catchtap` on the trigger so the tap does not bubble to a tappable
-   * ancestor. The mini player needs this: its root opens the full player, and
-   * a `bindtap` trigger would both open the menu and navigate away.
+   * Isolate every tappable layer of this popover — the trigger, the panel and
+   * the backdrop — from tappable ancestors with `catchtap`. The mini player
+   * needs this: its root opens the full player, and a bubbling tap would both
+   * run the menu action and navigate away (the panel and backdrop are siblings
+   * of the trigger but still descendants of that root, so the trigger alone is
+   * not enough).
    */
   stopTriggerPropagation?: boolean
   placement: Placement
@@ -47,6 +50,11 @@ export interface PopoverSurfaceProps {
  *    on a menu row cannot reach it. Putting the close handler on a shared root and
  *    relying on `catchtap` in the panel to stop the bubble works on device but is
  *    untestable, since the test env does not implement that interception.
+ *  - **Inside a tappable ancestor, all three layers isolate themselves.** Sibling
+ *    of the trigger or not, the panel and the backdrop are still *descendants* of
+ *    the trigger's ancestors, so their taps bubble there too. With
+ *    `stopTriggerPropagation` both switch to `catchtap`; the panel gets a no-op
+ *    catcher (only to stop the bubble) while the backdrop keeps closing on tap.
  *  - **The panel's blur is a child of the panel, not of the backdrop.** A popover
  *    is not modal, so there is no scrim to dim and nothing page-sized to blur; the
  *    material is the panel itself. That is the one place the modal mounting rule
@@ -119,10 +127,24 @@ export function PopoverSurface({
           <>
             <view
               className='popover-backdrop'
-              bindtap={() => onShowChange(false)}
+              {...(stopTriggerPropagation
+                ? { catchtap: () => onShowChange(false) }
+                : { bindtap: () => onShowChange(false) })}
               data-testid='popover-backdrop'
             />
-            <view className={`${panelClassName} overlay--enter-scale`} style={position}>
+            <view
+              className={`${panelClassName} overlay--enter-scale`}
+              style={position}
+              /*
+               * `catchtap` when the popover lives inside a tappable ancestor:
+               * a row's `bindtap` bubbles out through the panel, and without
+               * this it reaches that ancestor too (the mini player would
+               * navigate to `/player` while opening a sheet or the equalizer).
+               * The no-op handler is the same pattern as dialog cards; it only
+               * stops the bubble, it does not close anything.
+               */
+              {...(stopTriggerPropagation ? { catchtap: () => {} } : {})}
+            >
               {/*
                * Panel-mode blur: the material *is* the panel here, so the layer
                * goes inside it rather than behind a scrim — a popover has no

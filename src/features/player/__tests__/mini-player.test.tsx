@@ -238,3 +238,46 @@ test('the overflow entry opens the more menu above the capsule', async () => {
   })
   expect(query.queryByTestId('popover-backdrop')).toBeInTheDocument()
 })
+
+/**
+ * The capsule root opens `/player` on `bindtap`, and the popover panel and its
+ * backdrop are descendants of that root even though they are siblings of the
+ * trigger. Without their own `catchtap`, a menu row would run its action and
+ * then also navigate — song info only appeared after landing on the full
+ * player, and the sleep timer was unmounted with the shell before it could
+ * show.
+ */
+test('the open more menu isolates its panel and backdrop from the capsule tap', async () => {
+  render(<MiniPlayer />)
+  await act(async () => { await Promise.resolve() })
+  const query = getQueriesForElement(elementTree.root!)
+  type TapNode = { eventMap: Record<string, (event: { stopPropagation: () => void }) => void> }
+  const trigger = query.getByTestId('mini-more-btn').parentElement as unknown as TapNode
+
+  await act(async () => {
+    trigger.eventMap['catchEvent:tap']!({ stopPropagation: () => {} })
+    await Promise.resolve()
+  })
+
+  const backdrop = query.getByTestId('popover-backdrop') as unknown as TapNode & {
+    parentElement: Element | null
+  }
+  expect(
+    backdrop.eventMap['catchEvent:tap'],
+    'the backdrop must swallow the tap that closes it, or it also opens /player',
+  ).toBeTypeOf('function')
+
+  const panel = Array.from(backdrop.parentElement?.children ?? []).find((child) =>
+    (child.className ?? '').includes('popover-menu'))
+  expect(panel, 'the open panel is a sibling of the backdrop').toBeTruthy()
+  expect(
+    (panel as unknown as TapNode).eventMap['catchEvent:tap'],
+    'menu rows must not bubble past the panel into the capsule root',
+  ).toBeTypeOf('function')
+
+  // The catcher only stops the bubble; it still closes the popover.
+  await act(async () => {
+    backdrop.eventMap['catchEvent:tap']!({ stopPropagation: () => {} })
+  })
+  expect(query.queryByTestId('popover-backdrop')).not.toBeInTheDocument()
+})

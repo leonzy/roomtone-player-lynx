@@ -4,6 +4,16 @@
 
 English: The user explicitly authorized committing and pushing the feature port and parent gitlink. Concurrent home/Flutter work is preserved. Uncommitted statements below are historical snapshots; final commit/CI records govern delivery.
 
+## 2026-10-24 · mini player 更多菜单弹层隔离
+
+修复 Lynx mini player「更多」菜单的三个入口：歌曲信息此前先跳到全屏播放器才弹窗，均衡器完全不打开，睡眠定时器面板不出现。根因不是菜单项逻辑，而是弹层仍位于带 `bindtap`（导航 `/player`）的胶囊根之下：触发器已 `catchtap`，但展开后的面板行点击与遮罩点击继续冒泡，同一手势既执行菜单动作又导航；睡眠定时器随 ShellLayout 卸载一起消失。`PopoverSurface` 在 `stopTriggerPropagation` 下把面板（no-op `catchtap`）与遮罩（`catchtap` 关闭）一并隔离，其他 popover 入口不受影响。
+
+验证：348 文件 / 3698 项全量测试、`tsc -b`、Lynx/Web 双产物（4121.9 kB / 4090.1 kB）通过；新增回归断言面板与遮罩均为 `catchEvent:tap`，移除隔离后该用例失败（反向验证）。Docker 无头 Chrome 1024×768 实测：歌曲信息在列表页原地打开且弹窗可见、均衡器进入 EQ 页、睡眠定时面板弹出，三者均不再跳 `/player`；遮罩点击关闭菜单/面板且不导航。截图 `/home/hanxi/songloft-ui-verify/mini-menu-{song-info,equalizer,sleep-timer}.png`，脚本 `mini-player-menu-fix.js`。Not run：iOS/Android/HarmonyOS 真机与模拟器。本批未提交、推送、发布或写 Issue 评论。
+
+English: Fixed the three entries in the Lynx mini player's "more" menu: song info previously landed on the full player before its dialog appeared, the equalizer never opened, and the sleep-timer sheet did not show. The cause was not the item handlers but the popover still living under the capsule root whose `bindtap` navigates to `/player`: the trigger already used `catchtap`, yet panel-row taps and backdrop taps kept bubbling, so one gesture both ran the action and navigated, and the sleep-timer sheet vanished with the unmounted shell. Under `stopTriggerPropagation`, `PopoverSurface` now isolates the panel (no-op `catchtap`) and the backdrop (`catchtap` that closes); other popover call sites are unchanged.
+
+Verification: the 348-file / 3698-test suite, `tsc -b` and the dual Lynx/Web build (4121.9 kB / 4090.1 kB) pass. New assertions require `catchEvent:tap` on both panel and backdrop and fail when the isolation is removed (reverse check). Headless Chrome at 1024×768 shows song info opening in place over the list, the equalizer page rendering, and the sleep-timer sheet appearing, all without navigating to `/player`; backdrop taps close the menu/sheet without navigating. Screenshots `/home/hanxi/songloft-ui-verify/mini-menu-{song-info,equalizer,sleep-timer}.png`, script `mini-player-menu-fix.js`. Not run: iOS/Android/HarmonyOS devices or simulators. No commit, push, release or issue comment.
+
 ## 2026-10-23 · mini player 按钮对齐 Flutter
 
 对照 Flutter 补齐 Lynx mini player 按钮：宽屏（shell ≥600px）新增队列入口（复用 PlaylistDrawer）与「更多」弹层（复用 PlayerMoreMenu，`top-end` 锚定，内含歌曲信息/均衡器/睡眠定时器），窄屏不变但播放模式按钮增加 340px 宽度降级（对齐 Flutter `_kPlayModeMinWidth`）；歌词按钮不加（胶囊主体点击已进播放页），投射/音轨保持在菜单内。`PopoverSurface`/`PopoverMenu`/`PlayerMoreMenu` 相应增加 placement、trigger 样式与 `stopTriggerPropagation` 透传——可点击祖先内的触发器必须 catchtap（LESSONS UI-005）。

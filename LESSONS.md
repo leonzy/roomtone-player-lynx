@@ -173,10 +173,10 @@
 - Not run：iOS/Android/HarmonyOS 真机；硬件音量键、锁屏与蓝牙路径未验。
 - Seen 1× (2026-10-23)。状态：经验，未达到三日期升级阈值。
 
-### UI-005：可点击祖先内的弹层触发器必须拦截冒泡
+### UI-005：可点击祖先内的弹层必须整层拦截冒泡
 
-- 范围：Lynx mini player 内嵌 popover 触发器与共享 PopoverSurface；无关联 Issue（mini player 按钮对齐批次）。
-- 规则：Lynx `bindtap` 沿祖先链冒泡；放在自带 `bindtap`（如 mini player 根节点点击导航 `/player`）内的弹层触发器必须用 `catchtap`，否则同一手势既打开菜单又跳页。共享触发组件要显式提供 stopPropagation 开关，不要靠调用方额外包一层 view。
-- 失败证据：Docker 无头 Chrome 首次点击 mini player「更多」后截图落在 `/player` 页而非菜单；触发器经 `bindtap` 冒泡到胶囊根的导航。单测里 `fireEvent.tap` 也只触达 `bindtap`，必须直接调用 `eventMap['catchEvent:tap']`。
-- Done right：`PopoverSurface` 支持 `stopTriggerPropagation`（bindtap→catchtap 切换），mini player 传 `stopTriggerPropagation={true}`；实际浏览器确认菜单打开且不导航（`/home/hanxi/songloft-ui-verify/mp-mini-more-menu.png`）。
-- Seen 1× (2026-10-23)。状态：经验，未达到三日期升级阈值。
+- 范围：Lynx mini player 内嵌 popover 与共享 PopoverSurface；无关联 Issue（mini player 按钮对齐批次及其后续修复）。
+- 规则：Lynx `bindtap` 沿祖先链冒泡。放在自带 `bindtap`（如 mini player 根节点点击导航 `/player`）内的弹层，不只触发器要 `catchtap`：面板与遮罩虽是触发器的兄弟节点，仍是该可点击祖先的后代。触发器的 catch 只保护开关本身，行点击和遮罩点击会继续冒泡。共享弹层组件要显式提供隔离开关，并同时覆盖 trigger / panel / backdrop；面板用 no-op `catchtap` 止冒泡，遮罩用 `catchtap` 关闭，不要靠调用方额外包 view。
+- 失败证据：Docker 无头 Chrome 首次点击 mini player「更多」后截图落在 `/player` 页而非菜单；触发器经 `bindtap` 冒泡到胶囊根的导航。修完触发器后同一批次再报：歌曲信息点开先跳全屏播放器才出弹窗（全局弹窗留在根级），均衡器被 `/player` 的第二次导航覆盖而打不开，睡眠定时面板随 ShellLayout 卸载一起消失。单测里 `fireEvent.tap` 只触达 `bindtap`，必须直接调用 `eventMap['catchEvent:tap']`。
+- Done right：`PopoverSurface` 的 `stopTriggerPropagation` 同时切换 trigger / panel / backdrop（mini player 传 `true`，其它入口不受影响）；无头 Chrome 1024×768 实测歌曲信息在列表页原地打开、均衡器进入 EQ 页、睡眠定时面板弹出、遮罩点击关闭且不导航（`/home/hanxi/songloft-ui-verify/mini-menu-{song-info,equalizer,sleep-timer}.png`）。
+- Seen 1× (2026-10-23；同一批次的后续缺陷 2026-10-24 不重复计数)。状态：经验，未达到三日期升级阈值。

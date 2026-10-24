@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-10-24 · mini player 更多菜单弹层隔离
+
+当前未提交工作树修复 Lynx mini player「更多」菜单的歌曲信息 / 均衡器 / 睡眠定时：`PopoverSurface` 在 `stopTriggerPropagation` 下把面板与遮罩也切到 `catchtap`，阻止行点击和遮罩点击继续冒泡到胶囊根的 `/player` 导航。348 文件 / 3698 项全量测试、`tsc -b`、双产物通过；无头 Chrome 1024×768 实测歌曲信息原地打开、均衡器进入 EQ 页、睡眠定时面板弹出、遮罩关闭不导航。截图 `/home/hanxi/songloft-ui-verify/mini-menu-*.png`，脚本 `mini-player-menu-fix.js`，详见 [progress](progress.md#2026-10-24--mini-player-更多菜单弹层隔离)。iOS/Android/HarmonyOS 设备未跑；本批未提交、推送、发布或写 Issue 评论。
+
+English: The current uncommitted worktree fixes the song info / equalizer / sleep-timer entries in the Lynx mini player's "more" menu: under `stopTriggerPropagation`, `PopoverSurface` now switches the panel and backdrop to `catchtap` too, so row and backdrop taps no longer bubble into the capsule root's `/player` navigation. The 348-file / 3698-test suite, `tsc -b` and the dual build pass; headless Chrome at 1024×768 confirms song info opens in place, the equalizer page renders, the sleep-timer sheet appears, and backdrop dismissal does not navigate. Screenshots `/home/hanxi/songloft-ui-verify/mini-menu-*.png`, script `mini-player-menu-fix.js`; see [progress](progress.md#2026-10-24--mini-player-更多菜单弹层隔离). iOS/Android/HarmonyOS devices were not run; no commit, push, release or issue comment was made.
+
 ## 2026-10-23 · mini player 按钮对齐 Flutter
 
 当前未提交工作树为 mini player 按钮对齐批次：宽屏新增队列与「更多」弹层、窄屏播放模式 340px 降级、共享弹层触发器支持 catchtap。347 文件 / 3693 项全量测试、`tsc -b`、双产物、嵌入 Web 打包与 Go 构建通过；无头 Chrome 验证 390/1024/320 三档按钮集、队列抽屉与更多菜单。截图 `/home/hanxi/songloft-ui-verify/mp-mini-*.png`，详见 [progress](progress.md#2026-10-23--mini-player-按钮对齐-flutter)。iOS/Android/HarmonyOS 设备未跑；本批未提交、推送、发布或写 Issue 评论，上下方其他授权均不适用于本批。

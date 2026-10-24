@@ -37,7 +37,10 @@ export interface PopoverMenuProps {
    * `accessibility-element` (see `a11y-label.test.ts`).
    */
   triggerAccessibilityLabel?: string
-  /** See `PopoverSurfaceProps.stopTriggerPropagation`. */
+  /**
+   * See `PopoverSurfaceProps.stopTriggerPropagation`: the trigger, panel and
+   * backdrop all stop their taps from reaching a tappable ancestor.
+   */
   stopTriggerPropagation?: boolean
   items: PopoverMenuItem[]
   onSelect: (key: string) => void
