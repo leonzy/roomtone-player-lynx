@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-10-24 · iOS Web PWA 状态栏黑边（songloft-org/songloft#538）
+
+当前未提交工作树修复 Lynx Web 宿主页在 iOS 的两处配色：standalone PWA 状态栏那条带画的是 body 背景，写死 `#000` 在浅色主题下成为黑边，改为按系统亮暗给初值并在首帧后由宿主脚本把应用解析后的 `--system-background` 同步回写 body 与 theme-color meta（覆盖外观强制与主题包）；浏览器模式补 media 亮暗两条 `theme-color`，Safari 顶/底栏不再回落默认灰。`black-translucent` 因状态栏文字钉白被拒。348 文件 / 3702 项全量测试、`tsc -b`、`build:web` / `build:web-embedded` 通过；Docker 无头 Chrome 验证亮/暗初值、首帧同步与 token 翻转传播，截图 `/tmp/issue538/state-{light,dark}.png`。iOS 设备未实测；登录页等自带整页背景的页面与状态栏带仍有色差。本批未提交、推送、发布或写 Issue 评论。
+
+English: The current uncommitted worktree fixes two color issues in the Lynx web host page on iOS: the standalone-PWA status-bar strip paints the body background (a hard-coded `#000`, the reported black edge on light themes) and now follows the system scheme with a post-first-frame host script that syncs the app-resolved `--system-background` back to the body and the theme-color metas (covering in-app theme overrides and theme packs); browser mode gains media-scoped light/dark `theme-color` metas so Safari's bars stop falling back to grey. `black-translucent` was rejected for pinning white status text. The 348-file / 3702-test suite, `tsc -b`, `build:web` / `build:web-embedded` pass; headless Chrome verifies light/dark initial values, first-frame sync and token-flip propagation, screenshots `/tmp/issue538/state-{light,dark}.png`. iOS devices not run; pages painting their own full-bleed background still differ from the strip. No commit, push, release or issue comment.
+
 ## 2026-10-24 · mini player 更多菜单弹层隔离
 
 当前未提交工作树修复 Lynx mini player「更多」菜单的歌曲信息 / 均衡器 / 睡眠定时：`PopoverSurface` 在 `stopTriggerPropagation` 下把面板与遮罩也切到 `catchtap`，阻止行点击和遮罩点击继续冒泡到胶囊根的 `/player` 导航。348 文件 / 3698 项全量测试、`tsc -b`、双产物通过；无头 Chrome 1024×768 实测歌曲信息原地打开、均衡器进入 EQ 页、睡眠定时面板弹出、遮罩关闭不导航。截图 `/home/hanxi/songloft-ui-verify/mini-menu-*.png`，脚本 `mini-player-menu-fix.js`，详见 [progress](progress.md#2026-10-24--mini-player-更多菜单弹层隔离)。iOS/Android/HarmonyOS 设备未跑；本批未提交、推送、发布或写 Issue 评论。

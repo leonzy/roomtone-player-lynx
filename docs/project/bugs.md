@@ -11,6 +11,10 @@
 >
 > 格式：`症状 — 根因/修法（修复批次）`。
 
+## 2026-10-24 · iOS Web PWA 状态栏黑边与浏览器灰条（songloft-org/songloft#538）
+
+- [x] **iOS 18.6 添加到主屏幕后顶部黑边；Safari 浏览器打开上下灰条** — standalone PWA 在默认状态栏样式下，webview 缩进在状态栏之下，露出的那条带由页面 body 背景绘制，而宿主页写死 `background:#000`，浅色主题下就是黑边；浏览器模式缺 `theme-color` meta，Safari 顶/底栏回落默认灰。修法：body 背景按 `prefers-color-scheme` 给出与 tokens `--system-background` 一致的亮/暗初值，`theme-color` 双 meta 与之配对，首帧后由宿主脚本观察 lynx-view shadow root 里的 `.theme-root`，把应用解析后的 `--system-background`（覆盖外观强制与主题包）同步回写 body 背景与两个 meta 的 content。不采用 `black-translucent`（页面延伸到栏下）：它把状态栏文字钉死为白色，浅色主题不可读；报告人 iOS 18.6 截图证明 `default` 样式下状态栏文字随底色自适应（黑底白字）。剩余边界：登录页等自带整页背景的页面与状态栏带仍有色差（`default` 样式下 webview 不延伸到栏下，做不到原生宿主的全屏渲染）；原生 iOS ≤18 的同源文字风险仍是上方开放条目。闸门 `web-host-page.test.ts` 配色四条（meta 与背景逐 scheme 相等、背景非单色、同步脚本读 token 回写）；无头 Chrome 验证亮/暗初值、首帧同步与 token 翻转传播。iOS 设备未实测。
+
 ## 2026-10-15 · 大播放队列（songloft-org/songloft#525）
 
 - [x] **3 万首播放队列打开后界面无响应** — 基线 Web 与 Android 原生模拟器均复现。视口窗口减少全量行/测量，播放进度只保存小键，队列变化分批编码。最终 3,543 项测试和两端 3 万首实际打开、队尾、删除、切歌及持久化通过；Web 手机约 442ms、原生模拟器约 1,632ms 打开。修复未提交/发布，真机及 iOS/HarmonyOS 未验收，完整对象与边界见 [记录](issue-525.md) / [English](../en/project/issue-525.md)。

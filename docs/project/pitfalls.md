@@ -93,6 +93,17 @@ web-core 的 `LYNX_TAG_TO_HTML_TAG_MAP` 只映射 view/text/image/raw-text/scrol
 
 插件启用会动态增加导航排序项。实际 Web 验证发现，已有 `SortableRoot` 的主线程缓存未包含新增项：手柄和卡片可以移动，却无法交换顺序，调试日志持续提示缺少项尺寸。对根节点设置 `key={JSON.stringify(tabs.map((tab) => tab.entryPath))}`，在可见入口序列变化时重建尺寸缓存；保存期间仍禁用排序。不要只断言拖拽回调被调用，必须在真实界面启用第二项、拖拽交换，并读取后端保存顺序。修复前后实际生产 Web 已完成对比，调试日志从产品中移除；原生设备仍待验收。
 
+### PWA 状态栏那条带由 body 背景绘制（2026-10-24 · songloft-org/songloft#538）
+
+standalone PWA 用默认状态栏样式时，webview 缩进在状态栏之下，露出的带子画的是**页面 body 背景**——写死 `#000` 就是用户报的浅色主题黑边；此时 `env(safe-area-inset-top)` 是 0（webview 没有延伸到栏下，别指望 app 的安全区 padding 起作用）。四个事实要一起记住：
+
+- `theme-color` meta 管浏览器模式的 Safari 顶/底栏配色，可以 media 亮暗各一条；**首帧后要跟着应用主题改写 content**，否则应用内强制另一色时 chrome 配色跟系统不跟应用。
+- 应用解析后的颜色在 shadow root 里可读：`getComputedStyle(.theme-root).getPropertyValue('--system-background')`。Lynx 的 token 由样式系统**以内联 style 写在元素上**，所以观察该元素的 `class`/`style` attribute 就能跟上主题切换；反过来，直接改 className 不会动 token。
+- 观察 shadow root 必须 `subtree: true`：web-core 在自己的容器 div 下渲染，theme root 在深度 3，挂上观察之后 shadow root 的**直接**子节点再也不变，只看直接子列表的观察者永远不触发。subtree 观察者每个 flush 批次都会进来，回调用 `root.isConnected` 快速短路；但元素级观察者的回调**不能**复用同一个短路——它就是为属性翻转而存在的（实测：共用回调 + 短路，token 覆写不再传播到 body/meta）。
+- 别用 `black-translucent` 换"页面延伸到栏下"：它把状态栏文字钉死为白色，浅色主题下不可读；`default` 样式的状态栏文字随底色自适应（报告人 iOS 18.6 截图为证）。
+
+闸门：`web-host-page.test.ts` 的配色四条（两 scheme 的 meta 与 body 背景一一相等、背景非单色、同步脚本读 `--system-background` 回写 body 与 meta）。
+
 ## 3. 原生模块
 
 ### 原生方法不返回 Promise

@@ -35,6 +35,66 @@ test('mobile Web sizes its contained Lynx viewport below browser chrome and abov
 })
 
 /**
+ * The page background is what iOS paints into the standalone-PWA status-bar
+ * band: under the default status-bar style the webview is inset below the bar,
+ * and the strip it leaves shows the body background. A single fixed `#000` read
+ * as a black edge over a light app, and absent theme-color metas left Safari's
+ * top/bottom bars default grey in normal browsing (songloft-org/songloft#538).
+ *
+ * So the static values must (a) form a scheme-dependent pair whose members
+ * match the theme-color metas, and (b) be overridable at runtime — the app
+ * theme is a user choice that can diverge from the system scheme, and theme
+ * packs override `--system-background` outright. A sync script watches the
+ * app's theme root in the <lynx-view> shadow root and rewrites the body
+ * background and every meta content from the resolved token.
+ */
+describe('the host page paints the status-bar band and browser chrome from the app theme', () => {
+  const html = read('web/index.html')
+
+  const metaColors = new Map(
+    [...html.matchAll(
+      /<meta\s+name="theme-color"\s+media="\(prefers-color-scheme: (light|dark)\)"\s+content="([^"]+)"/g,
+    )].map(m => [m[1] as 'light' | 'dark', m[2]!]),
+  )
+
+  const styles = [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(match => match[1]).join('\n')
+  const baseBackground = styles.match(/html, body\s*\{[^}]*?background:\s*([^;]+);/)?.[1]?.trim()
+  const darkOverride = styles.match(
+    /@media\s*\(prefers-color-scheme: dark\)\s*\{\s*html, body\s*\{\s*background:\s*([^;]+);/,
+  )?.[1]?.trim()
+
+  test('theme-color metas exist for both schemes', () => {
+    expect(metaColors.has('light')).toBe(true)
+    expect(metaColors.has('dark')).toBe(true)
+  })
+
+  test('the body background is a scheme pair, not one fixed color', () => {
+    expect(baseBackground, 'base body background missing').toBeTruthy()
+    expect(darkOverride, 'dark scheme body background override missing').toBeTruthy()
+    expect(baseBackground).not.toBe(darkOverride)
+  })
+
+  test('each scheme\'s theme-color matches that scheme\'s body background', () => {
+    expect(metaColors.get('light')).toBe(baseBackground)
+    expect(metaColors.get('dark')).toBe(darkOverride)
+  })
+
+  test('a sync script rewrites both from the app-resolved --system-background', () => {
+    const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(match => match[1])
+    const sync = scripts.find(script => script.includes('--system-background'))
+    expect(sync, 'no inline host script reads the app-resolved background token').toBeTruthy()
+    expect(sync).toMatch(/getComputedStyle\([^)]*\)\.getPropertyValue\('--system-background'\)/)
+    expect(sync, 'the resolved color must land on the body background').toMatch(
+      /document\.body\.style\.backgroundColor\s*=/,
+    )
+    expect(sync, 'the resolved color must reach the theme-color metas').toMatch(
+      /meta\[name="theme-color"\]/,
+    )
+    expect(sync).toMatch(/setAttribute\('content'/)
+  })
+})
+
+/**
  * The web-core asset directory both serve.mjs and copy-bundle-web.mjs use.
  *
  * Resolved through the symlink pnpm maintains — after a patch update several

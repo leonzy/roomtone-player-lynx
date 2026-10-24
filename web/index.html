@@ -12,6 +12,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <!--
+    Browser-chrome tint: without these, iOS Safari paints its top/bottom bars its
+    own default grey (the reported "浏览器打开后上下灰色"). The media-scoped pair
+    mirrors tokens.css's `--system-background` per scheme; the sync script at the
+    bottom of the page overwrites both `content`s with the app-resolved color
+    once the theme root is live, because the in-app theme (设置 → 外观) and theme
+    packs can diverge from the system scheme these metas track.
+  -->
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
   <title>Songloft</title>
   <link rel="icon" type="image/png" sizes="32x32" href="./app_icon.png">
   <link rel="apple-touch-icon" href="./app_icon.png">
@@ -289,12 +299,27 @@
     })()
   </script>
   <style>
+    /*
+      This background is what iOS paints into the standalone-PWA status-bar band:
+      under the default status-bar style the webview is inset below the bar, and
+      the strip it leaves shows the page background. A single fixed #000 here was
+      the reported black edge over a light app (songloft-org/songloft#538), so
+      the values follow tokens.css's `--system-background` per scheme and the
+      sync script at the bottom overrides them inline with the app-resolved
+      color once the app's theme root is live. `black-translucent` (page under
+      the bar, like the native hosts render) was rejected because it pins white
+      status-bar text — unreadable over a light app — and the text-adaptive
+      `default` style is what the reporter's own screenshot proves works.
+    */
     html, body {
       margin: 0;
       height: 100%;
       overflow: hidden;
-      background: #000;
+      background: #ffffff;
       overscroll-behavior: none;
+    }
+    @media (prefers-color-scheme: dark) {
+      html, body { background: #000000; }
     }
     lynx-view {
       width: 100vw;
@@ -507,6 +532,84 @@
         window.matchMedia(query).addEventListener('change', pushAppearance);
       });
     })();
+  </script>
+  <!--
+    Sync the page's own chrome to the app's resolved theme.
+
+    The body background is the color iOS paints into the standalone-PWA
+    status-bar band, and the theme-color metas tint Safari's bars in normal
+    browsing. The static values above track the *system* scheme only, while the
+    app theme is a user choice (设置 → 外观 forces light/dark) and theme packs
+    override `--system-background` outright. The app cannot report its resolved
+    theme — it runs inside web-core's Worker with no DOM — but its theme root is
+    rendered into this document's <lynx-view> shadow root, so the resolved token
+    is readable from here. Until the app's first frame the static values stand;
+    from then on this wins, and it keeps tracking theme flips.
+  -->
+  <script>
+    (function () {
+      var metas = Array.prototype.slice.call(
+        document.querySelectorAll('meta[name="theme-color"]'))
+
+      function applySystemBackground(color) {
+        if (!color) return
+        document.body.style.backgroundColor = color
+        for (var i = 0; i < metas.length; i++) metas[i].setAttribute('content', color)
+      }
+
+      // Custom properties come back as declared (hex here); rgba() is accepted
+      // in case a theme pack re-declares the token in that form. Anything else
+      // means "could not read" — keep the previous color instead of painting it.
+      function resolvedColor(root) {
+        var value = getComputedStyle(root).getPropertyValue('--system-background').trim()
+        return /^#[0-9a-fA-F]{3,8}$/.test(value) || /^rgba?\(/.test(value) ? value : null
+      }
+
+      function watchShadowRoot(sr) {
+        var root = null
+        var rootObs = null
+        // The element observer's callback: re-read and re-apply. Never gated by
+        // the connected check below — an attribute flip on the live root is
+        // exactly the event this exists for.
+        var apply = function () { applySystemBackground(resolvedColor(root)) }
+        // The subtree observer's callback: finds (or re-finds, after a remount)
+        // the theme root and hands over to an element-level observer.
+        var sync = function () {
+          // Fast path for the per-flush batches the subtree observer receives
+          // after the first sighting: one isConnected read, no query, no
+          // style recalc.
+          if (root && root.isConnected) return
+          var el = sr.querySelector('.theme-root')
+          if (!el) return
+          root = el
+          if (rootObs) rootObs.disconnect()
+          rootObs = new MutationObserver(apply)
+          rootObs.observe(el, { attributes: true, attributeFilter: ['class', 'style'] })
+          apply()
+        }
+        /*
+          subtree is required: web-core renders the app under its own container
+          div (theme root at depth 3), so after that div is added its child list
+          never changes again and a direct-children observer never fires. The
+          token itself lands as inline style on the element (Lynx's style system
+          writes computed styles into the DOM), so class/style attribute flips
+          on the element — the engine applying a theme change — carry it.
+        */
+        new MutationObserver(sync).observe(sr, { childList: true, subtree: true })
+        sync()
+      }
+
+      // The shadow root exists only once the web-core client module upgrades
+      // <lynx-view>; poll briefly for it, same shape as the boot watcher above.
+      var started = performance.now()
+      ;(function poll() {
+        var view = document.getElementById('app')
+        var sr = view && view.shadowRoot
+        if (sr) { watchShadowRoot(sr); return }
+        if (performance.now() - started > 30000) return
+        setTimeout(poll, 100)
+      })()
+    })()
   </script>
 </body>
 </html>
