@@ -10,6 +10,13 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### LIST-002: Preserve pending scrollbar targets and confirm native seeks with visible rows
+
+- Scope: Playlist pagination, drag thumbs and native/Web Lynx lists, songloft-org/songloft#540.
+- Evidence: On 2026-10-25, baseline `eb396153c0a05ddd8a2ba940da87211d1a1cd36e` drives the thumb only from the visible index, initially 0, returning it to the top while loading. Native seeks immediately discard their destination. Two new assertions fail as expected on the old implementation; the native fixture explicitly models a successful invocation before layout commits.
+- Done right: The pending thumb follows the requested position. Both native and Web finish seeking through visible-row confirmation, with bounded retries, unmount cleanup and rejection of stale requests. All 3 focused regressions pass. Actual UI results, final worktree identity and coverage boundaries: [#540 record](docs/en/project/issue-540.md).
+- Seen 1× (2026-10-25). Status: lesson; the controlled native fixture does not establish device acceptance for every native platform.
+
 ### WIDGET-001: Widget actions must not depend on the first audio load
 
 - Scope: 2026-10-21 feature port, uncommitted worktree based on `1ef324864b88c679a7b0378eff24cfef3de4f167`; no linked Issue.

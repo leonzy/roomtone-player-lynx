@@ -55,20 +55,17 @@ export function PlaylistSongList<T extends Song>({ total, loadingMore, hasMore,
   }
 
   const scrollTo = (index: number, request: number) => {
-    if (typeof lynx === 'undefined' || !songs[index]) return
+    if (!alive.current || latestRequest.current !== request || typeof lynx === 'undefined' || !songs[index]) return
     lynx.createSelectorQuery().select(`#${listId}`).invoke({
       method: 'scrollToPosition',
       params: { position: index + (listProps.header ? 1 : 0), itemKey: String(songs[index]!.id), alignTo: 'top', smooth: false },
       success: () => {
         if (!alive.current || latestRequest.current !== request) return
-        if (!isWeb.current) setRequestedIndex(null)
         showHint()
       },
-      fail: () => { if (alive.current && latestRequest.current === request) setRequestedIndex(null) },
     }).exec()
-    // Web's void scrollToPosition does not deliver a success payload. Position
-    // confirmation comes from the actual list scroll event/getVisibleCells.
-    if (!isWeb.current) setRequestedIndex(null)
+    // Invoking the method does not prove that newly appended rows have been
+    // laid out. Keep the destination until visible rows confirm it on any host.
   }
 
   useEffect(() => {
@@ -83,10 +80,9 @@ export function PlaylistSongList<T extends Song>({ total, loadingMore, hasMore,
   }, [requestedIndex, songs, loadingMore, hasMore, loadFailed])
 
   useEffect(() => {
-    if (!isWeb.current || requestedIndex === null || requestedIndex >= songs.length) return
-    // Background data can arrive before Web has committed the new list-items.
-    // A void invoke then reports success without moving at all. Retry until
-    // visible cells confirm the destination, with a finite fallback.
+    if (requestedIndex === null || requestedIndex >= songs.length) return
+    // Both native and Web can receive data before committing the new list-items.
+    // Retry until visible rows confirm the destination, with a finite fallback.
     let attempts = 0
     const request = latestRequest.current
     const timer = setInterval(() => {
@@ -188,6 +184,7 @@ export function PlaylistSongList<T extends Song>({ total, loadingMore, hasMore,
   }, [showLabel, songs, requestedIndex])
   const song = songs[Math.min(currentIndex, songs.length - 1)]
   const ratio = total > 1 ? currentIndex / (total - 1) : 0
+  const thumbRatio = total > 1 ? (requestedIndex ?? currentIndex) / (total - 1) : 0
   const showScrollbar = enabled && total > 20
   const hintTop = Math.max(0, Math.min(ratio * (height || 400), (height || 400) - (navInset || 100) - 64))
   return <view id={`${listId}-host`} className='playlist-song-list' bindlayoutchange={onLayoutChange}>
@@ -196,7 +193,7 @@ export function PlaylistSongList<T extends Song>({ total, loadingMore, hasMore,
     <VirtualList<T> {...listProps} id={listId} onScroll={readPosition} estimatedItemHeight={64}
       className={`${listProps.className ?? ''}${showScrollbar ? ' playlist-song-list__rows--scrollbar' : ''}`} />
     {showScrollbar ? <>
-      <VerticalSlider value={1 - ratio} onChange={seek} testId='playlist-scrollbar'
+      <VerticalSlider value={1 - thumbRatio} onChange={seek} testId='playlist-scrollbar'
         onDragStart={() => { dragging.current = true; showHint() }}
         onDragEnd={() => { dragging.current = false; showHint() }}
         className='playlist-song-list__scrollbar' trackClassName='playlist-song-list__track'

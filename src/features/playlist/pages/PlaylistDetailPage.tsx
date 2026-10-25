@@ -271,7 +271,7 @@ export function PlaylistDetailPage() {
 
   const onEndReached = () => {
     if (songsQuery.hasNextPage && !songsQuery.isFetchingNextPage) {
-      void songsQuery.fetchNextPage()
+      void songsQuery.fetchNextPage({ cancelRefetch: false })
     }
   }
 

@@ -1,5 +1,11 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-25 · 歌单滚动条跳回顶部（songloft-org/songloft#540）
+
+等待分页/布局时保留拖动目标作为滑块位置，原生定位与 Web 一样等待可见行确认并有限重试，拒绝旧请求移动新位置。新增两项断言在旧实现失败，修复后 3 项定位回归通过；最终检查、实际界面、工作树标识与未验证项见 [#540 记录](issue-540.md)。用户已明确授权本批提交、推送、同步父指针并回复 #540；正式发布和关闭 Issue 不在授权内，实际交付与 CI 状态见 GitHub。
+
+English: Preserve the requested thumb position while pagination/layout is pending; native and Web both wait for visible-row confirmation with bounded retries, rejecting stale seeks. Two new assertions fail against the old implementation; all 3 focused cases pass after the fix. Final checks, actual UI results, worktree identity and coverage boundaries: [#540 record](../en/project/issue-540.md). The user explicitly authorized this batch's commit, push, parent gitlink update and reply to #540; formal release and Issue closure remain outside scope. Actual delivery and CI status are recorded on GitHub.
+
 功能移植交付授权（2026-10-21）：用户明确要求「提交推送」，授权本批功能移植和父指针；并发首页/Flutter 任务保持原样。下方未提交表述是验收快照，最终提交与 CI 按交付记录核对。
 
 English: The user explicitly authorized committing and pushing the feature port and parent gitlink. Concurrent home/Flutter work is preserved. Uncommitted statements below are historical snapshots; final commit/CI records govern delivery.

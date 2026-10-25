@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-10-25 · songloft-org/songloft#540
+
+本次修复歌单滑块在分页等待时回到顶部、原生定位过早结束的问题，并复用重叠分页请求。最终 348 文件 / 3704 项、类型、双产物和 Android 构建通过；Web 触摸/鼠标和 Android 模拟器复验通过。最终验证、实际界面与平台边界见 [#540](issue-540.md)。用户已授权本批提交、推送、同步父指针并回复 #540；提交、CI 与评论以 GitHub 交付记录为准，不发布正式版或关闭 Issue，不沿用下方历史授权。
+
+English: This batch fixes the playlist thumb returning to the top while pagination is pending and native seeks finishing prematurely, reusing overlapping page requests. Final 348 files / 3704 tests, types, dual outputs and Android build pass; Web touch/mouse and Android emulator reruns pass. Final validation, actual UI evidence and platform boundaries: [#540](../en/project/issue-540.md). The user authorized this batch's commit, push, parent gitlink update and reply to #540; GitHub delivery records govern actual commits, CI and comment status. No formal release or Issue closure; permissions below belong to historical batches.
+
 ## 2026-10-24 · iOS Web PWA 状态栏黑边（songloft-org/songloft#538）
 
 当前未提交工作树修复 Lynx Web 宿主页在 iOS 的两处配色：standalone PWA 状态栏那条带画的是 body 背景，写死 `#000` 在浅色主题下成为黑边，改为按系统亮暗给初值并在首帧后由宿主脚本把应用解析后的 `--system-background` 同步回写 body 与 theme-color meta（覆盖外观强制与主题包）；浏览器模式补 media 亮暗两条 `theme-color`，Safari 顶/底栏不再回落默认灰。`black-translucent` 因状态栏文字钉白被拒。348 文件 / 3702 项全量测试、`tsc -b`、`build:web` / `build:web-embedded` 通过；Docker 无头 Chrome 验证亮/暗初值、首帧同步与 token 翻转传播，截图 `/tmp/issue538/state-{light,dark}.png`。iOS 设备未实测；登录页等自带整页背景的页面与状态栏带仍有色差。本批未提交、推送、发布或写 Issue 评论。

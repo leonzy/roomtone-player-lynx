@@ -21,6 +21,7 @@ const { detailHook, songsHook, deleteMutationHook, updateMutationHook, removeSon
 }))
 
 const navigateMock = vi.hoisted(() => vi.fn())
+const listEvents = vi.hoisted(() => ({ onEndReached: undefined as (() => void) | undefined }))
 const cache = vi.hoisted(() => ({ available: false, beginSongs: vi.fn(), beginPlaylist: vi.fn() }))
 vi.mock('../../player/data/indexed-song-cache.js', async () => ({
   ...await vi.importActual('../../player/data/indexed-song-cache.js'), indexedSongCacheAvailable: () => cache.available,
@@ -123,9 +124,15 @@ vi.mock('../widgets/AddSongsToPlaylistSheet.js', () => ({
   ),
 }))
 
-vi.mock('../../library/widgets/VirtualList.js', async () =>
-  (await import('../../../__tests__/_render-mocks.js')).mockVirtualList(),
-)
+vi.mock('../../library/widgets/VirtualList.js', async () => {
+  const { VirtualList } = (await import('../../../__tests__/_render-mocks.js')).mockVirtualList()
+  return {
+    VirtualList: (props: Parameters<typeof VirtualList>[0] & { onEndReached?: () => void }) => {
+      listEvents.onEndReached = props.onEndReached
+      return <VirtualList {...props} />
+    },
+  }
+})
 
 /*
  * Song rows mocked down to the plain `SongRow` — the menu / favorite /
@@ -225,6 +232,7 @@ function mutationResult(over = {}) {
 }
 
 beforeEach(() => {
+  listEvents.onEndReached = undefined
   cache.available = false
   detailHook.mockReturnValue(detailResult(makePlaylist()))
   songsHook.mockReturnValue(songsResult([{ songs: [], total: 0 }]))
@@ -246,6 +254,21 @@ async function renderPage() {
   })
   return getQueriesForElement(elementTree.root!)
 }
+
+test('overlapping list-end and seek pagination signals reuse the active page request', async () => {
+  const fetchNextPage = vi.fn()
+  songsHook.mockReturnValue(songsResult([{ songs: [makeSong(1)], total: 130 }], {
+    hasNextPage: true, fetchNextPage,
+  }))
+  await renderPage()
+  expect(listEvents.onEndReached).toBeTypeOf('function')
+  listEvents.onEndReached!()
+  listEvents.onEndReached!()
+  expect(fetchNextPage.mock.calls).toEqual([
+    [{ cancelRefetch: false }],
+    [{ cancelRefetch: false }],
+  ])
+})
 
 test('whole-playlist caching submits the playlist identity instead of its currently loaded songs', async () => {
   cache.available = true

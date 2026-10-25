@@ -1,5 +1,9 @@
 # Handoff (2026-10-14)
 
+## 2026-10-25 · songloft-org/songloft#540
+
+This batch fixes the playlist thumb returning to the top while pagination is pending and native seeks finishing prematurely, reusing overlapping page requests. Final 348 files / 3704 tests, types, dual outputs and Android build pass; Web touch/mouse and Android emulator reruns pass. Final validation, actual UI evidence and platform boundaries: [#540](issue-540.md) / [简体中文](../../project/issue-540.md). The user authorized this batch's commit, push, parent gitlink update and reply to #540; GitHub delivery records govern actual commits, CI and comment status. No formal release or Issue closure; permissions below belong to historical batches.
+
 Feature-port commit authorization (2026-10-21): The user has now explicitly requested committing and pushing. Commit/push only this feature-port batch and its parent gitlink, preserving concurrent home/Flutter work without inheriting its permissions. Final commits and CI are recorded at delivery; uncommitted statements below remain historical acceptance snapshots.
 
 Final feature-port follow-up (2026-10-21): Fixed the lost first Android desktop Play and the blank video page after MV→audio advance. The isolated snapshot passes types, dual outputs/Web, 421 affected checks, 89 release checks and four native unit tests/Android build. Final APK `4f0f5870…c76ba1` passes nine desktop checks and both Web/Android return correctly at MV end. Eleven new screenshots: `/home/hanxi/work/songloft-review/lynx-current-device-20261021/review.html`. The isolated snapshot excludes the concurrent home feature; shared changes remain intact. Interrupted full reruns and failures are retained. iOS/HarmonyOS devices/signing, hardware and default glass remain untested. No commit/push/release. The [final batch record](feature-port-20261021.md) takes precedence over the earlier feature-port snapshot below.

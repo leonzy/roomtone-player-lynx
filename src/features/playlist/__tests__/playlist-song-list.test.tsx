@@ -14,11 +14,66 @@ vi.mock('../../library/widgets/VirtualList.js', () => ({
     </view>,
 }))
 vi.mock('../../../shared/ui/VerticalSlider.js', () => ({
-  VerticalSlider: ({ onChange }: { onChange: (value: number) => void }) =>
-    <view data-testid='seek' bindtap={() => onChange(0.2)} />,
+  VerticalSlider: ({ onChange, value }: { onChange: (value: number) => void; value: number }) =>
+    <view data-testid='seek' data-ratio={String(value)} bindtap={() => onChange(0.2)} />,
 }))
 const { PlaylistSongList } = await import('../widgets/PlaylistSongList.js')
 const songs = Array.from({ length: 130 }, (_, index) => ({ id: index + 1, title: `夜曲 ${index + 1}` } as Song))
+
+test('native seek waits for visible rows even when the invoke succeeds before the new layout commits', async () => {
+  scroll.web = false
+  vi.useFakeTimers()
+  const host = lynx as unknown as { createSelectorQuery: unknown }
+  const original = host.createSelectorQuery
+  let committed = false
+  let firstSong = 1
+  const calls: unknown[] = []
+  type Invoke = { method: string; params?: { position: number }; success?: (value: unknown) => void }
+  const queryWith = (commands: Invoke[] = []) => ({
+    select: () => ({ invoke: (args: Invoke) => queryWith([...commands, args]) }),
+    exec: () => {
+      for (const args of commands) {
+        if (args.method === 'boundingClientRect') args.success?.({ top: 347, width: 390, height: 497 })
+        if (args.method === 'scrollToPosition') {
+          calls.push(args.params)
+          if (committed) firstSong = (args.params?.position ?? 0) + 1
+          args.success?.({})
+        }
+        if (args.method === 'getVisibleCells') args.success?.({ attachedCells: [
+          { itemKey: String(firstSong), top: 0, bottom: 64 },
+        ] })
+      }
+    },
+  })
+  host.createSelectorQuery = () => queryWith()
+  try {
+    const view = render(<PlaylistSongList items={songs} total={130} enabled hasMore={false}
+      loadingMore={false} loadFailed={false} itemKey={song => String(song.id)}
+      renderItem={song => <text>{song.title}</text>} />)
+    await act(async () => { fireEvent.tap(view.container.querySelector('[data-testid="seek"]')!); await Promise.resolve() })
+    expect(calls).toHaveLength(1)
+    await act(async () => { await vi.advanceTimersByTimeAsync(200) })
+    expect(calls).toHaveLength(2)
+    expect(view.container.querySelector('.playlist-song-list__hint-count')).toHaveTextContent('1 / 130')
+    expect(Number(view.container.querySelector('[data-testid="seek"]')!.getAttribute('data-ratio'))).toBeCloseTo(1 - 103 / 129)
+    committed = true
+    await act(async () => { await vi.advanceTimersByTimeAsync(200) })
+    expect(view.container.querySelector('.playlist-song-list__hint-count')).toHaveTextContent('104 / 130')
+    const settledCalls = calls.length
+    await act(async () => { await vi.advanceTimersByTimeAsync(600) })
+    expect(calls).toHaveLength(settledCalls)
+    // A host that never lays out the target must stop retrying, too.
+    committed = false
+    firstSong = 1
+    await act(async () => { fireEvent.tap(view.container.querySelector('[data-testid="seek"]')!); await Promise.resolve() })
+    await act(async () => { await vi.advanceTimersByTimeAsync(6000) })
+    const timedOutCalls = calls.length
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+    expect(calls).toHaveLength(timedOutCalls)
+    await act(async () => { view.unmount(); await vi.advanceTimersByTimeAsync(1000) })
+    expect(calls).toHaveLength(timedOutCalls)
+  } finally { host.createSelectorQuery = original; vi.useRealTimers() }
+})
 
 test('dragging past loaded rows requests pagination, then scrolls to the real item and shows its initial', async () => {
   scroll.web = false
@@ -57,6 +112,7 @@ test('dragging past loaded rows requests pagination, then scrolls to the real it
     await act(async () => { fireEvent.tap(view.container.querySelector('[data-testid="seek"]')!); await Promise.resolve() })
     expect(loadMore).toHaveBeenCalledTimes(1)
     expect(calls).toHaveLength(0)
+    expect(Number(view.container.querySelector('[data-testid="seek"]')!.getAttribute('data-ratio'))).toBeCloseTo(1 - 103 / 129)
     await act(async () => { view.rerender(<PlaylistSongList {...props} items={songs} />); await Promise.resolve() })
     expect(calls).toEqual([{ position: 103, itemKey: '104', alignTo: 'top', smooth: false }])
     expect(view.container.querySelector('.playlist-song-list__hint-count')).toHaveTextContent('1 / 130')
