@@ -10,6 +10,13 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### LIST-003: Reused paged rows need current actions; performance probes must not measure every row
+
+- Scope: Web playlist pagination and mouse scrolling, songloft-org/songloft#542; baseline `81c478c14d67de8a9a9dbbfcc9ab0857e4ee405a`.
+- Evidence: on 2026-10-27, scroll updates rebuilt 80 loaded rows and appending pages updated existing rows again. Replacing the inset with loading changed the end position by 32px. Corresponding regressions fail against the isolated old implementation; mouse scrolling was also confirmed missing in the Flutter-to-Lynx Web migration.
+- Done right: cache row trees and memo song rows, with stable callbacks reading current pages through a ref. Tests assert both reuse of old rows and clicks playing all newly loaded songs. Loading retains the same inset. Actual browser evidence and platform boundaries: [#542](docs/en/project/issue-542.md). Stop pagination timing when rows are appended; exclude subsequent forced layout from reading every row's bounds and timings collected during concurrent tests.
+- Seen 1× (2026-10-27). Status: lesson; the reporter's Chromium 150 and real library still need verification.
+
 ### LIST-002: Preserve pending scrollbar targets and confirm native seeks with visible rows
 
 - Scope: Playlist pagination, drag thumbs and native/Web Lynx lists, songloft-org/songloft#540.

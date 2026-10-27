@@ -7,6 +7,7 @@ import { act, fireEvent, getQueriesForElement, render } from '@lynx-js/react/tes
 import type { Playlist } from '../../../models/playlist.js'
 import type { Song } from '../../../models/song.js'
 import { PlaylistApi } from '../api/index.js'
+import { usePlayerStore } from '../../player/store/index.js'
 
 const { detailHook, songsHook, deleteMutationHook, updateMutationHook, removeSongMutationHook, moveSongMutationHook, visibilityMutationHook, pinnedMutationHook, sortMutationHook } = vi.hoisted(() => ({
   detailHook: vi.fn(),
@@ -21,6 +22,7 @@ const { detailHook, songsHook, deleteMutationHook, updateMutationHook, removeSon
 }))
 
 const navigateMock = vi.hoisted(() => vi.fn())
+const rowRenders = vi.hoisted(() => vi.fn())
 const listEvents = vi.hoisted(() => ({ onEndReached: undefined as (() => void) | undefined }))
 const cache = vi.hoisted(() => ({ available: false, beginSongs: vi.fn(), beginPlaylist: vi.fn() }))
 vi.mock('../../player/data/indexed-song-cache.js', async () => ({
@@ -141,7 +143,10 @@ vi.mock('../../library/widgets/VirtualList.js', async () => {
  */
 vi.mock('../../library/widgets/SongListRow.js', async () => {
   const { SongRow } = await import('../../library/widgets/SongRow.js')
-  return { SongListRow: SongRow }
+  return { SongListRow: (props: Parameters<typeof SongRow>[0]) => {
+    rowRenders(props.song.id)
+    return <SongRow {...props} />
+  } }
 })
 
 const { PlaylistDetailPage } = await import('../pages/PlaylistDetailPage.js')
@@ -268,6 +273,38 @@ test('overlapping list-end and seek pagination signals reuse the active page req
     [{ cancelRefetch: false }],
     [{ cancelRefetch: false }],
   ])
+})
+
+test('loading more keeps the bottom inset around the loading indicator', async () => {
+  const pages = [{ songs: [makeSong(1)], total: 130 }]
+  songsHook.mockReturnValue(songsResult(pages, { isFetchingNextPage: true }))
+  const view = render(<PlaylistDetailPage />)
+  await act(async () => { await Promise.resolve() })
+  const loading = view.container.querySelector('.playlist-detail__footer')!
+  expect(loading.parentElement).toHaveClass('playlist-detail__nav-inset')
+  const inset = loading.parentElement
+  songsHook.mockReturnValue(songsResult(pages))
+  view.rerender(<PlaylistDetailPage />)
+  expect(view.container.querySelector('.playlist-detail__nav-inset')).toBe(inset)
+  expect(view.container.querySelector('.playlist-detail__footer')).toBeNull()
+})
+
+test('appending a page reuses old rows while their clicks play the latest loaded songs', async () => {
+  const first = [makeSong(1), makeSong(2)]
+  songsHook.mockReturnValue(songsResult([{ songs: first, total: 3 }]))
+  const view = render(<PlaylistDetailPage />)
+  await act(async () => { await Promise.resolve() })
+  rowRenders.mockClear()
+  const last = makeSong(3)
+  songsHook.mockReturnValue(songsResult([{ songs: first, total: 3 }, { songs: [last], total: 3 }]))
+  view.rerender(<PlaylistDetailPage />)
+  await act(async () => { await Promise.resolve() })
+  expect(rowRenders.mock.calls).toEqual([[3]])
+  const play = vi.spyOn(usePlayerStore.getState(), 'playPlaylist').mockResolvedValue()
+  try {
+    await act(async () => { fireEvent.tap(view.container.querySelector('.song-row')!) })
+    expect(play).toHaveBeenCalledWith([...first, last], 0, { type: 'playlist', key: '7' })
+  } finally { play.mockRestore() }
 })
 
 test('whole-playlist caching submits the playlist identity instead of its currently loaded songs', async () => {

@@ -121,7 +121,7 @@ test('a list that washes selected rows tells the row it is selected', () => {
   // Non-vacuity: the two multi-select lists must be what this finds.
   expect(washingLists.sort()).toEqual([
     'features/library/widgets/FlatSongsView.tsx',
-    'features/playlist/pages/PlaylistDetailPage.tsx',
+    'features/playlist/widgets/PlaylistDetailSongRow.tsx',
   ])
   for (const f of washingLists) {
     expect(

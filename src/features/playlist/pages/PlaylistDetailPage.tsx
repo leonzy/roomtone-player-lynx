@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from '@lynx-js/react'
+import { useCallback, useEffect, useMemo, useRef, useState } from '@lynx-js/react'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -7,7 +7,6 @@ import { SortableRoot, SortableItem, SortableItemArea } from '@lynx-js/lynx-ui-s
 
 import { buildCoverUrl } from '../../../core/network/url-helper.js'
 import type { Song } from '../../../models/song.js'
-import { AppCheckbox } from '../../../shared/ui/AppCheckbox.js'
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { DragHandle } from '../../../shared/ui/DragHandle.js'
 import { performRouteBack } from '../../../core/navigation/route-back-action.js'
@@ -19,7 +18,7 @@ import { PopoverMenu } from '../../../shared/ui/PopoverMenu.js'
 import { toast } from '../../../shared/ui/toast-store.js'
 import { useDebounce } from '../../library/data/use-debounce.js'
 import { flattenSongs } from '../../library/data/pagination.js'
-import { SongListRow } from '../../library/widgets/SongListRow.js'
+import { PlaylistDetailSongRow } from '../widgets/PlaylistDetailSongRow.js'
 import { PlaylistSongList } from '../widgets/PlaylistSongList.js'
 import { PlaylistDescPanel } from '../widgets/PlaylistDescPanel.js'
 import { PlaylistToolbar } from '../widgets/PlaylistToolbar.js'
@@ -288,6 +287,12 @@ export function PlaylistDetailPage() {
       fillRemainingQueue()
     }
   }
+
+  // Stable row callbacks still read the latest pages, selection and playback context.
+  const songActions = useRef({ onTapSong, onRemoveSong })
+  songActions.current = { onTapSong, onRemoveSong }
+  const handleSongTap = useCallback((song: Song, index: number) => songActions.current.onTapSong(song, index), [])
+  const handleSongRemove = useCallback((song: Song) => songActions.current.onRemoveSong(song), [])
 
   const playAll = () => {
     if (songs.length === 0) return
@@ -574,48 +579,19 @@ export function PlaylistDetailPage() {
                   itemKey={(song) => String(song.id)}
                   onScroll={onScrollEdge}
                   renderItem={(song, index) => (
-                    <view className={selectMode && selected.has(song.id) ? 'playlist-detail__song-row-wrapper playlist-detail__song-row-wrapper--selected' : 'playlist-detail__song-row-wrapper'}>
-                      {selectMode
-                        ? (
-                          <view className='playlist-detail__select-box' bindtap={() => onTapSong(song, index)}>
-                            <AppCheckbox checked={selected.has(song.id)} />
-                          </view>
-                        )
-                        : null}
-                      <view className='playlist-detail__song-row-content'>
-                        <SongListRow
-                          song={song}
-                          index={index}
-                          showIndex={!selectMode}
-                          titleInitial={songGroupInitial(songTitles, index)}
-                          onTap={onTapSong}
-                          selectionMode={selectMode}
-                          isSelected={selected.has(song.id)}
-                        />
-                      </view>
-                      {!isBuiltIn && !selectMode
-                        ? (
-                          <view
-                            className='playlist-detail__remove-btn'
-                            bindtap={() => onRemoveSong(song)}
-                            accessibility-element={true}
-                            accessibility-label={t('playlist.removeSong')}
-                            data-testid='playlist-detail-remove'
-                          >
-                            <Icon name='x' size={16} color={ICON_COLORS.contentMuted} />
-                          </view>
-                        )
-                        : null}
-                    </view>
+                    <PlaylistDetailSongRow song={song} index={index}
+                      titleInitial={songGroupInitial(songTitles, index)}
+                      selectMode={selectMode} selected={selectMode && selected.has(song.id)}
+                      isBuiltIn={isBuiltIn} onTap={handleSongTap} onRemove={handleSongRemove} />
                   )}
                   onEndReached={onEndReached}
-                  footer={songsQuery.isFetchingNextPage
-                    ? (
+                  footer={<view className='playlist-detail__nav-inset'>
+                    {songsQuery.isFetchingNextPage ? (
                       <view className='playlist-detail__footer'>
                         <text className='playlist-detail__footer-text'>{t('common.loadingMore')}</text>
                       </view>
-                    )
-                    : <view className='playlist-detail__nav-inset' />}
+                    ) : null}
+                  </view>}
                 />
               )}
       </view>

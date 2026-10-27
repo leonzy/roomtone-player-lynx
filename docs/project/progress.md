@@ -1,5 +1,11 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-27 · Web 歌单分页与鼠标滚动（songloft-org/songloft#542）
+
+补齐 Flutter 已有的鼠标拖动滚动；歌单追加页面复用旧歌曲行，稳定回调读取最新页，loading 保留底部 inset，Web 提前触发分页。隔离旧实现 6 项新增断言失败、23 项原有测试通过；161 首合成歌单实际加载到底，鼠标拖动与菜单可用。验证记录、最终工作树标识与未跑项见 [#542](issue-542.md)。报告环境 Chromium 150 未实测；本会话已授权提交、推送、同步父指针并回复 #542，实际状态以 GitHub 交付记录为准；正式发布和关闭 Issue 不在授权内。
+
+English: Restore Flutter's mouse drag scrolling, reuse unchanged playlist rows on pagination with callbacks reading current pages, retain the footer inset while loading, and prefetch on Web. Six new assertions fail against the isolated old implementation while 23 existing cases pass. A real browser loads all 161 synthetic songs; mouse dragging and menus work. Final worktree identity, validation and coverage boundaries: [#542](../en/project/issue-542.md). The reporter's Chromium 150 was not tested. This session authorizes commit, push, parent gitlink update and a reply to #542; GitHub delivery records govern actual status. Formal release and Issue closure are outside scope.
+
 ## 2026-10-25 · 歌单滚动条跳回顶部（songloft-org/songloft#540）
 
 等待分页/布局时保留拖动目标作为滑块位置，原生定位与 Web 一样等待可见行确认并有限重试，拒绝旧请求移动新位置。新增两项断言在旧实现失败，修复后 3 项定位回归通过；最终检查、实际界面、工作树标识与未验证项见 [#540 记录](issue-540.md)。用户已明确授权本批提交、推送、同步父指针并回复 #540；正式发布和关闭 Issue 不在授权内，实际交付与 CI 状态见 GitHub。

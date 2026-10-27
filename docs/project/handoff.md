@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-10-27 · songloft-org/songloft#542
+
+本批补齐 Web 鼠标拖动滚动，修复歌单分页时旧行重复更新和 loading 替换 inset 的高度抖动。161 首合成歌单浏览器验收到末尾；共享 JS、反向回归、工作树指纹和平台边界见 [#542](issue-542.md)。Chromium 150 与报告人实际曲库待复验。本会话已授权提交、推送、同步父指针并回复 #542；实际提交、CI 和评论以 GitHub 交付记录为准，未授权正式发布或关闭 Issue。
+
+English: This batch restores Web mouse drag scrolling and fixes repeated old-row updates plus footer-height jitter during playlist pagination. Browser acceptance reaches the end of a 161-song synthetic playlist. Shared JS, negative regressions, worktree fingerprints and platform boundaries: [#542](../en/project/issue-542.md). Chromium 150 and the reporter's real library remain unverified. This session authorizes commit, push, parent gitlink update and a reply to #542; GitHub delivery records govern actual commits, CI and comment status. No formal release or Issue closure is authorized.
+
 ## 2026-10-25 · songloft-org/songloft#540
 
 本次修复歌单滑块在分页等待时回到顶部、原生定位过早结束的问题，并复用重叠分页请求。最终 348 文件 / 3704 项、类型、双产物和 Android 构建通过；Web 触摸/鼠标和 Android 模拟器复验通过。最终验证、实际界面与平台边界见 [#540](issue-540.md)。用户已授权本批提交、推送、同步父指针并回复 #540；提交、CI 与评论以 GitHub 交付记录为准，不发布正式版或关闭 Issue，不沿用下方历史授权。

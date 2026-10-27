@@ -1,5 +1,6 @@
-import type { ReactNode } from '@lynx-js/react'
+import { useMemo, type ReactNode } from '@lynx-js/react'
 import type { ScrollEvent } from '@lynx-js/types'
+import { isWebPlatform } from '../../../native/web-platform.js'
 
 /**
  * Thin wrapper over the native Lynx `<list>` element (virtualized scrolling +
@@ -48,34 +49,61 @@ export function VirtualList<T>({
   estimatedItemHeight,
   lowerThreshold = 200,
 }: VirtualListProps<T>) {
+  // Scrollbar/hint updates must not rebuild every loaded song and its effects.
+  // Data, row callbacks and size changes still invalidate the row tree.
+  const rows = useMemo(
+    () =>
+      items.map((item, index) => {
+        const key = itemKey(item, index)
+        return (
+          <list-item
+            id={id ? `${id}-item-${key}` : undefined}
+            key={key}
+            item-key={key}
+            estimated-main-axis-size-px={estimatedItemHeight}
+            className='library__list-item'
+          >
+            {renderItem(item, index)}
+          </list-item>
+        )
+      }),
+    [items, itemKey, renderItem, id, estimatedItemHeight],
+  )
+
   return (
     <list
       id={id}
       className={className}
       scroll-y
       lower-threshold={lowerThreshold}
+      lower-threshold-item-count={
+        isWebPlatform()
+          ? Math.max(1, Math.ceil(lowerThreshold / (estimatedItemHeight || 64)))
+          : undefined
+      }
       bindscrolltolower={onEndReached}
       bindscroll={onScroll}
     >
-      {header ? <list-item key='__header__' item-key='__header__' className='library__list-item'>{header}</list-item> : null}
-      {items.map((item, index) => (
+      {header ? (
         <list-item
-          id={id ? `${id}-item-${itemKey(item, index)}` : undefined}
-          key={itemKey(item, index)}
-          item-key={itemKey(item, index)}
-          estimated-main-axis-size-px={estimatedItemHeight}
+          key='__header__'
+          item-key='__header__'
           className='library__list-item'
         >
-          {renderItem(item, index)}
+          {header}
         </list-item>
-      ))}
-      {footer
-        ? (
-          <list-item key='__footer__' item-key='__footer__' className='library__list-item'>
-            {footer}
-          </list-item>
-        )
-        : null}
+      ) : null}
+      {rows}
+      {footer ? (
+        <list-item
+          key='__footer__'
+          item-key='__footer__'
+          recyclable={false}
+          className='library__list-item'
+        >
+          {footer}
+        </list-item>
+      ) : null}
     </list>
   )
 }

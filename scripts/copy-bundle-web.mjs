@@ -231,6 +231,7 @@ const HOST_SCRIPTS = [
    * serve it too.
    */
   'drag-mouse-capture.js',
+  'drag-scroll-host.js',
   'glass-scene-host.js',
   'tab-glass-host.js',
 ]
