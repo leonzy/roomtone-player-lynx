@@ -15,6 +15,8 @@ All 33 internal RPC endpoints in web-core 0.23.1 are asynchronous. The generic R
 
 Hosts opting into cross-origin isolation can configure `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` with compatible cross-origin resource/frame policies. web/serve.mjs supplies isolation headers by default, but they are not required for the full edition. The parent `make build-frontend-web-embedded` builds the default full frontend; `embedded-build.json` records client and server identities separately.
 
+Plugin iframes retain the browser's normal cookie/storage context. Do not add the `credentialless` attribute: it removes existing gateway session cookies, including HttpOnly cookies, from plugin document requests. Songloft URL tokens cannot authenticate gateways such as FN Connect. Hosts opting into isolation rely on the backend plugin HTML's COEP response header; upgrade older backends missing it or disable optional isolation. The iframe attribute differs from the `Cross-Origin-Embedder-Policy: credentialless` response header, which preserves cookies on document navigation and same-origin resources. See [#543](../project/issue-543.md) for reproduction and verification.
+
 Example root-path Nginx static serving (provide TLS separately; embedded also needs an /api/v1/ proxy location):
 
 ```nginx

@@ -1,5 +1,9 @@
 # Handoff (2026-10-14)
 
+## 2026-10-27 · songloft-org/songloft#543
+
+Web plugin iframes no longer set `credentialless`, retaining gateway login cookies. The old script returns 403 in all three HttpOnly-cookie gateway fixtures; the fixed script passes. All 350 files / 3714 tests, types, dual outputs, Web and release-tool checks pass. Actual UI, source identities and boundaries: [#543](issue-543.md) / [简体中文](../../project/issue-543.md). The reporter's NAS remains unverified. The user subsequently authorized this batch's commit, push, parent gitlink update and reply to #543. GitHub delivery records govern commits, CI and comment status; no formal release or Issue closure is authorized.
+
 ## 2026-10-25 · songloft-org/songloft#540
 
 This batch fixes the playlist thumb returning to the top while pagination is pending and native seeks finishing prematurely, reusing overlapping page requests. Final 348 files / 3704 tests, types, dual outputs and Android build pass; Web touch/mouse and Android emulator reruns pass. Final validation, actual UI evidence and platform boundaries: [#540](issue-540.md) / [简体中文](../../project/issue-540.md). The user authorized this batch's commit, push, parent gitlink update and reply to #540; GitHub delivery records govern actual commits, CI and comment status. No formal release or Issue closure; permissions below belong to historical batches.

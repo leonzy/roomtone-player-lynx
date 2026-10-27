@@ -1,5 +1,11 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-27 · FN Connect 插件页面凭证（songloft-org/songloft#543）
+
+移除 Web 插件 iframe 的无条件 `credentialless`，恢复 NAS 网关 Cookie 和正常存储上下文，保留常驻与消息桥接。旧脚本在三种网关浏览器夹具中均因缺 Cookie 得到 403，新脚本均通过；新单测反向失败，最终 350 文件 / 3714 项、类型、双产物、Web 打包和 89 项发布工具检查通过。实际界面、父仓库注释更正、源码指纹和验证边界见 [#543](issue-543.md)。真实飞牛设备尚未复验；未提交、推送、发布或写 Issue。
+
+English: Remove unconditional `credentialless` from Web plugin iframes, restoring NAS gateway cookies and normal storage while preserving frame lifetime and messaging. The old script gets 403 without cookies in all three browser gateway fixtures; the fixed script passes. New unit regressions fail against the old script. Final 350 files / 3714 tests, types, dual outputs, Web packaging and 89 release-tool checks pass. Actual UI, parent comment correction, source identities and coverage boundaries: [#543](../en/project/issue-543.md). The reporter's NAS remains unverified. No commit, push, release or Issue write.
+
 ## 2026-10-27 · Web 歌单分页与鼠标滚动（songloft-org/songloft#542）
 
 补齐 Flutter 已有的鼠标拖动滚动；歌单追加页面复用旧歌曲行，稳定回调读取最新页，loading 保留底部 inset，Web 提前触发分页。隔离旧实现 6 项新增断言失败、23 项原有测试通过；161 首合成歌单实际加载到底，鼠标拖动与菜单可用。验证记录、最终工作树标识与未跑项见 [#542](issue-542.md)。报告环境 Chromium 150 未实测；本会话已授权提交、推送、同步父指针并回复 #542，实际状态以 GitHub 交付记录为准；正式发布和关闭 Issue 不在授权内。

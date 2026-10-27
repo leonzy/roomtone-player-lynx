@@ -10,6 +10,14 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 
 ## Entries
 
+### WEB-001: A plugin URL token cannot authenticate a reverse proxy's cookie session
+
+- Scope: Web plugin iframes and NAS gateways, songloft-org/songloft#543; baseline `e1572551b9b6fb584e6a2325ef62e9db103e1283`.
+- Evidence: on 2026-10-27 the old host unconditionally sets iframe `credentialless`. Docker Chrome gateway fixtures requiring an HttpOnly cookie return 403 without that cookie for root hosting, subpaths and an isolated cross-origin host. Three new regressions fail against the old script while the existing 22 pass.
+- Rule: URL tokens establish backend authentication, not authorization at an outer NAS gateway. Anonymous iframe contexts differ from the COEP response header. Preserve credentials absent an actual requirement; verify cookies received by the gateway and requests for child resources.
+- Done right: remove the iframe attribute, retain the backend COEP header. All 350 files / 3714 tests, types, dual outputs, Web packaging and 89 release-tool checks pass; browser fixtures recover cookies. Actual UI, source fingerprints and platform boundaries: [#543](docs/en/project/issue-543.md).
+- Seen 1× (2026-10-27). Status: lesson; the reporter's actual FN Connect environment still needs verification.
+
 ### LIST-003: Reused paged rows need current actions; performance probes must not measure every row
 
 - Scope: Web playlist pagination and mouse scrolling, songloft-org/songloft#542; baseline `81c478c14d67de8a9a9dbbfcc9ab0857e4ee405a`.

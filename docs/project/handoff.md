@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-10-27 · songloft-org/songloft#543
+
+Web 插件 iframe 移除 `credentialless`，保留网关登录 Cookie；旧版在三种 HttpOnly Cookie 网关夹具中均返回 403，修复版均通过。最终 350 文件 / 3714 项、类型、双产物、Web 与发布工具检查通过；实际界面、源码指纹与未跑项见 [#543](issue-543.md)。报告人的真实飞牛环境待复验。用户随后已授权本批提交、推送、同步父指针并回复 #543；实际提交、CI 与评论以 GitHub 交付记录为准，未授权正式发布或关闭 Issue。
+
+English: Web plugin iframes no longer set `credentialless`, retaining gateway login cookies. The old script returns 403 in all three HttpOnly-cookie gateway fixtures; the fixed script passes. All 350 files / 3714 tests, types, dual outputs, Web and release-tool checks pass. Actual UI, source identities and boundaries: [#543](../en/project/issue-543.md). The reporter's NAS remains unverified. The user subsequently authorized this batch's commit, push, parent gitlink update and reply to #543. GitHub delivery records govern commits, CI and comment status; no formal release or Issue closure is authorized.
+
 ## 2026-10-27 · songloft-org/songloft#542
 
 本批补齐 Web 鼠标拖动滚动，修复歌单分页时旧行重复更新和 loading 替换 inset 的高度抖动。161 首合成歌单浏览器验收到末尾；共享 JS、反向回归、工作树指纹和平台边界见 [#542](issue-542.md)。Chromium 150 与报告人实际曲库待复验。本会话已授权提交、推送、同步父指针并回复 #542；实际提交、CI 和评论以 GitHub 交付记录为准，未授权正式发布或关闭 Issue。

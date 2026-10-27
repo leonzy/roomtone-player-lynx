@@ -10,6 +10,14 @@
 
 ## 条目
 
+### WEB-001：插件自身的 URL token 不能替代反向代理 Cookie
+
+- 范围：Web 插件 iframe、NAS 网关，songloft-org/songloft#543；基线 `e1572551b9b6fb584e6a2325ef62e9db103e1283`。
+- 证据：2026-10-27，旧宿主无条件设置 iframe `credentialless`；Docker Chrome 的 HttpOnly Cookie 网关夹具在根路径、子路径、隔离跨源三种配置中均因 Cookie 缺失返回 403。新三项回归在旧实现下失败，原有 22 项通过。
+- 规则：URL token 只证明后端认证，不证明外层 NAS 网关放行。iframe 的匿名凭证上下文与 COEP 响应头语义不同；没有实际依赖就不要隔离凭证，验证必须检查网关实收 Cookie 和子资源请求。
+- Done right：移除 iframe 属性，保留后端 COEP 头；350 文件 / 3714 项、类型、双产物、Web 与 89 项发布工具检查通过，浏览器夹具恢复 Cookie。实际界面、源码指纹及未跑平台见 [#543](docs/project/issue-543.md)。
+- Seen 1× (2026-10-27)。状态：经验；报告人的真实飞牛环境仍待复验。
+
 ### LIST-003：分页行复用必须保留最新操作，性能探针不能遍历全部行取坐标
 
 - 范围：Web 歌单分页和鼠标滚动，songloft-org/songloft#542；基线 `81c478c14d67de8a9a9dbbfcc9ab0857e4ee405a`。

@@ -179,22 +179,14 @@
     el.style.background = 'transparent'
     el.style.visibility = 'hidden'
     /*
-     * `credentialless` (Chrome 106+) exempts this cross-origin document from
-     * the host page's COEP: require-corp — which otherwise demands the iframe's
-     * *own* response carry a COEP header and blocks the load with
-     * ERR_BLOCKED_BY_RESPONSE. The host page must keep COEP for web-core's
-     * SharedArrayBuffer, and the plugin's auth travels in the URL token (not
-     * cookies), so credentialless costs nothing here.
-     *
-     * This is the **fallback half** of a two-layer fix: the backend now sends
-     * `Cross-Origin-Embedder-Policy: credentialless` on plugin HTML responses
-     * (internal/jsplugin/routes.go), which Firefox 119+ only honours in header
-     * form. The attribute covers Chromium against a backend older than that
-     * change, and the two coexist harmlessly. Browsers supporting neither —
-     * Safari — still cannot embed cross-origin here; the embedded deploy is
-     * same-origin and needs neither layer.
+     * Keep the browser's normal credential context. Songloft's URL token
+     * authenticates the backend, but NAS gateways such as FN Connect also
+     * require their existing session cookies, including HttpOnly cookies.
+     * A credentialless iframe discards those cookies even for same-origin
+     * pages, so the gateway rejects the request before it reaches Songloft.
+     * Hosts opting into COEP rely on the plugin HTML response's COEP header
+     * (internal/jsplugin/routes.go); the default embedded host is not isolated.
      */
-    el.setAttribute('credentialless', '')
     /*
      * Mount INSIDE lynx-view's shadow root, not on body — the whole reason
      * z-index works here at all. `contain: strict` makes lynx-view a stacking

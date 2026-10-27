@@ -214,6 +214,23 @@ describe('webview-host.js keeps plugin iframes alive', () => {
     expect(f.style['height']).toBe('700px')
   })
 
+  test.each([
+    'https://music.example/api/v1/jsplugin/alpha/?access_token=test',
+    'https://music.example/songloft/api/v1/jsplugin/alpha/?access_token=test',
+    'https://backend.example/api/v1/jsplugin/alpha/?access_token=test',
+  ])('preserves the browser credential context for %s', (url) => {
+    open(url, 'alpha')
+    const frame = frames(h)[0]!
+    // Songloft's URL token does not authenticate a NAS reverse proxy. An
+    // anonymous frame discards that proxy's existing HttpOnly session cookie.
+    expect(frame.getAttribute('credentialless')).toBeNull()
+    expect(frame.src).toBe(url)
+    h.call('SongloftWebview', 'hide', ['alpha'])
+    open(url, 'alpha')
+    expect(frames(h)[0]).toBe(frame)
+    expect(frame.getAttribute('credentialless')).toBeNull()
+  })
+
   /** The crash invariant. Everything else here is a means to this end. */
   test('leaving the page hides the frame and NEVER detaches it', () => {
     open(URL_A, 'alpha')
