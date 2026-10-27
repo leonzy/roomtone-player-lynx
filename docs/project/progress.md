@@ -1,5 +1,11 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-27 · 精简客户端 Release（songloft-org/songloft-player#53）
+
+Flutter 与 Lynx 的 Release 正文改为一行中英文安装/选包链接和分类变更记录；安装步骤并入各自中英文 README，发布指南同步。Lynx 基线 `274ab88f543ea373f77838c3c1bace0596cc0fbb`，本次六个功能/说明文件的 diff SHA-256 为 `37a5e952c89fafce09fdfe625f9dc65b71dd43ff47c32a15035bd8b934366730`（不含本节及交接记录）。Linux x86_64 / Python 3.12.11 / PyYAML 6.0.2：两端工作流 YAML、Bash 语法、README 链接与锚点、UTF-8、20 项实际正文生成场景通过，覆盖 dev/正式版/Lynx preview、空日志、特殊字符和超过 128 KiB 的日志；旧安装模板不满足精简断言。Lynx 89 项发布工具检查通过。日志与预览：`/tmp/songloft-issue53-20261027/`。Not run：远端 CI、实际 GitHub 发布及平台打包；本次仅改文档和正文拼接，未运行 App 测试。未提交、推送或写 Issue，父指针未更新。
+
+English: Flutter and Lynx release bodies now contain one line of Chinese/English installation links followed by categorized changes. Installation steps live in each client's bilingual README; release guides match. Lynx baseline: `274ab88f543ea373f77838c3c1bace0596cc0fbb`; the six changed functional/documentation files have diff SHA-256 `37a5e952c89fafce09fdfe625f9dc65b71dd43ff47c32a15035bd8b934366730`, excluding this entry and handoff records. Linux x86_64 / Python 3.12.11 / PyYAML 6.0.2: workflow YAML/Bash syntax, README links/anchors, UTF-8 and 20 actual body-generation cases pass across dev/stable/Lynx preview, empty/special-character/over-128-KiB logs. The old installation templates fail the concise-body assertion. All 89 Lynx release-tool checks pass. Logs/previews: `/tmp/songloft-issue53-20261027/`. Not run: remote CI, actual GitHub publishing or platform packaging; App tests were omitted for this documentation/composition change. No commit, push, Issue write or parent gitlink update.
+
 ## 2026-10-27 · FN Connect 插件页面凭证（songloft-org/songloft#543）
 
 移除 Web 插件 iframe 的无条件 `credentialless`，恢复 NAS 网关 Cookie 和正常存储上下文，保留常驻与消息桥接。旧脚本在三种网关浏览器夹具中均因缺 Cookie 得到 403，新脚本均通过；新单测反向失败，最终 350 文件 / 3714 项、类型、双产物、Web 打包和 89 项发布工具检查通过。实际界面、父仓库注释更正、源码指纹和验证边界见 [#543](issue-543.md)。真实飞牛设备尚未复验；未提交、推送、发布或写 Issue。

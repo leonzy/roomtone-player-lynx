@@ -32,6 +32,22 @@ Web playback settings also provide a persisted keyboard-shortcut switch: Space t
 
 Download assets published in GitHub Releases; the four-platform CI updates dev only after all five packages build and pass verification. Maintainers of a fork must configure signing secrets; see the [release guide](docs/en/guides/releasing.md).
 
+This client connects to a running [Songloft server](https://github.com/songloft-org/songloft). Enter the server address and sign in after installation. The client does not include a local backend. Choose a package for your platform under **Assets** on the release page:
+
+| Platform | Download | Installation / deployment |
+| --- | --- | --- |
+| Android | `songloft-lynx-android.apk` | Download and open the APK, then allow installation when prompted. The package uses the maintainer's release signature. |
+| iOS | `songloft-lynx-ios-nosign.ipa` | Unsigned device build; re-sign with your developer certificate and a provisioning profile for your device before installing. |
+| HarmonyOS | `songloft-lynx-harmony.hap` | Install with DevEco Studio or `hdc install songloft-lynx-harmony.hap`. The signing profile must authorize your device. |
+| Web (standalone) | `songloft-lynx-web-standalone.tar.gz` | Extract to a static server, then open the site and enter the Songloft API address. |
+| Web (embedded) | `songloft-lynx-web-embedded.tar.gz` | Extract and configure same-origin static hosting with the same-origin backend; does not automatically replace the server's existing embedded frontend. |
+
+See the [Web deployment guide](docs/en/guides/web-deployment.md) for response headers, MIME types, and browser requirements.
+
+**Verify downloads:** Keep your packages and `checksums.txt` in the same directory. On Linux, run `sha256sum -c checksums.txt --ignore-missing`. On macOS, use `shasum -a 256 <filename>`; on Windows, use PowerShell `Get-FileHash <filename> -Algorithm SHA256`. Compare the result with the listed SHA-256. `version.json` contains the version, commit, build time, and package information.
+
+Release bodies contain categorized changes and installation links to this section.
+
 ## Technology stack
 
 | Layer           | Implementation                                                                                                                                                 |

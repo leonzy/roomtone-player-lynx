@@ -32,6 +32,22 @@ Web 播放设置另有可持久保存的键盘快捷键开关，支持空格播�
 
 下载以 GitHub Releases 中实际发布的资产为准；四平台 CI 仅在五个包全部构建和校验成功后更新 dev。维护自己的 fork 时需配置签名 Secrets，详见[发版指南](docs/guides/releasing.md)。
 
+本客户端需要连接已运行的 [Songloft 服务器](https://github.com/songloft-org/songloft)，安装后填写服务器地址并登录；客户端不包含本地后端。在 Release 页的 **Assets** 中按平台选包：
+
+| 平台 | 下载文件 | 安装 / 部署方式 |
+| --- | --- | --- |
+| Android | `songloft-lynx-android.apk` | 下载并打开 APK，按系统提示允许安装。安装包使用维护者的发布签名。 |
+| iOS | `songloft-lynx-ios-nosign.ipa` | 未签名设备包，需使用自己的开发者证书和适用于目标设备的 provisioning profile 重签后安装。 |
+| HarmonyOS | `songloft-lynx-harmony.hap` | 使用 DevEco Studio 或 `hdc install songloft-lynx-harmony.hap` 安装；签名 profile 须授权目标设备。 |
+| Web（独立部署） | `songloft-lynx-web-standalone.tar.gz` | 解压到静态服务器，打开站点后填写 Songloft API 地址。 |
+| Web（同源部署） | `songloft-lynx-web-embedded.tar.gz` | 解压并配置同源静态服务，使用同源后端；不会自动替换服务器现有的内嵌前端。 |
+
+Web 部署的响应头、MIME 和浏览器要求见 [Web 部署指南](docs/guides/web-deployment.md)。
+
+**下载校验：** 将安装包与 `checksums.txt` 放在同一目录，Linux 可运行 `sha256sum -c checksums.txt --ignore-missing`；macOS 使用 `shasum -a 256 <文件名>`，Windows 使用 PowerShell `Get-FileHash <文件名> -Algorithm SHA256`，对照清单中的 SHA-256。`version.json` 提供版本、提交、构建时间和包信息。
+
+Release 正文展示分类变更记录，并保留本节的安装说明链接。
+
 ## 技术栈
 
 | 层        | 选型                                                                                                                                        |

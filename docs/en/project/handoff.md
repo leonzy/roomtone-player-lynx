@@ -1,5 +1,9 @@
 # Handoff (2026-10-14)
 
+## 2026-10-27 · songloft-org/songloft-player#53
+
+Both clients now publish concise release bodies with one line of bilingual installation links and categorized changes; installation steps live in README. Twenty body scenarios, YAML/Bash/link checks and all 89 Lynx release-tool checks pass. Baselines, source identity and Not run: [bilingual progress](../../project/progress.md#2026-10-27--精简客户端-releasesongloft-orgsongloft-player53). No commit, push, publication or parent gitlink update; authorizations below belong to historical batches.
+
 ## 2026-10-27 · songloft-org/songloft#543
 
 Web plugin iframes no longer set `credentialless`, retaining gateway login cookies. The old script returns 403 in all three HttpOnly-cookie gateway fixtures; the fixed script passes. All 350 files / 3714 tests, types, dual outputs, Web and release-tool checks pass. Actual UI, source identities and boundaries: [#543](issue-543.md) / [简体中文](../../project/issue-543.md). The reporter's NAS remains unverified. The user subsequently authorized this batch's commit, push, parent gitlink update and reply to #543. GitHub delivery records govern commits, CI and comment status; no formal release or Issue closure is authorized.

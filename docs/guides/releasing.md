@@ -18,7 +18,7 @@
 
 产物名见[安装指南](installation.md)。`version.json` 和 `checksums.txt` 随 Release 发布。新流程移除旧的独立 `dev-harmony` 入口；历史 Release 不自动删除。
 
-dev、preview 和正式 Release 的正文使用 `.github/release-notes.md` 中的中英双语安装说明，列出五种包的安装/部署方式、服务器连接要求和 SHA-256 校验步骤，并按 Flutter 客户端的方式生成 Conventional Commits 分类记录（含提交链接）。比较范围为当前提交与已合并的最近一个 `v*` tag，跳过指向当前提交的 tag；没有历史版本 tag 时回退到首个提交。仅包含 Flutter 流程同样支持的提交类型；无可列出的变更时只保留安装说明。
+dev、preview 和正式 Release 的正文展示 Conventional Commits 分类记录（含提交链接）；`.github/release-notes.md` 仅保留指向 [中文 README](../../README.md#安装与下载) 与 [英文 README](../../README.en.md#installation-and-downloads) 的安装说明链接。五种包的安装/部署方式、服务器连接要求和 SHA-256 校验步骤统一维护在 README。比较范围为当前提交与已合并的最近一个 `v*` tag，跳过指向当前提交的 tag；没有历史版本 tag 时回退到首个提交。仅包含 Flutter 流程同样支持的提交类型；无可列出的变更时只保留安装说明链接。
 
 版本 tag 的 Release 发布成功后，独立 job 从最新 `main` 更新根目录的中文 `CHANGELOG.md`，将生成器的分类标题和作者标记本地化并提交回仓库。不同版本的日志更新串行执行。dev 不写入该文件，日志提交也不会触发新的构建；按项目要求不另设英文 CHANGELOG。
 

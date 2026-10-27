@@ -461,8 +461,7 @@ jobs:
           ${{ toJSON(steps.changelog.outputs.changes) }}
           CHANGELOG_JSON
           NOTES="$RUNNER_TEMP/release-notes.md"
-          printf 'Songloft Player (Lynx) %s\n\nCommit / 提交: `%s`\n\n' "$TAG" "$GITHUB_SHA" > "$NOTES"
-          cat .github/release-notes.md >> "$NOTES"
+          cat .github/release-notes.md > "$NOTES"
           if [ -s "$RUNNER_TEMP/changelog.md" ]; then
             printf '\n## 更新记录 / Changelog\n\n' >> "$NOTES"
             cat "$RUNNER_TEMP/changelog.md" >> "$NOTES"

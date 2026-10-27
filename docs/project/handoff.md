@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-10-27 · songloft-org/songloft-player#53
+
+两客户端已精简 Release 正文，保留一行中英文安装/选包链接与分类变更记录，安装步骤并入 README。20 项正文场景、YAML/Bash/链接检查与 Lynx 89 项发布工具检查通过；基线、源码指纹和 Not run 见 [进展记录](progress.md#2026-10-27--精简客户端-releasesongloft-orgsongloft-player53)。尚未提交、推送或发布，父指针未更新；下方授权属于历史批次。
+
+English: Both clients now publish concise release bodies with one line of bilingual installation links and categorized changes; installation steps live in README. Twenty body scenarios, YAML/Bash/link checks and all 89 Lynx release-tool checks pass. Baselines, source identity and Not run: [progress](progress.md#2026-10-27--精简客户端-releasesongloft-orgsongloft-player53). No commit, push, publication or parent gitlink update; authorizations below belong to historical batches.
+
 ## 2026-10-27 · songloft-org/songloft#543
 
 Web 插件 iframe 移除 `credentialless`，保留网关登录 Cookie；旧版在三种 HttpOnly Cookie 网关夹具中均返回 403，修复版均通过。最终 350 文件 / 3714 项、类型、双产物、Web 与发布工具检查通过；实际界面、源码指纹与未跑项见 [#543](issue-543.md)。报告人的真实飞牛环境待复验。用户随后已授权本批提交、推送、同步父指针并回复 #543；实际提交、CI 与评论以 GitHub 交付记录为准，未授权正式发布或关闭 Issue。
