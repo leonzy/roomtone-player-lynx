@@ -1,3 +1,4 @@
+import type { AnchorMeasurement } from '../../../shared/ui/anchored-overlay.js'
 import { useState } from '@lynx-js/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -11,7 +12,7 @@ import { useDebounce } from '../data/use-debounce.js'
 import { useFacetsInfiniteQuery } from '../data/songs-query.js'
 import type { LibraryViewKey } from '../domain/library-views.js'
 import { getSongsApi } from '../api/index.js'
-import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
+import { chooseCollectionPlayback } from '../../player/data/collection-playback.js'
 import { facetContext } from '../../player/domain/playback-context.js'
 import { toast } from '../../../shared/ui/toast-store.js'
 import { MediaListItem } from '../../../shared/ui/MediaListItem.js'
@@ -44,12 +45,12 @@ export function FacetGridView({ field, viewMode = 'grid' }: FacetGridViewProps) 
 
   const query = useFacetsInfiniteQuery(field, keyword)
 
-  const onPlayAll = async (facet: SongFacet) => {
+  const onPlayAll = async (facet: SongFacet, anchor?: AnchorMeasurement) => {
     const filters: Record<string, string> = { [field]: facet.value }
     try {
-      const started = await playAllWithBackgroundFill(
+      const started = await chooseCollectionPlayback(
         (offset, limit) => getSongsApi().getSongs(filters, { limit, offset }),
-        facetContext(field, facet.value),
+        facetContext(field, facet.value), anchor,
       )
       if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {
@@ -117,7 +118,7 @@ export function FacetGridView({ field, viewMode = 'grid' }: FacetGridViewProps) 
                               params: { field },
                               search: { value: facet.value, cover: facet.coverUrl },
                             })}
-                          onPlayAll={() => { void onPlayAll(facet) }}
+                          onPlayAll={anchor => { void onPlayAll(facet, anchor) }}
                         />
                       )
                       : (

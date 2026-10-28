@@ -4,14 +4,39 @@ import { systemShare } from '@kit.ShareKit'
 import { uniformTypeDescriptor } from '@kit.ArkData'
 import { util } from '@kit.ArkTS'
 import { zlib, pasteboard, BusinessError } from '@kit.BasicServicesKit'
-import { http } from '@kit.NetworkKit'
+import { http, webSocket } from '@kit.NetworkKit'
 import { LynxModule, LynxContext } from '@lynx/lynx'
 import { window } from '@kit.ArkUI'
 import { webview } from '@kit.ArkWeb'
 import { InsecureTls } from '../../net/InsecureTls'
 import { ClientFileLog } from './ClientFileLog'
 
+interface PlaybackSocketEvent { id: string; type: string; data: string }
+
 export class SongloftPlatformModule extends LynxModule {
+  private playbackSockets: Map<string, webSocket.WebSocket> = new Map()
+
+  private playbackEvent(id: string, type: string, data: string = ''): void {
+    const event: PlaybackSocketEvent = { id: id, type: type, data: data }
+    this.context.sendGlobalEvent('roomtonePlaybackSocket', [event])
+  }
+
+  public playbackSocketConnect(id: string, url: string): void {
+    this.playbackSockets.forEach((socket: webSocket.WebSocket): void => { socket.close().catch(() => {}) })
+    this.playbackSockets.clear()
+    if (!url.startsWith('ws://') && !url.startsWith('wss://')) { this.playbackEvent(id, 'error'); return }
+    const socket = webSocket.createWebSocket()
+    this.playbackSockets.set(id, socket)
+    socket.on('open', (): void => { this.playbackEvent(id, 'open') })
+    socket.on('message', (_error: BusinessError, message: string | ArrayBuffer): void => {
+      if (typeof message === 'string') this.playbackEvent(id, 'message', message)
+    })
+    socket.on('close', (): void => { this.playbackSockets.delete(id); this.playbackEvent(id, 'close') })
+    socket.on('error', (): void => { this.playbackSockets.delete(id); this.playbackEvent(id, 'error') })
+    socket.connect(url).catch((): void => { this.playbackEvent(id, 'error') })
+  }
+  public playbackSocketSend(id: string, data: string): void { this.playbackSockets.get(id)?.send(data).catch(() => {}) }
+  public playbackSocketClose(id: string): void { const socket = this.playbackSockets.get(id); this.playbackSockets.delete(id); socket?.close().catch(() => {}) }
   private static hostWindow: window.Window | null = null
   private static screenAwakeRequested: boolean = false
   private static foreground: boolean = false

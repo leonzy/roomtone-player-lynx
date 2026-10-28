@@ -1,3 +1,5 @@
+import { useTapAnchor } from '../../../shared/ui/anchored-overlay.js'
+import type { AnchorMeasurement } from '../../../shared/ui/anchored-overlay.js'
 import { useTranslation } from 'react-i18next'
 
 import { buildCoverUrl } from '../../../core/network/url-helper.js'
@@ -13,11 +15,12 @@ import type { SongFacet } from '../../../models/song.js'
 export interface FacetCardProps {
   facet: SongFacet
   onTap?: (facet: SongFacet) => void
-  onPlayAll?: (facet: SongFacet) => void
+  onPlayAll?: (facet: SongFacet, anchor?: AnchorMeasurement) => void
 }
 
 export function FacetCard({ facet, onTap, onPlayAll }: FacetCardProps) {
   const { t } = useTranslation()
+  const playAnchor = useTapAnchor()
   const cover = facet.coverUrl ? buildCoverUrl(facet.coverUrl) : ''
 
   return (
@@ -30,7 +33,8 @@ export function FacetCard({ facet, onTap, onPlayAll }: FacetCardProps) {
           ? (
             <view
               className='facet-card__play-hit'
-              catchtap={() => { onPlayAll(facet) }}
+              id={playAnchor.anchorId}
+              catchtap={() => { playAnchor.measure(anchor => onPlayAll(facet, anchor ?? undefined)) }}
               accessibility-element={true}
               accessibility-label={t('common.playAll')}
             >

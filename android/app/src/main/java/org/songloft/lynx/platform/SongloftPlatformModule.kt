@@ -32,6 +32,40 @@ import java.util.zip.ZipOutputStream
  * Exposed to JS as `NativeModules.SongloftPlatform`.
  */
 class SongloftPlatformModule(context: Context) : LynxModule(context) {
+    private val playbackSockets = java.util.concurrent.ConcurrentHashMap<String, okhttp3.WebSocket>()
+
+    private fun playbackEvent(id: String, type: String, data: String = "") {
+        val context = mContext as? LynxContext ?: return
+        context.sendGlobalEvent("roomtonePlaybackSocket", com.lynx.react.bridge.JavaOnlyArray.of(
+            com.lynx.react.bridge.JavaOnlyMap.of("id", id, "type", type, "data", data)))
+    }
+
+    @LynxMethod
+    fun playbackSocketConnect(id: String, url: String) {
+        playbackSockets.values.forEach { it.close(1000, "replaced") }
+        playbackSockets.clear()
+        val uri = android.net.Uri.parse(url)
+        if (uri.scheme !in listOf("ws", "wss") || uri.host.isNullOrBlank()) {
+            playbackEvent(id, "error"); return
+        }
+        val builder = okhttp3.OkHttpClient.Builder().pingInterval(20, java.util.concurrent.TimeUnit.SECONDS)
+        if (InsecureTls.enabled) builder.sslSocketFactory(InsecureTls.socketFactory, InsecureTls.trustManager)
+            .hostnameVerifier(InsecureTls.hostnameVerifier)
+        val socket = builder.build().newWebSocket(okhttp3.Request.Builder().url(url).build(), object : okhttp3.WebSocketListener() {
+            override fun onOpen(socket: okhttp3.WebSocket, response: okhttp3.Response) { playbackEvent(id, "open") }
+            override fun onMessage(socket: okhttp3.WebSocket, text: String) { playbackEvent(id, "message", text) }
+            override fun onClosing(socket: okhttp3.WebSocket, code: Int, reason: String) { socket.close(code, reason) }
+            override fun onClosed(socket: okhttp3.WebSocket, code: Int, reason: String) { playbackSockets.remove(id); playbackEvent(id, "close") }
+            override fun onFailure(socket: okhttp3.WebSocket, error: Throwable, response: okhttp3.Response?) { playbackSockets.remove(id); playbackEvent(id, "error") }
+        })
+        playbackSockets[id] = socket
+    }
+
+    @LynxMethod
+    fun playbackSocketSend(id: String, data: String) { playbackSockets[id]?.send(data) }
+
+    @LynxMethod
+    fun playbackSocketClose(id: String) { playbackSockets.remove(id)?.close(1000, "closed") }
 
     @LynxMethod
     fun updateHomeWidget(json: String) {

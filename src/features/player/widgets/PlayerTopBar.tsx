@@ -1,3 +1,4 @@
+import type { ReactNode } from '@lynx-js/react'
 import { useTranslation } from 'react-i18next'
 
 import type { Song } from '../../../models/song.js'
@@ -14,6 +15,7 @@ export interface PlayerTopBarProps {
   /** True while a sleep timer is running, so the menu can flag it. */
   timerActive: boolean
   /** Countdown text, rendered beside the overflow button when a timer is set. */
+  zoneControl?: ReactNode
   timerLabel?: string
 }
 
@@ -37,6 +39,7 @@ export function PlayerTopBar({
   onOpenSleepTimer,
   timerActive,
   timerLabel,
+  zoneControl,
 }: PlayerTopBarProps) {
   const { t } = useTranslation()
   const album = song.album?.trim()
@@ -58,6 +61,7 @@ export function PlayerTopBar({
         : <text className='full-player__eyebrow'>{t('player.nowPlaying')}</text>}
 
       <view className='full-player__topbar-end'>
+        {zoneControl}
         {timerActive
           ? (
             /*

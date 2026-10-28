@@ -19,7 +19,7 @@ export interface MediaListItemProps {
   selectMode?: boolean
   isSelected?: boolean
   onTap?: () => void
-  onPlayAll?: () => void
+  onPlayAll?: (anchor?: AnchorMeasurement) => void
   /**
    * Open this row's action menu. The rect is the `⋯` box, measured here because
    * only the row can address it; the menu itself is mounted outside the
@@ -51,6 +51,7 @@ export function MediaListItem({
   testIdSuffix,
 }: MediaListItemProps) {
   const { t } = useTranslation()
+  const playAnchor = useTapAnchor()
   const { anchorId, measure } = useTapAnchor()
   return (
     <view
@@ -100,7 +101,8 @@ export function MediaListItem({
         ? (
           <view
             className='media-list-item__play-btn'
-            catchtap={() => { onPlayAll() }}
+            id={playAnchor.anchorId}
+            catchtap={() => { playAnchor.measure(anchor => onPlayAll(anchor ?? undefined)) }}
             accessibility-element={true}
             accessibility-label={t('common.play')}
           >

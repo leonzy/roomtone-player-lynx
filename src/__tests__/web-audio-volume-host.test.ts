@@ -7,6 +7,20 @@ import { expect, test, vi } from 'vitest'
 interface Dom { window: Window & typeof globalThis }
 const { JSDOM } = createRequire(import.meta.url)('jsdom') as { JSDOM: new (html: string, options: { url: string }) => Dom }
 
+test('disabled EQ does not create an AudioContext or divert ordinary playback', () => {
+  const dom = new JSDOM('<body><lynx-view id="app"></lynx-view></body>', { url: 'http://nas.test:58091/' })
+  try {
+    const app = dom.window.document.getElementById('app') as HTMLElement & { onNativeModulesCall: (name: string, data: unknown[], module: string) => void }
+    const AudioContext = vi.fn(() => { throw new Error('AudioContext must remain unused') })
+    vm.runInContext(readFileSync(resolve(__dirname, '../../web/audio-host.js'), 'utf8'), vm.createContext({
+      window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+      Audio: dom.window.Audio, AudioContext, URL, setTimeout, clearTimeout, setInterval, clearInterval,
+    }))
+    app.onNativeModulesCall('setEqualizerEnabled', [false], 'SongloftAudio')
+    expect(AudioContext).not.toHaveBeenCalled()
+  } finally { dom.window.close() }
+})
+
 test('Web getVolume forwards the real audio volume through the existing event channel', () => {
   const dom = new JSDOM('<body><lynx-view id="app"></lynx-view></body>', { url: 'https://music.example/songloft/' })
   try {

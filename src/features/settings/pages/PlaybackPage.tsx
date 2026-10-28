@@ -1,5 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from '@lynx-js/react'
 import { useTranslation } from 'react-i18next'
+import { openOutputPanel } from '../../output/runtime.js'
+import { useOutputText } from '../../output/text.js'
 
 import { getFloatingLyricModule } from '../../../native/floating-lyric.js'
 import { getPlatformCapabilities } from '../../../native/platform-capabilities.js'
@@ -76,6 +78,7 @@ export function PlaybackPage() {
     return () => { stop(); webShortcuts.setState({ recording: null }) }
   }, [])
   const { t } = useTranslation()
+  const out = useOutputText()
   const miniControls = useSyncExternalStore(miniPlayerControls.subscribe, () => miniPlayerControls.getState().mode)
   useEffect(() => { void loadMiniPlayerControls() }, [])
   const songTitleScrolling = useSyncExternalStore(subscribeSongTitleScrolling, getSongTitleScrolling)
@@ -160,6 +163,10 @@ export function PlaybackPage() {
 
   return (
     <SubPageShell title={t('settings.categoryPlayback')} backTestId='playback-back' grouped>
+      <SettingsSection title={out('outputs')}>
+        <SettingsRow title={out('outputs')} icon='radio' trailingIcon='chevron-right' onTap={() => openOutputPanel('outputs')} testId='settings-outputs' />
+        <SettingsRow title={out('alarms')} icon='timer' trailingIcon='chevron-right' onTap={() => openOutputPanel('alarms')} />
+      </SettingsSection>
       {/* ── Playback ────────────────────────────────────────────────────── */}
       <SettingsSection title={t('settings.audioQuality')}>
         <view className='settings-section__padded'>

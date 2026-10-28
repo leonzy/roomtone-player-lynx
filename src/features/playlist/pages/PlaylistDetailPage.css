@@ -247,6 +247,8 @@
 }
 
 .playlist-detail__select-toolbar {
+  flex-wrap: wrap;
+  gap: 8px;
   display: flex;
   flex-direction: row;
   align-items: center;

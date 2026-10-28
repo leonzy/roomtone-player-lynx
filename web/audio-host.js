@@ -733,7 +733,10 @@
       if (state === STATE_COMPLETED) {
         audio.currentTime = 0
       }
-      audio.play().catch(function (_) {})
+      audio.play().catch(function (error) {
+        emitState(STATE_ERROR)
+        emitError('play_blocked', error.message || 'Playback was prevented')
+      })
     },
 
     pause: function () {
@@ -813,6 +816,8 @@
 
     setEqualizerEnabled: function (on) {
       eqEnabled = on
+      // Keep ordinary playback on the media element until EQ is actually enabled.
+      if (!on && !eqContext) return
       ensureEqContext()
       if (on) {
         connectEq()

@@ -10,6 +10,8 @@ import { act, fireEvent, getQueriesForElement, render } from '@lynx-js/react/tes
  * controls (prev/next) that were added so the user can skip tracks without
  * opening the full player.
  */
+// Output controls have their own state/query integration coverage.
+vi.mock('../../output/OutputPanels.js', () => ({ OutputRoot: () => null, OutputTransportControls: () => <view data-testid='output-controls-fixture' /> }))
 vi.mock('react-i18next', async () =>
   (await import('../../../__tests__/_render-mocks.js')).mockReactI18next(),
 )
@@ -52,6 +54,19 @@ vi.mock('../store/player-store.js', async () => {
 })
 
 const { MiniPlayer } = await import('../widgets/MiniPlayer.js')
+
+test('an empty zone retains the player shell and its output controls', async () => {
+  const { usePlayerStore } = await import('../store/player-store.js')
+  const state = usePlayerStore.getState(), previous = state.currentSong
+  state.currentSong = undefined
+  try {
+    render(<MiniPlayer />)
+    await act(async () => { await Promise.resolve() })
+    expect(elementTree.root!.querySelector('.mini-player--idle')).not.toBeNull()
+    expect(elementTree.root!.querySelector('[data-testid="output-controls-fixture"]')).not.toBeNull()
+    expect(getQueriesForElement(elementTree.root!).queryByText('Mock Song')).not.toBeInTheDocument()
+  } finally { state.currentSong = previous }
+})
 const { changeMiniPlayerControls, miniPlayerControls } = await import('../data/mini-player-controls.js')
 const { createMemoryStorage, setSongloftStorage } = await import('../../../core/storage/index.js')
 const { setShellWidth } = await import('../../../shared/nav/shell-navigation.js')
@@ -148,42 +163,7 @@ test('tapping a skip button calls the store action', async () => {
  * root overlay store, where `MiniPlayerVolumePanel` picks it up. Unmounting
  * the mini player must close that root-mounted panel.
  */
-test('the volume button opens the root volume panel and closes it on unmount', async () => {
-  const { useSongRowOverlays } = await import('../../../shared/ui/song-row-overlays.js')
-  useSongRowOverlays.getState().closeMiniVolume()
 
-  const view = render(<MiniPlayer />)
-  await act(async () => {
-    await Promise.resolve()
-  })
-  const { queryByTestId } = getQueriesForElement(elementTree.root!)
-
-  expect(queryByTestId('mini-volume-btn')).toBeInTheDocument()
-  expect(queryByTestId('icon-volume')).toBeInTheDocument()
-
-  /*
-   * `fireEvent.tap` only reaches `bindtap`: the test renderer keys bubbling
-   * handlers as `catchEvent:tap`, and its event map is the only handle on one.
-   * Invoke it directly so the trigger's own wiring (measure → open) is still
-   * exercised. (The play button uses the same mechanism.)
-   */
-  const trigger = queryByTestId('mini-volume-btn') as unknown as {
-    eventMap: Record<string, (event: { stopPropagation: () => void }) => void>
-  }
-  const onTap = trigger.eventMap['catchEvent:tap']
-  expect(onTap, 'volume trigger must stop the tap from opening /player').toBeTypeOf('function')
-
-  await act(async () => {
-    onTap!({ stopPropagation: () => {} })
-  })
-  // No invoke bridge in the test env: open anyway, docked.
-  expect(useSongRowOverlays.getState().miniVolume).toEqual({ anchor: null })
-
-  await act(async () => {
-    view.unmount()
-  })
-  expect(useSongRowOverlays.getState().miniVolume).toBeNull()
-})
 
 /**
  * The fourth transport button (play mode) needs ~44px more than the three
@@ -213,8 +193,9 @@ test('renders the queue and overflow entries', async () => {
   await act(async () => { await Promise.resolve() })
   const { queryByTestId } = getQueriesForElement(elementTree.root!)
 
-  expect(queryByTestId('mini-queue-btn')).toBeInTheDocument()
-  expect(queryByTestId('icon-queue')).toBeInTheDocument()
+  expect(queryByTestId('mini-queue-btn')).not.toBeInTheDocument()
+  expect(queryByTestId('mini-volume-btn')).not.toBeInTheDocument()
+  expect(elementTree.root!.querySelectorAll('[data-testid="output-controls-fixture"]').length).toBeGreaterThan(0)
   expect(queryByTestId('mini-more-btn')).toBeInTheDocument()
 })
 

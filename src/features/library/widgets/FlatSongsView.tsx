@@ -1,3 +1,8 @@
+import { createCollectionAction } from '../../output/runtime.js'
+import { useOutputText } from '../../output/text.js'
+import { collectQueueSongs } from '../../player/data/collection-queue.js'
+import type { CollectionAction } from '../../player/widgets/CollectionPlayMenu.js'
+import { toast } from '../../../shared/ui/toast-store.js'
 import { useEffect, useMemo, useState } from '@lynx-js/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -50,6 +55,8 @@ export function FlatSongsView({
   type, sortId, sortOrder, onSortChange, isWide, showHidden = false,
 }: FlatSongsViewProps) {
   const { t } = useTranslation()
+  const out = useOutputText()
+  const [queueBusy, setQueueBusy] = useState(false)
   const navigate = useNavigate()
   const cacheBatch = useCacheBatchSubmission()
   const canCacheBatch = indexedSongCacheAvailable() && type !== 'radio'
@@ -124,6 +131,21 @@ export function FlatSongsView({
       void usePlayerStore.getState().playPlaylist(songs, index)
       fillRemainingQueue()
     }
+  }
+
+  const queueCollection = async (action: CollectionAction) => {
+    if (queueBusy) return
+    const apply = createCollectionAction(action)
+    const initial = selectMode ? songs.filter(song => selected.has(song.id)) : songs
+    if (!initial.length) return
+    setQueueBusy(true)
+    try {
+      const complete = selectMode ? initial : await collectQueueSongs(initial, total, (offset, limit) => getSongsApi().getSongs(filters, { limit, offset }).then(res => res.songs))
+      await apply(complete)
+      if (action !== 'shuffle') toast.success(out('queueAdded'))
+      if (selectMode) exitSelectMode()
+    } catch (error) { toast.error(String(error instanceof Error ? error.message : error)) }
+    finally { setQueueBusy(false) }
   }
 
   const playAll = () => {
@@ -208,11 +230,12 @@ export function FlatSongsView({
         sortId={sortId}
         sortOrder={sortOrder}
         onSortChange={onSortChange}
-        onPlayAll={playAll}
+        onPlayAll={selectMode ? () => { void usePlayerStore.getState().playPlaylist(songs.filter(song => selected.has(song.id)), 0); exitSelectMode() } : playAll}
+            onQueueAction={action => void queueCollection(action)}
         onAdd={() => navigate({ to: '/library/add' })}
         selectMode={selectMode}
         onToggleSelect={selectMode ? exitSelectMode : enterSelectMode}
-        hasSongs={songs.length > 0}
+        hasSongs={!queueBusy && (selectMode ? selected.size > 0 : songs.length > 0)}
       />
 
       {/* Wide-screen column headers — click to sort.
@@ -312,6 +335,7 @@ export function FlatSongsView({
             <text className='library__select-toolbar-count'>
               {t('library.selectedCount', { count: selected.size })}
             </text>
+            <view className='library__select-toolbar-btn' data-testid='library-select-queue' bindtap={() => void queueCollection('end')}><text className='library__select-toolbar-btn-text'>{out('appendQueue')}</text></view>
             <view
               className='library__select-toolbar-btn'
               bindtap={addSelectedToPlaylist}

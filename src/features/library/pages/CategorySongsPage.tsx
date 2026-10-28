@@ -1,3 +1,7 @@
+import { useTapAnchor } from '../../../shared/ui/anchored-overlay.js'
+import type { AnchorMeasurement } from '../../../shared/ui/anchored-overlay.js'
+import { chooseCollectionPlayback } from '../../player/data/collection-playback.js'
+import { toast } from '../../../shared/ui/toast-store.js'
 import { useMemo, useState } from '@lynx-js/react'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -70,6 +74,7 @@ function buildFiltersForField(field: CategoryField, value: string): SongsFilters
 export function CategorySongsPage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const playAnchor = useTapAnchor()
   const params = useParams({ strict: false }) as { field?: string }
   const search = useSearch({ strict: false }) as { value?: string; cover?: string }
 
@@ -124,10 +129,9 @@ export function CategorySongsPage() {
     fillRemainingQueue()
   }
 
-  const playAll = () => {
+  const playAll = (anchor?: AnchorMeasurement) => {
     if (songs.length === 0) return
-    void usePlayerStore.getState().playAll(songs, playbackCtx)
-    fillRemainingQueue()
+    void chooseCollectionPlayback((offset, limit) => getSongsApi().getSongs(filters, { limit, offset }), playbackCtx, anchor).catch(error => toast.error(String(error)))
   }
 
   const header = (
@@ -144,8 +148,8 @@ export function CategorySongsPage() {
         <view className='category-songs__topbar-right'>
           {songs.length > 0
             ? (
-              <view className='category-songs__play-all' bindtap={playAll}>
-                <text className='category-songs__play-all-text'>{t('playlist.playAll')}</text>
+              <view className='category-songs__play-all' id={playAnchor.anchorId} bindtap={() => playAnchor.measure(anchor => playAll(anchor ?? undefined))}>
+                <text className='category-songs__play-all-text'>{t('playlist.playAll')}</text><Icon name='chevron-down' size={14} color={ICON_COLORS.content2} />
               </view>
             )
             : null}

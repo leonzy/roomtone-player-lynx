@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-10-28 · Roomtone 区域与音箱移植
+
+本机正在使用带输出面板的 Lynx 嵌入版；区域控制、编组、转换、设备设置、EQ/休眠/闹钟/派对与 Web 播放所有权隔离已接入。用户要求不播放，听感与原生平台真机 Not run。源码及验证范围见 [移植记录](roomtone-output-parity.md)。未提交、推送或发布；origin 仍指向上游，不能把 fork 功能直接推给上游。
+
+English: The local executable uses the embedded Lynx output UI with zones, grouping, transfer, device settings, EQ/sleep/alarms/party and separate local playback ownership. Playback is prohibited by the user; listening and native hardware remain Not run. See the [port record](roomtone-output-parity.md). No commit, push or release; origin still targets upstream and must not receive fork-only changes.
+
 ## 2026-10-27 · songloft-org/songloft-player#53
 
 两客户端已精简 Release 正文，保留一行中英文安装/选包链接与分类变更记录，安装步骤并入 README。20 项正文场景、YAML/Bash/链接检查与 Lynx 89 项发布工具检查通过；基线、源码指纹和 Not run 见 [进展记录](progress.md#2026-10-27--精简客户端-releasesongloft-orgsongloft-player53)。尚未提交、推送或发布，父指针未更新；下方授权属于历史批次。

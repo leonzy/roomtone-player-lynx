@@ -12,7 +12,7 @@ import { DragHandle } from '../../../shared/ui/DragHandle.js'
 import { useBackHandler } from '../../../shared/nav/use-back-handler.js'
 import { useScrollNotifier } from '../../../shared/nav/scroll-visibility.js'
 import { playlistContext } from '../../player/domain/playback-context.js'
-import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
+import { chooseCollectionPlayback } from '../../player/data/collection-playback.js'
 import { getPlaylistApi } from '../api/index.js'
 import { PopoverMenu } from '../../../shared/ui/PopoverMenu.js'
 import type { PopoverMenuItem } from '../../../shared/ui/PopoverMenu.js'
@@ -100,13 +100,13 @@ export function PlaylistsView(
     { key: 'manual',   label: t('playlist.sortManual'),  icon: 'sort', selected: sortType === 'manual' },
   ]
 
-  const onPlayAll = async (playlist: Playlist) => {
+  const onPlayAll = async (playlist: Playlist, anchor?: AnchorMeasurement) => {
     const filters = { sort: playlist.sortBy ?? 'position', order: playlist.sortOrder ?? 'asc' }
     try {
-      const started = await playAllWithBackgroundFill(
+      const started = await chooseCollectionPlayback(
         (offset, limit) =>
           getPlaylistApi().getPlaylistSongs(playlist.id, filters, { limit, offset }),
-        playlistContext(playlist.id),
+        playlistContext(playlist.id), anchor,
       )
       if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {
@@ -482,7 +482,7 @@ export function PlaylistsView(
                   }
                   coverUrl={playlist.coverUrl ? buildCoverUrl(playlist.coverUrl, playlist.updatedAt) : undefined}
                   onTap={() => onTap(playlist)}
-                  onPlayAll={() => onPlayAll(playlist)}
+                  onPlayAll={anchor => onPlayAll(playlist, anchor)}
                   onMore={(anchor) => openRowMenu(playlist, anchor)}
                   testIdSuffix={String(playlist.id)}
                   selectMode={selectMode}

@@ -1,5 +1,9 @@
 # Lynx Client Development Lessons
 
+## 2026-10-28 · Output control and local audio ownership
+
+The selected control zone must be independent of running local audio. Server projections live in Query cache; local callbacks only update the local engine store, and explicit transport/transfer commands change playback. Generation guards cancel stale server loads without cancelling ordinary queue pagination on normal skips. Root volume panels own root back handling; player-local tests should assert panel requests rather than expecting the former local popover. Initial runtime/player checks passed 93 tests, followed by queue/overlay regressions; see the [record](docs/project/roomtone-output-parity.md). Seen 1×; lesson. No listening tests this batch.
+
 ## Scope and Sources
 
 Record dual-thread behavior, shared JS, and four platform hosts in songloft-org/songloft-player-lynx. See the [local AI workflow](docs/en/guides/ai-development.md) and parent host constraints. Existing AGENTS/business references remain authoritative; link evidence rather than duplicating incident histories.

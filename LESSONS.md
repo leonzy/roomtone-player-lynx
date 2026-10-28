@@ -1,5 +1,9 @@
 # Lynx 客户端开发经验
 
+## 2026-10-28 · 输出控制与本机音频所有权
+
+Roomtone 移植中，选择控制的区域与正在运行的本机音频必须独立。服务器队列投影由 Query 缓存持有，本机回调只写本机 store；仅明确的 transport/transfer 命令改变播放。迟到服务器装载按代际取消，但普通跳曲不能取消正常后台补队列。根级音量面板由根级返回处理器管理，播放器局部测试应断言面板请求，不能继续假设局部 popover。93 项初次运行时/播放器检查及后续队列/覆盖层回归提供证据，完整范围见 [记录](docs/project/roomtone-output-parity.md)。Seen 1×，经验；本轮不试听。
+
 ## 范围与来源
 
 记录songloft-org/songloft-player-lynx 的双线程、共享 JS 与四端宿主行为。流程见 [本地 AI 开发流程](docs/guides/ai-development.md)，公共宿主约束见父仓库。已有 AGENTS 和业务文档仍是权威规则，LESSONS 链接证据而不复制历史全文。

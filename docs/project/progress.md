@@ -1,5 +1,11 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-28 · Roomtone 播放输出
+
+区域与音箱能力从 Flutter fork 接入 Lynx 共用前端及三端 WebSocket 宿主。显示状态与本机音频状态分离，避免切控制区域停 Web；迟到服务器装载不覆盖本机新播放，普通后台补队列继续有效。实际窄屏界面与不播放约束已核对。双构建、类型、Go 播放测试通过；全量测试的 13 项既有失败在原始 HEAD 复现。完整矩阵、日志、Not run 与仓库交付边界见 [记录](roomtone-output-parity.md)。
+
+English: Ported the Flutter fork's zone/output controls to the shared Lynx frontend and three native WebSocket bridges. Display state is separate from local audio ownership; stale server loads cannot replace new local play, while ordinary queue pagination survives. Narrow-screen UI was inspected without playback. Dual builds, types and Go playback tests pass; thirteen existing suite failures reproduce on original HEAD. See the [record](roomtone-output-parity.md) for scope, logs, Not run and repository-delivery boundaries.
+
 ## 2026-10-27 · 精简客户端 Release（songloft-org/songloft-player#53）
 
 Flutter 与 Lynx 的 Release 正文改为一行中英文安装/选包链接和分类变更记录；安装步骤并入各自中英文 README，发布指南同步。Lynx 基线 `274ab88f543ea373f77838c3c1bace0596cc0fbb`，本次六个功能/说明文件的 diff SHA-256 为 `37a5e952c89fafce09fdfe625f9dc65b71dd43ff47c32a15035bd8b934366730`（不含本节及交接记录）。Linux x86_64 / Python 3.12.11 / PyYAML 6.0.2：两端工作流 YAML、Bash 语法、README 链接与锚点、UTF-8、20 项实际正文生成场景通过，覆盖 dev/正式版/Lynx preview、空日志、特殊字符和超过 128 KiB 的日志；旧安装模板不满足精简断言。Lynx 89 项发布工具检查通过。日志与预览：`/tmp/songloft-issue53-20261027/`。Not run：远端 CI、实际 GitHub 发布及平台打包；本次仅改文档和正文拼接，未运行 App 测试。未提交、推送或写 Issue，父指针未更新。

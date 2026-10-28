@@ -1,3 +1,7 @@
+import { createCollectionAction } from '../../output/runtime.js'
+import { useOutputText } from '../../output/text.js'
+import { collectQueueSongs } from '../../player/data/collection-queue.js'
+import type { CollectionAction } from '../../player/widgets/CollectionPlayMenu.js'
 import { useCallback, useEffect, useMemo, useRef, useState } from '@lynx-js/react'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
@@ -51,6 +55,8 @@ export function PlaylistDetailPage() {
   const queryClient = useQueryClient()
   const { onScroll: onScrollEdge } = useScrollNotifier()
   const { t } = useTranslation()
+  const out = useOutputText()
+  const [queueBusy, setQueueBusy] = useState(false)
   const cacheBatch = useCacheBatchSubmission()
   const canCacheBatch = indexedSongCacheAvailable()
   const params = useParams({ strict: false }) as { id?: string }
@@ -294,6 +300,21 @@ export function PlaylistDetailPage() {
   const handleSongTap = useCallback((song: Song, index: number) => songActions.current.onTapSong(song, index), [])
   const handleSongRemove = useCallback((song: Song) => songActions.current.onRemoveSong(song), [])
 
+  const queueCollection = async (action: CollectionAction) => {
+    if (queueBusy) return
+    const apply = createCollectionAction(action)
+    const initial = selectMode ? songs.filter(song => selected.has(song.id)) : songs
+    if (!initial.length) return
+    setQueueBusy(true)
+    try {
+      const complete = selectMode ? initial : await collectQueueSongs(initial, total, (offset, limit) => getPlaylistApi().getPlaylistSongs(id, { sort: currentSort, order: currentOrder, keyword }, { limit, offset }).then(res => res.songs))
+      await apply(complete)
+      if (action !== 'shuffle') toast.success(out('queueAdded'))
+      if (selectMode) exitSelectMode()
+    } catch (error) { toast.error(String(error instanceof Error ? error.message : error)) }
+    finally { setQueueBusy(false) }
+  }
+
   const playAll = () => {
     if (songs.length === 0) return
     void usePlayerStore.getState().playAll(songs, playlistCtx)
@@ -499,11 +520,12 @@ export function PlaylistDetailPage() {
             currentOrder={currentOrder}
             sortOptions={sortOptions}
             onSelectSort={onSelectSort}
-            onPlayAll={playAll}
+            onPlayAll={selectMode ? () => { void usePlayerStore.getState().playPlaylist(songs.filter(song => selected.has(song.id)), 0); exitSelectMode() } : playAll}
+            onQueueAction={action => void queueCollection(action)}
             onAddSongs={() => setShowAddSongs(true)}
             selectMode={selectMode}
             onToggleSelect={selectMode ? exitSelectMode : enterSelectMode}
-            hasSongs={songs.length > 0}
+            hasSongs={!queueBusy && (selectMode ? selected.size > 0 : songs.length > 0)}
           />
         )
         : null}
@@ -601,6 +623,7 @@ export function PlaylistDetailPage() {
             <text className='playlist-detail__select-toolbar-count'>
               {t('library.selectedCount', { count: selected.size })}
             </text>
+            <view className='playlist-detail__select-toolbar-btn playlist-detail__cache-btn' data-testid='playlist-select-queue' bindtap={() => void queueCollection('end')}><text className='playlist-detail__select-toolbar-btn-text playlist-detail__cache-btn-text'>{out('appendQueue')}</text></view>
             <view className='playlist-detail__select-toolbar-btn' bindtap={() => setPendingConfirm({ kind: 'remove-batch' })}>
               <text className='playlist-detail__select-toolbar-btn-text'>{t('playlist.removeSong')}</text>
             </view>

@@ -103,9 +103,9 @@ test('favorite is hidden on narrow, visible on wide', () => {
 
 /* The volume entry point is wide-only for the same reason: no room in a
    phone-width capsule, where hardware keys already control it. */
-test('volume trigger is hidden on narrow, visible on wide', () => {
+test('legacy volume trigger stays hidden because the output cluster owns volume', () => {
   expect(block(rules(), '.mini-player__volume')).toMatch(/display:\s*none/)
-  expect(block(rules(), '.shell--wide .mini-player__volume')).toMatch(/display:\s*flex/)
+  expect(block(rules(), '.shell--wide .mini-player__volume')).toMatch(/display:\s*none/)
 })
 
 /* Queue and overflow join the row only at tablet width, like Flutter's dense

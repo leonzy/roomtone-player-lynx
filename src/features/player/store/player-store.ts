@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { followPlayerLyrics } from '../data/follow-player-lyrics.js'
+import { remoteGroup, createZonePlayer } from '../../output/runtime.js'
 
 import {
   buildCoverUrl,
@@ -64,6 +66,8 @@ import { useAppSessionStore } from '../../../store/app-session.js'
  * to the pure functions in `../domain/*` so it is unit-tested without a render.
  */
 export interface PlayerState extends PlayerData {
+  loadZoneQueue: (args: { songs: Song[]; index: number; positionMs: number }) => Promise<void>
+  cancelPendingPlayback: () => void
   // ── playback ──
   playSong: (song: Song, queue?: Song[]) => Promise<void>
   /** Schedule once after current, without replacing its queue or context. */
@@ -207,8 +211,8 @@ const _queueLoader = new QueueLoader()
 const _navigation = new QueueNavigation()
 
 function syncNavigation(): void {
-  const s = usePlayerStore.getState()
-  usePlayerStore.setState({
+  const s = useLocalPlayerStore.getState()
+  useLocalPlayerStore.setState({
     hasPriorityNext: _navigation.hasPriority,
     hasHistoryPrevious: _navigation.hasPrevious(s.currentIndex),
     nextQueueIndex: _navigation.peekNext(s.currentIndex, s.playlist.length),
@@ -217,7 +221,7 @@ function syncNavigation(): void {
 }
 
 function markCurrentPlayed(): void {
-  _navigation.markPlayed(usePlayerStore.getState().currentIndex)
+  _navigation.markPlayed(useLocalPlayerStore.getState().currentIndex)
   syncNavigation()
 }
 
@@ -312,7 +316,7 @@ export function isNormalizeEnabled(): boolean {
 }
 
 export function currentCacheVariant(song: Pick<Song, 'id'>): CacheVariant {
-  const state = usePlayerStore.getState()
+  const state = useLocalPlayerStore.getState()
   const track = state.currentSong?.id === song.id
     ? state.audioTrackPending !== undefined ? state.audioTrackPending : state.audioTrack
     : null
@@ -331,7 +335,7 @@ export function currentCacheVariant(song: Pick<Song, 'id'>): CacheVariant {
  */
 export function songUrl(song: Song): string {
   if (!song.url) return ''
-  const state = usePlayerStore.getState()
+  const state = useLocalPlayerStore.getState()
   const audioTrack = state.currentSong?.id === song.id && state.currentSong?.type === song.type
     ? state.audioTrackPending !== undefined ? state.audioTrackPending : state.audioTrack
     : null
@@ -414,7 +418,7 @@ interface PlaybackSource {
  */
 function playbackSourceFor(song: Song): PlaybackSource {
   if (!song.url) return { url: '', hls: false, cached: false }
-  const state = usePlayerStore.getState()
+  const state = useLocalPlayerStore.getState()
   const track = state.currentSong?.id === song.id
     ? state.audioTrackPending !== undefined ? state.audioTrackPending : state.audioTrack
     : null
@@ -451,7 +455,7 @@ async function resolvePlaybackSource(song: Song): Promise<PlaybackSource> {
     if (currentOfflineOwner()?.namespace !== local.namespace || !entry || entry.key !== local.key) throw new Error('cache_file_unavailable')
     return { url: entry.url, hls: false, cached: true }
   }
-  const state = usePlayerStore.getState()
+  const state = useLocalPlayerStore.getState()
   const indexed = indexedSongCacheAvailable()
   if (!indexed && state.currentSong?.id === song.id && (state.audioTrackPending !== undefined || state.audioTrack != null)) {
     return playbackSourceFor(song)
@@ -506,7 +510,7 @@ async function syncQueueWindow(playlist: Song[], index: number): Promise<void> {
       catch (error) { if (cachedSongIdentity(s)) return null; throw error }
     }),
   )
-  const current = usePlayerStore.getState()
+  const current = useLocalPlayerStore.getState()
   if (generation !== _loadGeneration || current.playlist !== playlist || current.currentIndex !== index) return
   const available = items.filter((item): item is AudioItem => item !== null)
   void audio.setQueue(available, available.findIndex(item => item.id === playlist[index]?.id))
@@ -621,7 +625,7 @@ function cancelLivePlayback(): void {
   cancelRetry()
   invalidateSourceLoad()
   _loadedSongId = null
-  usePlayerStore.setState({ isPlaying: false, isBuffering: false, errorMessage: undefined })
+  useLocalPlayerStore.setState({ isPlaying: false, isBuffering: false, errorMessage: undefined })
 }
 
 /** Release iOS's execution window without sending invalid terminal commands to other hosts. */
@@ -640,7 +644,7 @@ function scheduleRetry(song: Song, { positionMs, autoplay }: { positionMs: numbe
     // Live playback always rejoins the current edge; it has no saved seek position.
     positionMs = 0
     autoplay = true
-    usePlayerStore.setState({ isPlaying: true, isBuffering: true, errorMessage: undefined })
+    useLocalPlayerStore.setState({ isPlaying: true, isBuffering: true, errorMessage: undefined })
   }
   if (_retrySongId !== song.id) {
     _retryCount = 0
@@ -660,12 +664,12 @@ function scheduleRetry(song: Song, { positionMs, autoplay }: { positionMs: numbe
       return
     }
     // Find the next playable index via the same logic as `playNext`.
-    const s = usePlayerStore.getState()
+    const s = useLocalPlayerStore.getState()
     _navigation.markFailed(s.currentIndex)
     syncNavigation()
     const nextIdx = _navigation.peekNext(s.currentIndex, s.playlist.length)
     if (nextIdx != null && nextIdx !== s.currentIndex) {
-      void usePlayerStore.getState().playNext()
+      void useLocalPlayerStore.getState().playNext()
     } else {
       finishIOSPlaybackGap()
     }
@@ -678,18 +682,18 @@ function scheduleRetry(song: Song, { positionMs, autoplay }: { positionMs: numbe
     _retryTimer = null
     // The user may have skipped, stopped, or picked another song while we waited;
     // reloading here would yank playback back to a track they left behind.
-    if (usePlayerStore.getState().currentSong?.id !== song.id) return
+    if (useLocalPlayerStore.getState().currentSong?.id !== song.id) return
     const generation = _loadGeneration
     if (song.isLive) { _liveRetryInFlight = true; _liveRetryNeeded = false }
-    usePlayerStore.setState({ errorMessage: undefined, isBuffering: true })
+    useLocalPlayerStore.setState({ errorMessage: undefined, isBuffering: true })
     void (async () => {
       const retrySource = await resolvePlaybackSource(song)
       if (generation !== _loadGeneration) return
       _loadedSongId = song.id
       _loadedSourceKind = retrySource.cached ? 'cache' : 'stream'
       const load = { durationMs: durationMsOf(song), hls: retrySource.hls }
-      if (usePlayerStore.getState().audioTrack != null) {
-        await syncQueueWindow(usePlayerStore.getState().playlist, usePlayerStore.getState().currentIndex)
+      if (useLocalPlayerStore.getState().audioTrack != null) {
+        await syncQueueWindow(useLocalPlayerStore.getState().playlist, useLocalPlayerStore.getState().currentIndex)
         if (generation !== _loadGeneration) return
         _awaitingPlayback = { song, generation }
         await loadAudioSource(audio, { url: retrySource.url, load: { ...load, initialPositionMs: positionMs, autoplay } })
@@ -704,7 +708,7 @@ function scheduleRetry(song: Song, { positionMs, autoplay }: { positionMs: numbe
     })().catch((error: unknown) => {
       if (generation !== _loadGeneration || error instanceof SourceLoadCancelled) return
       if (song.isLive) { _liveRetryNeeded = true; return }
-      usePlayerStore.setState({ isPlaying: false, isBuffering: false,
+      useLocalPlayerStore.setState({ isPlaying: false, isBuffering: false,
         errorMessage: error instanceof Error ? error.message : String(error) })
       // Native errors already schedule a retry; readiness timeouts do not emit one.
       if (_retryTimer == null) scheduleRetry(song, { positionMs, autoplay })
@@ -716,9 +720,9 @@ function scheduleRetry(song: Song, { positionMs, autoplay }: { positionMs: numbe
   }, delay)
 }
 
-export const usePlayerStore = create<PlayerState>((set, get) => {
+export const useLocalPlayerStore = create<PlayerState>((set, get) => {
   /** Load + play the song at `index` (index/currentSong already computable). */
-  async function playAtIndex(index: number): Promise<void> {
+  async function playAtIndex(index: number, server?: { positionMs: number }): Promise<void> {
     const song = get().playlist[index]
     if (!song) return
     const generation = invalidateSourceLoad()
@@ -769,16 +773,20 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       // title/artwork — the "点下一曲偶尔不及时更新" symptom.
       await syncQueueWindow(get().playlist, get().currentIndex)
       if (generation !== _loadGeneration) return
-      await audio.load(source.url, {
-        durationMs: durationMsOf(song),
-        hls: source.hls,
-      })
+      const restoredPosition = server
+        ? await loadAudioSource(audio, { url: source.url, load: {
+          durationMs: durationMsOf(song), hls: source.hls,
+          initialPositionMs: server.positionMs, autoplay: false,
+        } })
+        : (await audio.load(source.url, { durationMs: durationMsOf(song), hls: source.hls }), 0)
       if (generation !== _loadGeneration) return
       if (song.isLive && _retryTimer != null) return
       _loadedSongId = song.id
       _loadedSourceKind = source.cached ? 'cache' : 'stream'
       _awaitingPlayback = { song, generation }
-      await audio.play()
+      if (server) {
+        set({ currentTime: restoredPosition, isPlaying: false })
+      } else await audio.play()
       if (generation !== _loadGeneration) return
       if (cachedSongIdentity(song)) void audio.setFavorite(false)
       else syncFavoriteToNative(song.id)
@@ -845,7 +853,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       // Tell the native engine the playback gap is terminal so it can release
       // its finite background execution window immediately.
       finishIOSPlaybackGap()
-      set({ isPlaying: false })
+      if (s.playMode === 'order') {
+        _queueLoader.invalidate()
+        _navigation.reset(s.playMode)
+        set({ playlist: [], currentIndex: -1, currentSong: undefined, currentTime: 0, duration: 0, isPlaying: false })
+      } else set({ isPlaying: false })
       return
     }
     void playAtIndex(nextIdx).catch((e) => {
@@ -906,6 +918,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       await playAtIndex(index)
     },
 
+    cancelPendingPlayback: () => { invalidateSourceLoad(); cancelRetry(); _queueLoader.invalidate(); _awaitingPlayback = null },
+    loadZoneQueue: async ({ songs, index, positionMs }) => {
+      if (!songs[index]) return
+      _queueLoader.invalidate()
+      _navigation.reset(get().playMode)
+      set({ playlist: [...songs], currentIndex: index, currentSong: songs[index], playbackContext: undefined, sourcePlaylistId: undefined })
+      await playAtIndex(index, { positionMs })
+    },
     playPlaylist: async (songs, startIndex = 0, context) => {
       if (songs.length === 0) return
       // Re-base the background-load generation before any await: callers
@@ -1340,14 +1360,13 @@ let _prefetchedForIndex: number | null = null
 
 audio.on('progress', (e) => {
   if (useDlnaStore.getState().activeDevice) return
-  if (usePlayerStore.getState().isAudioTrackSwitching) return
-  usePlayerStore.setState((s) => ({
+  if (useLocalPlayerStore.getState().isAudioTrackSwitching) return
+  useLocalPlayerStore.setState((s) => ({
     currentTime: e.positionMs,
     duration: e.durationMs > 0 ? e.durationMs : s.duration,
   }))
-  useLyricStore.getState().syncPosition(e.positionMs)
 
-  const s = usePlayerStore.getState()
+  const s = useLocalPlayerStore.getState()
   if (
     s.duration > 0 &&
     s.currentSong != null && !cachedSongIdentity(s.currentSong) &&
@@ -1381,42 +1400,42 @@ audio.on('stateChanged', (e) => {
   if (useDlnaStore.getState().activeDevice) return
   switch (e.state) {
     case 'loading':
-      usePlayerStore.setState({ isBuffering: true })
+      useLocalPlayerStore.setState({ isBuffering: true })
       break
     case 'ready':
-      usePlayerStore.setState({ isBuffering: false })
+      useLocalPlayerStore.setState({ isBuffering: false })
       break
     case 'playing':
-      if (usePlayerStore.getState().currentSong?.isLive && !_livePlayIntent) break
-      usePlayerStore.setState({ isPlaying: true, isBuffering: false })
+      if (useLocalPlayerStore.getState().currentSong?.isLive && !_livePlayIntent) break
+      useLocalPlayerStore.setState({ isPlaying: true, isBuffering: false })
       // Native load/play promises acknowledge commands, not playback. Commit
       // history only when the current source actually starts; retries do not
       // duplicate the backend play event.
       if (_awaitingPlayback?.generation === _loadGeneration &&
-        _awaitingPlayback.song === usePlayerStore.getState().currentSong) {
+        _awaitingPlayback.song === useLocalPlayerStore.getState().currentSong) {
         const started = _awaitingPlayback
         _awaitingPlayback = null
         markCurrentPlayed()
         if (_playEventPending) {
           _playEventPending = false
-          void getSongsApi().recordPlayed(started.song.id, usePlayerStore.getState().playbackContext).catch(() => {})
+          void getSongsApi().recordPlayed(started.song.id, useLocalPlayerStore.getState().playbackContext).catch(() => {})
         }
       }
       break
     case 'paused':
-      if (usePlayerStore.getState().currentSong?.isLive && _livePlayIntent) {
-        usePlayerStore.setState({ isPlaying: true, isBuffering: true })
-      } else usePlayerStore.setState({ isPlaying: false })
+      if (useLocalPlayerStore.getState().currentSong?.isLive && _livePlayIntent) {
+        useLocalPlayerStore.setState({ isPlaying: true, isBuffering: true })
+      } else useLocalPlayerStore.setState({ isPlaying: false })
       break
     case 'idle':
-      if (usePlayerStore.getState().currentSong?.isLive && _livePlayIntent) {
-        usePlayerStore.setState({ isPlaying: true, isBuffering: true })
-      } else usePlayerStore.setState({ isPlaying: false, isBuffering: false })
+      if (useLocalPlayerStore.getState().currentSong?.isLive && _livePlayIntent) {
+        useLocalPlayerStore.setState({ isPlaying: true, isBuffering: true })
+      } else useLocalPlayerStore.setState({ isPlaying: false, isBuffering: false })
       break
     case 'completed':
       // The completion router (play-mode + sleep-timer) lives in the store
       // initializer because it needs the private `playAtIndex`.
-      usePlayerStore.getState()._onCompleted()
+      useLocalPlayerStore.getState()._onCompleted()
       break
     case 'error':
       break
@@ -1425,22 +1444,22 @@ audio.on('stateChanged', (e) => {
 
 audio.on('error', (e) => {
   if (useDlnaStore.getState().activeDevice) return
-  const { currentSong, currentTime, isPlaying } = usePlayerStore.getState()
+  const { currentSong, currentTime, isPlaying } = useLocalPlayerStore.getState()
   if (currentSong?.isLive) {
     if (_livePlayIntent) scheduleRetry(currentSong, { positionMs: 0, autoplay: true })
     return
   }
   if (_awaitingPlayback?.generation === _loadGeneration) {
     _awaitingPlayback = null
-    _navigation.markFailed(usePlayerStore.getState().currentIndex)
+    _navigation.markFailed(useLocalPlayerStore.getState().currentIndex)
     syncNavigation()
   }
-  if (usePlayerStore.getState().isAudioTrackSwitching) {
+  if (useLocalPlayerStore.getState().isAudioTrackSwitching) {
     finishIOSPlaybackGap()
-    usePlayerStore.setState({ isPlaying: false, isBuffering: false })
+    useLocalPlayerStore.setState({ isPlaying: false, isBuffering: false })
     return
   }
-  usePlayerStore.setState({ isPlaying: false, isBuffering: false, errorMessage: e.message })
+  useLocalPlayerStore.setState({ isPlaying: false, isBuffering: false, errorMessage: e.message })
   // Retry transparently; `scheduleRetry` is a no-op once the song's budget is spent,
   // so the error state above is what the user is left with after the last attempt.
   if (currentSong) scheduleRetry(currentSong, { positionMs: currentTime, autoplay: isPlaying })
@@ -1460,7 +1479,7 @@ audio.on('remoteCommand', (e) => {
       cancelLivePlayback()
       break
     case 'play': {
-      const song = usePlayerStore.getState().currentSong
+      const song = useLocalPlayerStore.getState().currentSong
       if (song?.isLive && !_livePlayIntent) {
         _livePlayIntent = true
         scheduleRetry(song, { positionMs: 0, autoplay: true })
@@ -1468,10 +1487,10 @@ audio.on('remoteCommand', (e) => {
       break
     }
     case 'next':
-      void usePlayerStore.getState().playNext()
+      void useLocalPlayerStore.getState().playNext()
       break
     case 'previous':
-      void usePlayerStore.getState().playPrev()
+      void useLocalPlayerStore.getState().playPrev()
       break
     case 'stop':
       // Native already stopped the engine (instant feedback); reset JS state
@@ -1480,8 +1499,8 @@ audio.on('remoteCommand', (e) => {
       cancelRetry()
       invalidateSourceLoad()
       _queueLoader.invalidate()
-      _navigation.reset(usePlayerStore.getState().playMode)
-      usePlayerStore.setState({
+      _navigation.reset(useLocalPlayerStore.getState().playMode)
+      useLocalPlayerStore.setState({
         currentSong: undefined,
         isPlaying: false,
         isBuffering: false,
@@ -1499,7 +1518,7 @@ audio.on('remoteCommand', (e) => {
       syncNavigation()
       break
     case 'toggleFavorite': {
-      const song = usePlayerStore.getState().currentSong
+      const song = useLocalPlayerStore.getState().currentSong
       if (!song || cachedSongIdentity(song)) break
       toggleFavoriteNonReact(song.id)
         .then((isFavorite) => audio.setFavorite(isFavorite))
@@ -1519,53 +1538,52 @@ audio.on('volumeChanged', (e) => {
   if (useDlnaStore.getState().activeDevice) return
   if (!volumeRestored) return
   const volume = Math.min(100, Math.max(0, Math.round(e.volume)))
-  usePlayerStore.setState({ volume })
+  useLocalPlayerStore.setState({ volume })
   persistVolume(volume)
 })
 
 configureDlnaPlayer({
   async pauseLocal() {
     if (!useDlnaStore.getState().activeDevice) invalidateSourceLoad()
-    usePlayerStore.setState({ audioTrackPending: undefined, isAudioTrackSwitching: false })
+    useLocalPlayerStore.setState({ audioTrackPending: undefined, isAudioTrackSwitching: false })
     cancelRetry()
     await audio.pause()
     _loadedSongId = null
     _loadedSourceKind = null
   },
   onPlayed(song) {
-    if (usePlayerStore.getState().currentSong === song) {
+    if (useLocalPlayerStore.getState().currentSong === song) {
       _playEventPending = false
       markCurrentPlayed()
-      void getSongsApi().recordPlayed(song.id, usePlayerStore.getState().playbackContext).catch(() => {})
+      void getSongsApi().recordPlayed(song.id, useLocalPlayerStore.getState().playbackContext).catch(() => {})
     }
   },
-  onCompleted() { usePlayerStore.getState()._onCompleted() },
+  onCompleted() { useLocalPlayerStore.getState()._onCompleted() },
 })
 
 // A song id is meaningful only inside its server/user scope. A late switch
 // from the outgoing session must never apply its selection to the new one.
 useAppSessionStore.subscribe((session, previous) => {
   if (session.baseUrl === previous.baseUrl && session.username === previous.username) return
-  const switching = usePlayerStore.getState().isAudioTrackSwitching
+  const switching = useLocalPlayerStore.getState().isAudioTrackSwitching
   invalidateSourceLoad()
   cancelRetry()
-  _navigation.reset(usePlayerStore.getState().playMode)
+  _navigation.reset(useLocalPlayerStore.getState().playMode)
   syncNavigation()
   if (switching) void audio.pause()
-  usePlayerStore.setState({ audioTrack: null, audioTrackPending: undefined,
+  useLocalPlayerStore.setState({ audioTrack: null, audioTrackPending: undefined,
     isAudioTrackSwitching: false, audioTrackError: undefined, showAudioTrackSheet: false })
 })
 
 useDlnaStore.subscribe((session, previous) => {
   if (!session.activeDevice && !previous.activeDevice) return
-  usePlayerStore.setState({
+  useLocalPlayerStore.setState({
     isPlaying: session.isPlaying,
     isBuffering: session.isBusy,
     currentTime: session.positionMs,
     duration: session.durationMs,
     errorMessage: session.error ?? undefined,
   })
-  useLyricStore.getState().syncPosition(session.positionMs)
 })
 
 // ── playback state persistence ───────────────────────────────────────────────
@@ -1587,7 +1605,7 @@ const SAVE_POSITION_STEP_MS = 10_000
  * `SAVE_POSITION_STEP_MS` of progress regardless of tick size, and seeks land in
  * a new bucket immediately.
  */
-usePlayerStore.subscribe((state, prev) => {
+useLocalPlayerStore.subscribe((state, prev) => {
   const queueChanged = state.playlist !== prev.playlist || state.currentIndex !== prev.currentIndex
   const bucket = Math.floor(state.currentTime / SAVE_POSITION_STEP_MS)
   const prevBucket = Math.floor(prev.currentTime / SAVE_POSITION_STEP_MS)
@@ -1599,7 +1617,7 @@ usePlayerStore.subscribe((state, prev) => {
     // SAVE_DEBOUNCE_MS later, and the snapshot that scheduled it is stale by then
     // (a debounced write would otherwise persist a position 2s behind reality,
     // or a queue the user has since changed).
-    const s = usePlayerStore.getState()
+    const s = useLocalPlayerStore.getState()
     void savePlaybackState({
       playlist: s.playlist,
       currentIndex: s.currentIndex,
@@ -1633,7 +1651,7 @@ let _liveActivityUnavailable = false
  *    song/state change re-entered the `start()` branch, so it retried forever and
  *    never reached `update()`. An empty answer now latches the feature off.
  */
-usePlayerStore.subscribe((state, prev) => {
+useLocalPlayerStore.subscribe((state, prev) => {
   const songChanged = state.currentSong !== prev.currentSong
   const playStateChanged = state.isPlaying !== prev.isPlaying
   if (!songChanged && !playStateChanged) return
@@ -1689,10 +1707,7 @@ export function resetLiveActivityForTests(): void {
  * and `loadForSong(undefined)` (no song / no lyric URL) is the store's own
  * reset, so the old manual `clear()` calls are subsumed too.
  */
-usePlayerStore.subscribe((state, prev) => {
-  if (state.currentSong === prev.currentSong) return
-  void useLyricStore.getState().loadForSong(state.currentSong)
-})
+// Bound to the selected-zone display store after its creation below.
 
 /**
  * A fullscreen video surface belongs to the **player**, not to a song.
@@ -1708,7 +1723,7 @@ usePlayerStore.subscribe((state, prev) => {
  * a bridge round-trip, and a song that could never have been watched cannot have
  * left a surface up.
  */
-usePlayerStore.subscribe((state, prev) => {
+useLocalPlayerStore.subscribe((state, prev) => {
   if (state.currentSong === prev.currentSong) return
   const outgoing = prev.currentSong
   if (!outgoing) return
@@ -1735,7 +1750,7 @@ export async function restoreVolume(): Promise<void> {
   const saved = systemOwnsVolume ? null : await readVolume().catch(() => null)
   volumeRestored = true
   if (saved != null) {
-    usePlayerStore.setState({ volume: saved })
+    useLocalPlayerStore.setState({ volume: saved })
     await audio.setVolume(saved / 100).catch(() => {})
     return
   }
@@ -1756,11 +1771,11 @@ export async function restorePlaybackState(): Promise<void> {
   ])
   if (restoreGeneration !== _loadGeneration) return
   if (speed !== 1) {
-    usePlayerStore.setState({ speed })
+    useLocalPlayerStore.setState({ speed })
     void audio.setSpeed(speed)
   }
   if (videoScaleMode !== DEFAULT_VIDEO_SCALE_MODE) {
-    usePlayerStore.setState({ videoScaleMode })
+    useLocalPlayerStore.setState({ videoScaleMode })
   }
   if (!saved || saved.playlist.length === 0) return
   const song = saved.playlist[saved.currentIndex]
@@ -1780,7 +1795,7 @@ export async function restorePlaybackState(): Promise<void> {
   if (restoreGeneration !== _loadGeneration) return
   const generation = invalidateSourceLoad()
   _queueLoader.invalidate()
-  usePlayerStore.setState({
+  useLocalPlayerStore.setState({
     playlist: saved.playlist,
     currentIndex: saved.currentIndex,
     currentSong: song,
@@ -1789,7 +1804,7 @@ export async function restorePlaybackState(): Promise<void> {
     playbackContext: saved.context,
     sourcePlaylistId: saved.sourcePlaylistId,
   })
-  _navigation.reset(usePlayerStore.getState().playMode)
+  _navigation.reset(useLocalPlayerStore.getState().playMode)
   syncNavigation()
   if (autoResume && (song.url || local)) {
     // Use the shared `toAudioItem`/`durationMsOf` rather than re-inlining the
@@ -1816,7 +1831,7 @@ export async function restorePlaybackState(): Promise<void> {
 
 /** Deleting the playing file stops playback immediately; other queued variants are retained. */
 export async function forgetCachedPlayback(identity: CacheIdentity | { namespace: string }): Promise<void> {
-  const state = usePlayerStore.getState()
+  const state = useLocalPlayerStore.getState()
   const matches = (song: Song) => {
     const value = cachedSongIdentity(song)
     return value?.namespace === identity.namespace && (!('key' in identity) || value.key === identity.key)
@@ -1829,9 +1844,15 @@ export async function forgetCachedPlayback(identity: CacheIdentity | { namespace
     let index = 0
     state.playlist.forEach((song, oldIndex) => { if (!matches(song)) indices.set(oldIndex, index++) })
     _navigation.remap(indices)
-    usePlayerStore.setState({ playlist, currentIndex: indices.get(state.currentIndex) ?? -1 })
+    useLocalPlayerStore.setState({ playlist, currentIndex: indices.get(state.currentIndex) ?? -1 })
     syncNavigation()
   }
-  const next = usePlayerStore.getState()
+  const next = useLocalPlayerStore.getState()
   await savePlaybackState({ playlist: next.playlist, currentIndex: next.currentIndex, positionMs: next.currentTime, context: next.playbackContext })
 }
+
+export const usePlayerStore = createZonePlayer(useLocalPlayerStore)
+followPlayerLyrics(usePlayerStore, {
+  loadForSong: song => useLyricStore.getState().loadForSong(song),
+  syncPosition: (position, updateNative) => useLyricStore.getState().syncPosition(position, updateNative),
+}, () => !remoteGroup())

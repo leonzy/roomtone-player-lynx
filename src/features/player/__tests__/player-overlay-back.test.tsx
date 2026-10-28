@@ -53,8 +53,9 @@ vi.mock('../store/player-store.js', async () => {
 
 const { PlayerToolBar } = await import('../widgets/PlayerToolBar.js')
 const { PlayerMoreMenu } = await import('../widgets/PlayerMoreMenu.js')
+const { useZoneState, openOutputPanel } = await import('../../output/runtime.js')
 
-beforeEach(() => clearBackHandlersForTests())
+beforeEach(() => { clearBackHandlersForTests(); useZoneState.setState({ panel: null }) })
 afterEach(() => {
   clearBackHandlersForTests()
   vi.clearAllMocks()
@@ -77,17 +78,13 @@ test('nothing claims the back key while every overlay is shut', async () => {
   expect(dispatchBack()).toBe(false)
 })
 
-test('back closes the volume popover rather than leaving the player', async () => {
+test('volume requests the global output panel without adding a player-local back layer', async () => {
   const { getByTestId } = await renderAndQuery(<PlayerToolBar slot={48} />)
 
   await act(async () => {
     fireEvent.tap(getByTestId('volume-btn'))
   })
-  expect(getBackStackDepth()).toBe(1)
-
-  await act(async () => {
-    expect(dispatchBack()).toBe(true)
-  })
+  expect(useZoneState.getState().panel).toBe('volume')
   expect(getBackStackDepth()).toBe(0)
 })
 
@@ -114,7 +111,8 @@ test('opening the volume popover then the speed menu leaves one layer each', asy
     fireEvent.tap(getByTestId('volume-btn'))
   })
   await act(async () => {
-    expect(dispatchBack()).toBe(true)
+    expect(useZoneState.getState().panel).toBe('volume')
+    openOutputPanel(null)
   })
   await act(async () => {
     fireEvent.tap(getByTestId('speed-btn'))

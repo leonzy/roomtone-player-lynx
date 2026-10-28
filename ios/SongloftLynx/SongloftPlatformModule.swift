@@ -9,14 +9,66 @@ import WebKit
  * The iOS counterpart of
  * `org.songloft.lynx.platform.SongloftPlatformModule` (Android).
  */
-final class SongloftPlatformModule: NSObject, LynxModule {
-  @objc required init(param: Any) {}
-  override init() { super.init() }
+final class SongloftPlatformModule: NSObject, LynxContextModule {
+  private weak var playbackContext: LynxContext?
+  private var playbackSockets: [String: URLSessionWebSocketTask] = [:]
+  private init(context: LynxContext?) { playbackContext = context; super.init() }
+  @objc(initWithLynxContext:)
+  convenience init(lynxContext context: LynxContext) { self.init(context: context) }
+  @objc(initWithLynxContext:WithParam:)
+  convenience init(lynxContext context: LynxContext, withParam param: Any) { self.init(context: context) }
+  @objc(initWithParam:)
+  convenience init(param: Any) { self.init(context: nil) }
+  override convenience init() { self.init(context: nil) }
+  deinit { playbackSockets.values.forEach { $0.cancel(with: .goingAway, reason: nil) } }
+
+  private func playbackEvent(_ id: String, _ type: String, _ data: String = "") {
+    playbackContext?.sendGlobalEvent("roomtonePlaybackSocket", withParams: [["id": id, "type": type, "data": data]])
+  }
+  @objc func playbackSocketConnect(_ id: String, url: String) {
+    DispatchQueue.main.async { [weak self] in
+      guard let self = self, let target = URL(string: url), ["ws", "wss"].contains(target.scheme ?? "") else { return }
+      self.playbackSockets.values.forEach { $0.cancel(with: .goingAway, reason: nil) }
+      self.playbackSockets.removeAll()
+      let socket = InsecureTls.shared.session.webSocketTask(with: target)
+      self.playbackSockets[id] = socket
+      socket.resume()
+      socket.sendPing { [weak self] error in
+        DispatchQueue.main.async {
+          guard let self = self, self.playbackSockets[id] === socket else { return }
+          if error != nil { self.playbackEvent(id, "error"); return }
+          self.playbackEvent(id, "open"); self.receivePlayback(id, socket)
+        }
+      }
+    }
+  }
+  private func receivePlayback(_ id: String, _ socket: URLSessionWebSocketTask) {
+    socket.receive { [weak self] result in
+      DispatchQueue.main.async {
+        guard let self = self, self.playbackSockets[id] === socket else { return }
+        switch result {
+        case .success(let message):
+          if case .string(let text) = message { self.playbackEvent(id, "message", text) }
+          self.receivePlayback(id, socket)
+        case .failure: self.playbackEvent(id, "close")
+        }
+      }
+    }
+  }
+  @objc func playbackSocketSend(_ id: String, data: String) {
+    DispatchQueue.main.async { [weak self] in self?.playbackSockets[id]?.send(.string(data)) { _ in } }
+  }
+  @objc func playbackSocketClose(_ id: String) {
+    DispatchQueue.main.async { [weak self] in self?.playbackSockets.removeValue(forKey: id)?.cancel(with: .normalClosure, reason: nil) }
+  }
 
   @objc static var name: String { "SongloftPlatform" }
 
   @objc static var methodLookup: [String: String] {
     [
+      "playbackSocketConnect": NSStringFromSelector(#selector(SongloftPlatformModule.playbackSocketConnect(_:url:))),
+      "playbackSocketSend": NSStringFromSelector(#selector(SongloftPlatformModule.playbackSocketSend(_:data:))),
+      "playbackSocketClose": NSStringFromSelector(#selector(SongloftPlatformModule.playbackSocketClose(_:))),
       "updateHomeWidget": NSStringFromSelector(#selector(SongloftPlatformModule.updateHomeWidget(_:))),
       "consumeWidgetAction": NSStringFromSelector(#selector(SongloftPlatformModule.consumeWidgetAction(_:))),
       "setKeepScreenOn": NSStringFromSelector(#selector(SongloftPlatformModule.setKeepScreenOn(_:))),

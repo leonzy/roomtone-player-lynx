@@ -102,6 +102,18 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
+test('server queue adoption restores position as part of source preparation without an early seek', async () => {
+  const { useLocalPlayerStore } = await import('../store/player-store.js')
+  const audio = getAudio() as MockSongloftAudio
+  const seek = vi.spyOn(audio, 'seek')
+  await useLocalPlayerStore.getState().loadZoneQueue({ songs: [song(91, 200)], index: 0, positionMs: 78000 })
+  expect(audio.lastLoad?.opts).toEqual(expect.objectContaining({ initialPositionMs: 78000, autoplay: false }))
+  expect(useLocalPlayerStore.getState().currentTime).toBe(78000)
+  expect(useLocalPlayerStore.getState().isPlaying).toBe(false)
+  expect(seek).not.toHaveBeenCalled()
+  seek.mockRestore()
+})
+
 test('clearing during auto-resume cannot revive old playback or history', async () => {
   setCachedAccessToken('restore-test-token')
   playback.saved = { playlist: [{ ...song(1, 60), url: '/api/v1/songs/1/play' }], currentIndex: 0, positionMs: 5000 }
@@ -367,8 +379,9 @@ describe('completion routing by play mode', () => {
     const pause = vi.spyOn(getAudio(), 'pause')
     vi.advanceTimersByTime(1_000)
     await flush()
-    expect(usePlayerStore.getState().currentIndex).toBe(0)
+    expect(usePlayerStore.getState().currentIndex).toBe(-1)
     expect(usePlayerStore.getState().isPlaying).toBe(false)
+    expect(usePlayerStore.getState().playlist).toEqual([])
     expect(pause).toHaveBeenCalledOnce()
     pause.mockRestore()
   })
@@ -1252,4 +1265,12 @@ describe('background queue fill (songloft-player-lynx#9)', () => {
 
     expect(usePlayerStore.getState().playlist).toEqual([])
   })
+})
+
+
+test('play all replaces the existing queue instead of appending its songs', async () => {
+  await usePlayerStore.getState().playPlaylist([song(1, 30), song(2, 30)], 0)
+  await usePlayerStore.getState().playAll([song(8, 30), song(9, 30)])
+  await flush()
+  expect(usePlayerStore.getState().playlist.map(item => item.id)).toEqual([8, 9])
 })

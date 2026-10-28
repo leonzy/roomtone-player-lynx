@@ -156,9 +156,12 @@ final class SongloftAudioEngine {
   private var sourceId: String?
   private var pendingInitialPositionMs: Double?
   private var pendingAutoplay = false
+  private var interruptionActive = false
+  private var resumeAfterInterruption = false
 
   func load(url: String, hls: Bool, headers: [String: String]?, sourceId: String? = nil,
             initialPositionMs: Double = 0, autoplay: Bool = false) {
+    resumeAfterInterruption = false
     activateSession()
     installRemoteCommands()
     let player = ensurePlayer()
@@ -241,6 +244,7 @@ final class SongloftAudioEngine {
   }
 
   func play() {
+    resumeAfterInterruption = false
     pendingAutoplay = true
     protectPlaybackGap()
     if isPreparingSource || pendingInitialPositionMs != nil { return }
@@ -254,6 +258,7 @@ final class SongloftAudioEngine {
   }
 
   func pause() {
+    resumeAfterInterruption = false
     pendingAutoplay = false
     backgroundTask.end()
     player?.pause()
@@ -261,6 +266,7 @@ final class SongloftAudioEngine {
   }
 
   func stop() {
+    resumeAfterInterruption = false
     invalidatePreparation()
     pendingAutoplay = false
     backgroundTask.end()
@@ -508,11 +514,33 @@ final class SongloftAudioEngine {
     lifecycleObservers.append(
       center.addObserver(
         forName: AVAudioSession.interruptionNotification, object: nil, queue: .main
-      ) { notification in
-        let type = (notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? NSNumber)?
-          .uintValue
-        ClientFileLog.write(
-          "I", tag: "audio", "audio interruption type=\(type.map(String.init) ?? "unknown")")
+      ) { [weak self] notification in
+        guard let self,
+          let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+          let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+        if type == .began {
+          guard !self.interruptionActive else { return }
+          let resume = self.pendingAutoplay || (self.player?.rate ?? 0) > 0
+          self.interruptionActive = true
+          self.pause()
+          self.resumeAfterInterruption = resume
+        } else {
+          guard self.interruptionActive else { return }
+          self.interruptionActive = false
+          let options = AVAudioSession.InterruptionOptions(rawValue:
+            (notification.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt) ?? 0)
+          let resume = self.resumeAfterInterruption && options.contains(.shouldResume)
+          self.resumeAfterInterruption = false
+          if resume { self.play() }
+        }
+      })
+    lifecycleObservers.append(
+      center.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) {
+        [weak self] notification in
+        let reason = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
+        if reason == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue {
+          self?.pause()
+        }
       })
     lifecycleObservers.append(
       center.addObserver(

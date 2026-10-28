@@ -85,7 +85,8 @@ test('deleting a queued file preserves the current song and compacts its index',
   await forgetCachedPlayback({ namespace: 'other-user' })
   expect(usePlayerStore.getState().playlist).toHaveLength(2)
 })
-test('playing a completed cached queue reloads from the beginning instead of resuming an ended engine', async () => {
+test('a completed single-play cached track reloads instead of resuming an ended engine', async () => {
+  usePlayerStore.getState().setPlayMode('singlePlay')
   const load = vi.spyOn(getAudio(), 'load')
   await usePlayerStore.getState().playPlaylist([cached(7, 1)])
   await vi.advanceTimersByTimeAsync(1500)

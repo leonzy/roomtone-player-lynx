@@ -72,14 +72,20 @@ describe('the bottom sheets paint above the player, not under it', () => {
       expect(
         src,
         `${file}: root element must carry className='drawer__root'`,
-      ).toContain("className='drawer__root'")
+      ).toMatch(/className=[^>]*drawer__root/)
     }
   })
 
   test('panels have explicit height', () => {
     const queuePanel = rule(CSS, '.drawer__panel--queue')
     const sleepPanel = rule(CSS, '.drawer__panel--sleep')
-    expect(queuePanel['height'], 'queue panel needs explicit height').toBe('70%')
+    expect(queuePanel['height'], 'queue panel needs explicit height').toBe('95%')
     expect(sleepPanel['height'], 'sleep panel needs explicit height').toBe('60%')
   })
+})
+
+
+test('queue overlay leaves the player reachable on narrow and wide screens', () => {
+  expect(rule(CSS, '.drawer__root--queue')['bottom']).toBe('calc(188px + var(--safe-bottom))')
+  expect(rule(CSS, '.drawer__root--queue-wide')['bottom']).toBe('calc(88px + var(--safe-bottom))')
 })

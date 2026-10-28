@@ -10,7 +10,6 @@ import { MiniPlayer } from '../../features/player/widgets/MiniPlayer.js'
 // itself, so this import adds no new leaves. Read here only for the
 // `shell--with-mini` class (the pages' `--nav-inset` tier), never for render
 // output.
-import { usePlayerStore } from '../../features/player/store/index.js'
 import { PluginTabIcon, useShellNavTabs } from '../../features/jsplugin/index.js'
 import { getLastLibrarySearch } from '../../features/library/index.js'
 import {
@@ -78,7 +77,6 @@ export function ShellLayout() {
   // Song presence for the mini-player inset tier — same condition MiniPlayer
   // itself renders under (`showsMiniPlayer(pathname)` + a loaded song), kept
   // in sync here so the class and the widget never disagree.
-  const hasSong = usePlayerStore((s) => s.currentSong != null)
   // Until the config query lands, the built-ins render (Flutter's
   // `TabConfig.defaultConfig()` fallback): all three, no plugins.
   const destinations = buildNavDestinations(
@@ -97,7 +95,7 @@ export function ShellLayout() {
   // The `shell--with-mini` class: while the floating mini-player is up, the
   // pages' `--nav-inset` grows to clear it (see ShellLayout.css) — without
   // this, list tails scroll to a stop half-hidden behind the player.
-  const withMini = showsMiniPlayer(pathname) && hasSong
+  const withMini = showsMiniPlayer(pathname)
 
   // The live destination list: built-ins plus one per enabled plugin tab. Two
   // consumers — the lit-tab calculation below, and the back key, which needs to
@@ -249,7 +247,7 @@ export function ShellLayout() {
                     mode='aspectFit'
                   />
                 </view>
-                <text className='shell__brand-text'>Songloft</text>
+                <text className='shell__brand-text'>Roomtone</text>
               </view>
               <scroll-view className='shell__rail-scroll' scroll-y>
                 {renderRailItems()}

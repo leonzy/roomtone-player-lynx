@@ -140,3 +140,14 @@ test('the docked fallback dims what is behind it', () => {
   expect(docked.getByTestId('global-menu-backdrop').className)
     .toContain('global-menu__backdrop--docked')
 })
+
+
+test('an explicit compact fallback stays a popover when measurement is unavailable', () => {
+  const { getByTestId } = renderMenu({ fallbackPosition: { top: '64px', right: '16px', maxWidth: '260px', maxHeight: '60%' } })
+  const panel = getByTestId('menu-item-play').parentElement!.parentElement!.parentElement!
+  expect(panel.className).toContain('global-menu__panel--anchored')
+  expect(panel.className).not.toContain('global-menu__panel--docked')
+  expect(panel.style.top).toBe('64px')
+  expect(panel.style.bottom).toBe('')
+  expect(getByTestId('global-menu-backdrop').className).not.toContain('global-menu__backdrop--docked')
+})

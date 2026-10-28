@@ -1,10 +1,9 @@
-import { useState } from '@lynx-js/react'
 import { useTranslation } from 'react-i18next'
 
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
-import { PopoverPanel } from '../../../shared/ui/PopoverPanel.js'
+import { useTapAnchor } from '../../../shared/ui/anchored-overlay.js'
+import { openOutputPanel } from '../../output/runtime.js'
 import { isMuted, usePlayerStore } from '../store/index.js'
-import { VolumeControl } from './VolumeControl.js'
 
 /**
  * Volume behind a tap, as a slider in a popover.
@@ -19,17 +18,11 @@ import { VolumeControl } from './VolumeControl.js'
  */
 export function VolumePopover({ slot }: { slot: number }) {
   const { t } = useTranslation()
-  const [show, setShow] = useState(false)
+  const anchor = useTapAnchor()
   const muted = usePlayerStore(isMuted)
 
   return (
-    <PopoverPanel
-      show={show}
-      onShowChange={setShow}
-      placement='top'
-      triggerClassName='player-tools__btn'
-      contentClassName='player-volume-panel'
-      trigger={
+    <view className='player-tools__btn' id={anchor.anchorId} accessibility-element={true} accessibility-label={t('player.volume')} bindtap={() => anchor.measure(m => openOutputPanel('volume', m ?? undefined))}>
         <view
           className='player-tools__hit'
           style={{ width: `${slot}px`, height: `${slot}px` }}
@@ -41,10 +34,6 @@ export function VolumePopover({ slot }: { slot: number }) {
             color={ICON_COLORS.content}
           />
         </view>
-      }
-    >
-      <text className='player-volume-panel__label'>{t('player.volume')}</text>
-      <VolumeControl />
-    </PopoverPanel>
+    </view>
   )
 }

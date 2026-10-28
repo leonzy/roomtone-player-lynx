@@ -1,3 +1,5 @@
+import { useTapAnchor } from '../../../shared/ui/anchored-overlay.js'
+import type { AnchorMeasurement } from '../../../shared/ui/anchored-overlay.js'
 import { useMemo, useState } from '@lynx-js/react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -6,7 +8,7 @@ import type { FolderInfo } from '../../../models/folder.js'
 import type { Song } from '../../../models/song.js'
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { usePlayerStore } from '../../player/store/index.js'
-import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
+import { chooseCollectionPlayback } from '../../player/data/collection-playback.js'
 import { getSongsApi } from '../api/index.js'
 import { useFoldersQuery } from '../data/folder-query.js'
 import { toast } from '../../../shared/ui/toast-store.js'
@@ -20,6 +22,7 @@ import './FolderContentPage.css'
 export function FolderContentPage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const playAnchor = useTapAnchor()
   const search = useSearch({ strict: false }) as { path?: string }
 
   const folderPath = search.path ?? ''
@@ -39,10 +42,11 @@ export function FolderContentPage() {
     })
   }
 
-  const playPathPrefix = async (pathPrefix: string) => {
+  const playPathPrefix = async (pathPrefix: string, anchor?: AnchorMeasurement) => {
     try {
-      const started = await playAllWithBackgroundFill(
+      const started = await chooseCollectionPlayback(
         (offset, limit) => getSongsApi().getSongs({ pathPrefix }, { limit, offset }),
+        undefined, anchor,
       )
       if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {
@@ -50,18 +54,18 @@ export function FolderContentPage() {
     }
   }
 
-  const onPlayAllFolder = (folder: FolderInfo) => {
+  const onPlayAllFolder = (folder: FolderInfo, anchor?: AnchorMeasurement) => {
     const pathPrefix = data?.musicPath
       ? `${data.musicPath}/${folder.path}/`
       : `${folder.path}/`
-    return playPathPrefix(pathPrefix)
+    return playPathPrefix(pathPrefix, anchor)
   }
 
-  const playAll = () => {
+  const playAll = (anchor?: AnchorMeasurement) => {
     const pathPrefix = data?.musicPath
       ? `${data.musicPath}/${folderPath}/`
       : `${folderPath}/`
-    return playPathPrefix(pathPrefix)
+    return playPathPrefix(pathPrefix, anchor)
   }
 
   const onTapSong = (_song: Song, index: number) => {
@@ -117,8 +121,8 @@ export function FolderContentPage() {
           </view>
           {(songs.length > 0 || folders.length > 0)
             ? (
-              <view className='category-songs__play-all' bindtap={() => { void playAll() }}>
-                <text className='category-songs__play-all-text'>{t('playlist.playAll')}</text>
+              <view className='category-songs__play-all' id={playAnchor.anchorId} bindtap={() => playAnchor.measure(anchor => { void playAll(anchor ?? undefined) })}>
+                <text className='category-songs__play-all-text'>{t('playlist.playAll')}</text><Icon name='chevron-down' size={14} color={ICON_COLORS.content2} />
               </view>
             )
             : null}
@@ -141,7 +145,7 @@ export function FolderContentPage() {
                   { count: folder.songCount },
                 )}
                 onTap={() => onTapSubfolder(folder)}
-                onPlayAll={() => { void onPlayAllFolder(folder) }}
+                onPlayAll={anchor => { void onPlayAllFolder(folder, anchor) }}
               />
             )
             : (

@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom'
+vi.mock('../../output/OutputPanels.js', () => ({ OutputTransportControls: () => <view data-testid='full-output-controls' /> }))
 // New player consumers use native stores/query observers; render stand-ins
 // keep this renderer from invoking Node's external React dispatcher.
 vi.mock('../data/audio-tracks-query.js', () => ({

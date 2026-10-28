@@ -14,6 +14,7 @@ import { ensureRouterEnv } from './shims/router-env.js'
 import { ShellLayout } from './shared/layouts/ShellLayout.js'
 import { ThemeProvider } from './shared/theme/ThemeProvider.js'
 import { SongRowOverlays } from './shared/ui/SongRowOverlays.js'
+import { CollectionActionMenu } from './features/player/widgets/CollectionActionMenu.js'
 import { SplashScreen } from './shared/ui/SplashScreen.js'
 import { ToastHost } from './shared/ui/ToastHost.js'
 import { AudioTrackSheet } from './features/player/widgets/AudioTrackSheet.js'
@@ -76,6 +77,7 @@ import { useOfflineOwner } from './features/player/widgets/use-offline-owner.js'
 import { currentOfflineOwner } from './features/player/data/offline-identity.js'
 import { cachedSongIdentity } from './features/player/domain/offline-cache.js'
 import { usePlayerStore } from './features/player/store/player-store.js'
+import { OutputRoot } from './features/output/OutputPanels.js'
 
 function offlinePlaybackAllowed(): boolean {
   const song = usePlayerStore.getState().currentSong
@@ -136,7 +138,9 @@ export function RootRouteView() {
         * rendered unstyled and unclickable).
         */}
       <SongRowOverlays />
+      <CollectionActionMenu />
       <AudioTrackSheet />
+      <OutputRoot enabled={status === 'authenticated'} />
     </ThemeProvider>
   )
 }

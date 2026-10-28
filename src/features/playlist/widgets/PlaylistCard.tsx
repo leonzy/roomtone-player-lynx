@@ -15,7 +15,7 @@ import type { AnchorMeasurement } from '../../../shared/ui/anchored-overlay.js'
 export interface PlaylistCardProps {
   playlist: Playlist
   onTap?: (playlist: Playlist) => void
-  onPlayAll?: (playlist: Playlist) => void
+  onPlayAll?: (playlist: Playlist, anchor?: AnchorMeasurement) => void
   /**
    * Open the card's action menu. The rect is this card's `⋯` box, measured here
    * because only the card can address it — the menu itself is mounted at the
@@ -34,6 +34,7 @@ export function PlaylistCard({
   isPlaying,
 }: PlaylistCardProps) {
   const { t } = useTranslation()
+  const playAnchor = useTapAnchor()
   const { anchorId, measure } = useTapAnchor()
   const cover = playlist.coverUrl ? buildCoverUrl(playlist.coverUrl, playlist.updatedAt) : ''
   const count = t(
@@ -79,7 +80,8 @@ export function PlaylistCard({
           ? (
             <view
               className='playlist-card__play-hit'
-              catchtap={() => { onPlayAll(playlist) }}
+              id={playAnchor.anchorId}
+              catchtap={() => { playAnchor.measure(anchor => onPlayAll(playlist, anchor ?? undefined)) }}
               accessibility-element={true}
               accessibility-label={t('common.playAll')}
             >

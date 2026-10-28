@@ -1,3 +1,4 @@
+import type { AnchorMeasurement } from '../../../shared/ui/anchored-overlay.js'
 import { useEffect, useRef, useState } from '@lynx-js/react'
 import type { NodesRef } from '@lynx-js/types'
 import { useNavigate } from '@tanstack/react-router'
@@ -11,7 +12,7 @@ import { EMPTY_LIBRARY_STATS } from '../../../models/library-stats.js'
 import type { Playlist } from '../../../models/playlist.js'
 import { usePlayerStore } from '../../player/store/index.js'
 import { playlistContext } from '../../player/domain/playback-context.js'
-import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
+import { chooseCollectionPlayback } from '../../player/data/collection-playback.js'
 import { getPlaylistApi } from '../../playlist/api/index.js'
 import { toast } from '../../../shared/ui/toast-store.js'
 import { PluginGrid } from '../../jsplugin/widgets/PluginGrid.js'
@@ -114,13 +115,13 @@ export function HomePage() {
   // loader appends the rest (Flutter `playPlaylistById` parity). Empty → toast;
   // failure → toast. The cover's catchtap already stops this from also navigating
   // into the detail page.
-  const onPlayAll = async (playlist: Playlist) => {
+  const onPlayAll = async (playlist: Playlist, anchor?: AnchorMeasurement) => {
     const filters = { sort: playlist.sortBy ?? 'position', order: playlist.sortOrder ?? 'asc' }
     try {
-      const started = await playAllWithBackgroundFill(
+      const started = await chooseCollectionPlayback(
         (offset, limit) =>
           getPlaylistApi().getPlaylistSongs(playlist.id, filters, { limit, offset }),
-        playlistContext(playlist.id),
+        playlistContext(playlist.id), anchor,
       )
       if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {

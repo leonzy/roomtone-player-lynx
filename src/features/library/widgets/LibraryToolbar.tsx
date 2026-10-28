@@ -1,6 +1,8 @@
 import { useState } from '@lynx-js/react'
 import { useTranslation } from 'react-i18next'
 
+import { CollectionPlayMenu, type CollectionAction } from '../../player/widgets/CollectionPlayMenu.js'
+import { useOutputText } from '../../output/text.js'
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { PopoverMenu } from '../../../shared/ui/PopoverMenu.js'
 import type { PopoverMenuItem } from '../../../shared/ui/PopoverMenu.js'
@@ -20,6 +22,7 @@ export interface LibraryToolbarProps {
   sortOrder: SortOrder
   onSortChange: (id: LibrarySortId, order: SortOrder) => void
   onPlayAll: () => void
+  onQueueAction?: (action: CollectionAction) => void
   onAdd: () => void
   selectMode: boolean
   onToggleSelect: () => void
@@ -41,12 +44,14 @@ export function LibraryToolbar({
   sortOrder,
   onSortChange,
   onPlayAll,
+  onQueueAction,
   onAdd,
   selectMode,
   onToggleSelect,
   hasSongs,
 }: LibraryToolbarProps) {
   const { t } = useTranslation()
+  const out = useOutputText()
   const [sortOpen, setSortOpen] = useState(false)
 
   const current = LIBRARY_SORT_OPTIONS.find((o) => o.id === sortId) ?? LIBRARY_SORT_OPTIONS[0]!
@@ -81,8 +86,10 @@ export function LibraryToolbar({
         data-testid='library-toolbar-play-all'
       >
         <Icon name='play' size={14} color={ICON_COLORS.primaryContent} />
-        <text className='library-toolbar__btn-text-primary'>{t('playlist.playAll')}</text>
+        <text className='library-toolbar__btn-text-primary'>{selectMode ? out('playSelected') : t('playlist.playAll')}</text>
       </view>
+
+      {onQueueAction && <CollectionPlayMenu className='library-toolbar__btn' enabled={hasSongs} onPlay={onPlayAll} onAction={onQueueAction} />}
 
       {/* Sort — popover with grouped items + chevron-down hint */}
       <PopoverMenu
@@ -115,10 +122,10 @@ export function LibraryToolbar({
 
       <view className='library-toolbar__spacer' />
 
-      <view className='library-toolbar__btn' bindtap={onAdd} data-testid='library-toolbar-add'>
+      {!selectMode && <view className='library-toolbar__btn' bindtap={onAdd} data-testid='library-toolbar-add'>
         <Icon name='plus' size={14} color={ICON_COLORS.content} />
         <text className='library-toolbar__btn-text'>{t('addSongs.add')}</text>
-      </view>
+      </view>}
 
       {/* Select — active state toggles visual distinction between normal and select mode */}
       <view

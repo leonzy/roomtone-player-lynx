@@ -1,3 +1,5 @@
+const collection = vi.hoisted(() => ({ apply: vi.fn(async (_songs: Song[]) => {}), create: vi.fn() }))
+vi.mock('../../output/runtime.js', async importOriginal => ({ ...await importOriginal<typeof import('../../output/runtime.js')>(), createCollectionAction: (action: string) => { collection.create(action); return collection.apply } }))
 import '../../../shims/router-env.js'
 
 import '@testing-library/jest-dom'
@@ -544,8 +546,8 @@ test('toolbar sort dropdown commits the chosen sort', async () => {
   // With songs present there are two popovers: the page more-menu and the
   // toolbar's sort dropdown. The toolbar's trigger shows the current sort label.
   const triggers = queries.queryAllByTestId('popover-trigger')
-  expect(triggers.length).toBe(2)
-  fireEvent.tap(triggers[1]!, {})
+  expect(triggers.length).toBe(3)
+  fireEvent.tap(queries.getByTestId('playlist-toolbar-sort').closest('[data-testid="popover-trigger"]')!, {})
   await act(async () => { await Promise.resolve() })
 
   fireEvent.tap(queries.getByTestId('popover-item-title')!, {})
@@ -590,4 +592,20 @@ test('sort mode renders drag handles for each song', async () => {
   expect(elementTree.root!.querySelectorAll('[consume-slide-event]')).toHaveLength(2)
   expect(queries.queryByTestId('playlist-detail-drag-1')).toBeInTheDocument()
   expect(queries.queryByTestId('playlist-detail-drag-2')).toBeInTheDocument()
+})
+
+
+test('selection adds only checked songs to the queue without opening the library picker', async () => {
+  const songs = [makeSong(1), makeSong(2)]
+  songsHook.mockReturnValue(songsResult([{ songs, total: 2 }]))
+  const view = render(<PlaylistDetailPage />)
+  await act(async () => { await Promise.resolve() })
+  const q = getQueriesForElement(elementTree.root!)
+  await act(async () => { fireEvent.tap(q.getByTestId('playlist-toolbar-select')) })
+  await act(async () => { fireEvent.tap(view.container.querySelector('.song-row')!) })
+  expect(q.queryByTestId('playlist-toolbar-add')).not.toBeInTheDocument()
+  await act(async () => { fireEvent.tap(q.getByTestId('playlist-select-queue')); await Promise.resolve() })
+  expect(collection.create).toHaveBeenLastCalledWith('end')
+  expect(collection.apply).toHaveBeenLastCalledWith([songs[0]])
+  expect(q.queryByTestId('add-songs-sheet-stub')).not.toBeInTheDocument()
 })

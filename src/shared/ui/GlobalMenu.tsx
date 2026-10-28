@@ -1,6 +1,6 @@
 import { useBackHandler } from '../nav/use-back-handler.js'
 import { pickMenuPlacement, placePanel } from './anchored-overlay.js'
-import type { AnchorMeasurement } from './anchored-overlay.js'
+import type { AnchorMeasurement, PanelPosition } from './anchored-overlay.js'
 import { MenuItem } from './MenuItem.js'
 import type { MenuItemSpec } from './MenuItem.js'
 import { BackdropBlur } from './BackdropBlur.js'
@@ -30,6 +30,7 @@ export interface GlobalMenuProps {
    * *outside* every list sidesteps it.
    */
   anchor?: AnchorMeasurement
+  fallbackPosition?: PanelPosition
   testId?: string
 }
 
@@ -48,6 +49,7 @@ export function GlobalMenu({
   items,
   onSelect,
   anchor,
+  fallbackPosition,
   testId,
 }: GlobalMenuProps) {
   /*
@@ -71,7 +73,7 @@ export function GlobalMenu({
    */
   const position = anchor != null
     ? placePanel(anchor.anchor, anchor.viewport, pickMenuPlacement(anchor))
-    : undefined
+    : fallbackPosition
   const anchored = position != null
 
   return (

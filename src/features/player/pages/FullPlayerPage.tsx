@@ -22,6 +22,7 @@ import { usePlayerStore } from '../store/index.js'
 import { LyricsView } from '../widgets/LyricsView.js'
 import { useLyricsScreenAwake } from '../widgets/use-lyrics-screen-awake.js'
 import { PageDots } from '../widgets/PageDots.js'
+import { OutputTransportControls } from '../../output/OutputPanels.js'
 import { PlayControls } from '../widgets/PlayControls.js'
 import { PlayerBackdrop } from '../widgets/PlayerBackdrop.js'
 import { PlayerToolBar } from '../widgets/PlayerToolBar.js'
@@ -319,6 +320,7 @@ export function FullPlayerPage() {
             onOpenSleepTimer={() => setShowSleepTimer(true)}
             timerActive={timerActive}
             timerLabel={timerLabel}
+            zoneControl={<view className='full-player__zone-control'><OutputTransportControls part='zone' compact={!isWide} /></view>}
           />
 
           <view className='full-player__stage full-player__stage--enter' bindlayoutchange={onStageLayout}>

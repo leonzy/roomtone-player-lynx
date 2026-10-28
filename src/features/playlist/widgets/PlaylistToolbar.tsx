@@ -1,6 +1,8 @@
 import { useState } from '@lynx-js/react'
 import { useTranslation } from 'react-i18next'
 
+import { CollectionPlayMenu, type CollectionAction } from '../../player/widgets/CollectionPlayMenu.js'
+import { useOutputText } from '../../output/text.js'
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { PopoverMenu } from '../../../shared/ui/PopoverMenu.js'
 import type { PopoverMenuItem } from '../../../shared/ui/PopoverMenu.js'
@@ -21,6 +23,7 @@ export interface PlaylistToolbarProps {
   sortOptions: ReadonlyArray<PlaylistSortOption>
   onSelectSort: (key: string) => void
   onPlayAll: () => void
+  onQueueAction?: (action: CollectionAction) => void
   /** Opens the song picker. */
   onAddSongs: () => void
   selectMode: boolean
@@ -46,12 +49,14 @@ export function PlaylistToolbar({
   sortOptions,
   onSelectSort,
   onPlayAll,
+  onQueueAction,
   onAddSongs,
   selectMode,
   onToggleSelect,
   hasSongs,
 }: PlaylistToolbarProps) {
   const { t } = useTranslation()
+  const out = useOutputText()
   const [sortOpen, setSortOpen] = useState(false)
 
   const current = sortOptions.find((o) => o.key === currentSort)
@@ -66,17 +71,19 @@ export function PlaylistToolbar({
         data-testid='playlist-toolbar-play-all'
       >
         <Icon name='play' size={14} color={ICON_COLORS.content} />
-        <text className='playlist-toolbar__btn-text'>{t('playlist.playAll')}</text>
+        <text className='playlist-toolbar__btn-text'>{selectMode ? out('playSelected') : t('playlist.playAll')}</text>
       </view>
 
-      <view
+      {onQueueAction && <CollectionPlayMenu className='playlist-toolbar__btn' enabled={hasSongs} onPlay={onPlayAll} onAction={onQueueAction} />}
+
+      {!selectMode && <view
         className='playlist-toolbar__btn'
         bindtap={onAddSongs}
         data-testid='playlist-toolbar-add'
       >
         <Icon name='plus' size={14} color={ICON_COLORS.content} />
-        <text className='playlist-toolbar__btn-text'>{t('playlist.addSongs')}</text>
-      </view>
+        <text className='playlist-toolbar__btn-text'>{out('addFromLibrary')}</text>
+      </view>}
 
       <view className='playlist-toolbar__spacer' />
 

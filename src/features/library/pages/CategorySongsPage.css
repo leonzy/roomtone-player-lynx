@@ -51,6 +51,8 @@
 
 .category-songs__play-all {
   display: flex;
+  flex-direction: row;
+  gap: 4px;
   align-items: center;
   justify-content: center;
   min-height: var(--tap-target);

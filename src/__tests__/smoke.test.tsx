@@ -3,6 +3,8 @@ import '../shims/router-env.js'
 import '@testing-library/jest-dom'
 // New player consumers use native stores/query observers; render stand-ins
 // keep this renderer from invoking Node's external React dispatcher.
+// Output controls have their own state/query integration coverage.
+vi.mock('../features/output/OutputPanels.js', () => ({ OutputRoot: () => null, OutputTransportControls: () => null }))
 vi.mock('../features/player/data/audio-tracks-query.js', () => ({
   useAudioTracks: () => ({ data: [], isPending: false, isError: false, refetch: async () => {} }),
 }))

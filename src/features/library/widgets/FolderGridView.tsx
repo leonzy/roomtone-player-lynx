@@ -1,3 +1,4 @@
+import type { AnchorMeasurement } from '../../../shared/ui/anchored-overlay.js'
 import { useState } from '@lynx-js/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -10,7 +11,7 @@ import { useDebounce } from '../data/use-debounce.js'
 import { useFoldersQuery } from '../data/folder-query.js'
 import { getSongsApi } from '../api/index.js'
 import { usePlayerStore } from '../../player/store/index.js'
-import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
+import { chooseCollectionPlayback } from '../../player/data/collection-playback.js'
 import { toast } from '../../../shared/ui/toast-store.js'
 import { MediaListItem } from '../../../shared/ui/MediaListItem.js'
 import { GridSpacers } from '../../../shared/ui/GridSpacers.js'
@@ -39,13 +40,14 @@ export function FolderGridView({ viewMode = 'grid' }: FolderGridViewProps) {
     void usePlayerStore.getState().playPlaylist(songs, index)
   }
 
-  const onPlayAll = async (folder: FolderInfo) => {
+  const onPlayAll = async (folder: FolderInfo, anchor?: AnchorMeasurement) => {
     const pathPrefix = data?.musicPath
       ? `${data.musicPath}/${folder.path}/`
       : `${folder.path}/`
     try {
-      const started = await playAllWithBackgroundFill(
+      const started = await chooseCollectionPlayback(
         (offset, limit) => getSongsApi().getSongs({ pathPrefix }, { limit, offset }),
+        undefined, anchor,
       )
       if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {
@@ -109,7 +111,7 @@ export function FolderGridView({ viewMode = 'grid' }: FolderGridViewProps) {
                                 { count: folder.songCount },
                               )}
                               onTap={() => onTapFolder(folder)}
-                              onPlayAll={() => { void onPlayAll(folder) }}
+                              onPlayAll={anchor => { void onPlayAll(folder, anchor) }}
                             />
                           )
                           : (

@@ -40,7 +40,7 @@ export interface LyricState {
   refetch: (song: Song | undefined) => Promise<void>
   setLyricsFromText: (text: string) => void
   setRawLyric: (text: string) => void
-  syncPosition: (positionMs: number) => void
+  syncPosition: (positionMs: number, updateNative?: boolean) => void
   setNotificationLyricInTitle: (inTitle: boolean) => void
   clear: () => void
 }
@@ -229,7 +229,7 @@ export const useLyricStore = create<LyricState>((set, get) => {
       await get().loadForSong({ ...song, lyricUrl }, undefined, { forceRefresh: true })
     },
 
-    syncPosition: (positionMs) => {
+    syncPosition: (positionMs, updateNative = true) => {
       const { lyrics, synced, currentIndex, notificationLyricInTitle } = get()
       if (!synced || lyrics.length === 0) return
       const next = findCurrentLine(lyrics, positionMs)
@@ -242,10 +242,10 @@ export const useLyricStore = create<LyricState>((set, get) => {
         // on — a `progress` event arrives every 500 ms on Android, and a
         // JSON.stringify + BTS→main RPC + WindowManager touch per line for a
         // user who has never opened the overlay adds up over a session.
-        if (text && isFloatingLyricOverlayEnabled()) {
+        if (updateNative && text && isFloatingLyricOverlayEnabled()) {
           void getFloatingLyricModule().updateLyric(text, lyrics[next + 1]?.text ?? '')
         }
-        void getAudio().updateNotificationLyric(text, notificationLyricInTitle)
+        if (updateNative) void getAudio().updateNotificationLyric(text, notificationLyricInTitle)
       }
     },
 

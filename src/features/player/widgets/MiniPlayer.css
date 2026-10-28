@@ -263,7 +263,7 @@
 }
 
 .shell--wide .mini-player__volume {
-  display: flex;
+  display: none;
 }
 
 /* Queue and overflow. Wide-only for the same reason as the favorite and
@@ -278,3 +278,36 @@
 .shell--wide .mini-player__wide-action {
   display: flex;
 }
+
+/* Desktop has one continuous transport bar. The output cluster is a sibling
+   of the song/transport row so phones can keep the compact stacked layout. */
+.shell--wide .mini-player {
+  flex-direction: row;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  min-height: 56px;
+}
+.shell--wide .mini-player__row {
+  flex: 1;
+  min-width: 0;
+  height: 56px;
+}
+.shell--wide .mini-player__progress { position: absolute; top: 0; left: 0; right: 0; }
+.shell--wide .mini-player__cover { width: 36px; height: 36px; }
+.shell--wide .mini-player__meta { flex: 0 1 35%; }
+.shell--wide .mini-player__center { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.shell--wide .mini-player__transport { justify-content: center; margin-left: 0; }
+.mini-player__timeline { display: none; }
+.shell--wide .mini-player__timeline { display: none; }
+.mini-player__timeline text { font-size: 11px; color: var(--secondary-label); }
+.mini-player__timeline-track { flex: 1; height: 2px; background-color: var(--separator); }
+.mini-player__timeline-fill { border-radius: 2px; height: 2px; background-color: var(--accent); }
+.shell--wide .mini-player .output-controls { flex-shrink: 0; padding-right: 16px; }
+.mini-player__desktop-output { display: none; }
+.mini-player__mobile-output { display: flex; }
+.shell--wide .mini-player__desktop-output { display: flex; flex-shrink: 0; }
+.shell--wide .mini-player__mobile-output { display: none; }
+.shell--wide .mini-player__transport .output-controls { padding: 0; }
+.mini-player__overflow { display: none; }
+.shell--wide .mini-player__overflow { display: flex; flex-shrink: 0; padding-right: 10px; }
+.shell--wide .mini-player__favorite { margin-right: 8px; }

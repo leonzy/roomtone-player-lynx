@@ -85,6 +85,13 @@ export type IconName =
   | 'maximize'
   | 'minimize'
   | 'loader'
+  | 'bookshelf'
+  | 'soundbar'
+  | 'headphone'
+  | 'tv'
+  | 'phone'
+  | 'speaker'
+  | 'computer'
 
 /** Shared stroke attributes for line icons — Muse §4.5 stroke-width 1.6. */
 function stroke(color: string): string {
@@ -101,6 +108,13 @@ function fill(color: string): string {
  * requested color already injected into every `fill`/`stroke`.
  */
 const ICONS: Record<IconName, (color: string) => string> = {
+  bookshelf: c => `<rect x="3" y="3" width="18" height="18" rx="1" ${stroke(c)}/><path d="M3 12h18M8 3v9m6-9v9M9 12v9m7-9v9" ${stroke(c)}/>`,
+  soundbar: c => `<rect x="2" y="9" width="20" height="6" rx="2" ${stroke(c)}/><circle cx="6" cy="12" r="1" ${stroke(c)}/><circle cx="18" cy="12" r="1" ${stroke(c)}/>`,
+  headphone: c => `<path d="M4 14v-3a8 8 0 0 1 16 0v3" ${stroke(c)}/><rect x="3" y="12" width="4" height="8" rx="2" ${stroke(c)}/><rect x="17" y="12" width="4" height="8" rx="2" ${stroke(c)}/>`,
+  tv: c => `<rect x="2" y="6" width="20" height="15" rx="2" ${stroke(c)}/><path d="m8 2 4 4 4-4" ${stroke(c)}/>`,
+  phone: c => `<rect x="6" y="2" width="12" height="20" rx="2" ${stroke(c)}/><path d="M10 18h4" ${stroke(c)}/>`,
+  speaker: c => `<rect x="6" y="2" width="12" height="20" rx="1.5" ${stroke(c)}/><circle cx="12" cy="7" r="2" ${stroke(c)}/><circle cx="12" cy="15" r="3.5" ${stroke(c)}/>`,
+  computer: c => `<rect x="4" y="3" width="16" height="13" rx="1.5" ${stroke(c)}/><path d="M2 19h20M9 16v3m6-3v3" ${stroke(c)}/>`,
   home: (c) =>
     `<path d="M3 10.8 12 3l9 7.8" ${stroke(c)}/>` +
     `<path d="M5.5 9.5V21h4.5v-6h4v6h4.5V9.5" ${stroke(c)}/>`,

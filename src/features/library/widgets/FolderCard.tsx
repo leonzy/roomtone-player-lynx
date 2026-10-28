@@ -1,3 +1,5 @@
+import { useTapAnchor } from '../../../shared/ui/anchored-overlay.js'
+import type { AnchorMeasurement } from '../../../shared/ui/anchored-overlay.js'
 import { useTranslation } from 'react-i18next'
 
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
@@ -6,11 +8,12 @@ import type { FolderInfo } from '../../../models/folder.js'
 export interface FolderCardProps {
   folder: FolderInfo
   onTap?: (folder: FolderInfo) => void
-  onPlayAll?: (folder: FolderInfo) => void
+  onPlayAll?: (folder: FolderInfo, anchor?: AnchorMeasurement) => void
 }
 
 export function FolderCard({ folder, onTap, onPlayAll }: FolderCardProps) {
   const { t } = useTranslation()
+  const playAnchor = useTapAnchor()
 
   return (
     <view className='facet-card' bindtap={() => onTap?.(folder)}>
@@ -22,7 +25,8 @@ export function FolderCard({ folder, onTap, onPlayAll }: FolderCardProps) {
           ? (
             <view
               className='facet-card__play-hit'
-              catchtap={() => { onPlayAll(folder) }}
+              id={playAnchor.anchorId}
+              catchtap={() => { playAnchor.measure(anchor => onPlayAll(folder, anchor ?? undefined)) }}
               accessibility-element={true}
               accessibility-label={t('common.playAll')}
             >

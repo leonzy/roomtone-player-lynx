@@ -179,6 +179,10 @@
   flex-direction: row;
   align-items: center;
 }
+.full-player__zone-control { flex-shrink: 0; margin-right: 4px; }
+.full-player__zone-control .output-controls { padding: 0; }
+.full-player__zone-control .output-button { max-width: 160px; min-height: 44px; }
+.full-player__zone-control .output-button text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Stage (cover / lyrics) */
 .full-player__stage {

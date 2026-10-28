@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 
 import { buildCoverUrl } from '../../../core/network/url-helper.js'
 import { getShellWidth, subscribeShellWidth } from '../../../shared/nav/shell-navigation.js'
-import { useTapAnchor } from '../../../shared/ui/anchored-overlay.js'
 import { BackdropBlur } from '../../../shared/ui/BackdropBlur.js'
 import { useCapsuleMaterialStyle } from '../../../shared/ui/capsule-material.js'
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
@@ -15,12 +14,14 @@ import { loadMiniPlayerControls, miniPlayerControls } from '../data/mini-player-
 import { writeDefaultPlayMode } from '../../settings/data/settings-prefs.js'
 import type { IconName } from '../../../shared/ui/icons.js'
 import type { PlayMode } from '../domain/play-mode.js'
-import { hasNext, hasPrev, isMuted, progressOf, usePlayerStore } from '../store/index.js'
+import { hasNext, hasPrev, progressOf, usePlayerStore } from '../store/index.js'
 import { PlayerMoreMenu } from './PlayerMoreMenu.js'
 import { PlaylistDrawer } from './PlaylistDrawer.js'
 import { SleepTimerSheet } from './SleepTimerSheet.js'
 import '../../../shared/ui/overlay-motion.css'
 import './MiniPlayer.css'
+import { OutputTransportControls } from '../../output/OutputPanels.js'
+import { useOutputText } from '../../output/text.js'
 
 /**
  * The four-button row (play mode + transport) leaves too little title width
@@ -57,15 +58,17 @@ export function MiniPlayer() {
   const navigate = useNavigate()
   const capsuleMaterialStyle = useCapsuleMaterialStyle()
   const { t } = useTranslation()
+  const out = useOutputText()
   const song = usePlayerStore((s) => s.currentSong)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const progress = usePlayerStore(progressOf)
+  const currentTime = usePlayerStore(s => s.currentTime)
+  const duration = usePlayerStore(s => s.duration)
+  const timeLabel = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`
   const canNext = usePlayerStore(hasNext)
   const canPrev = usePlayerStore(hasPrev)
   const playMode = usePlayerStore((s) => s.playMode)
-  const muted = usePlayerStore(isMuted)
   const sleepTimer = usePlayerStore((s) => s.sleepTimer)
-  const volumeAnchor = useTapAnchor()
   const controls = useSyncExternalStore(miniPlayerControls.subscribe, () => miniPlayerControls.getState().mode)
   const shellWidth = useSyncExternalStore(subscribeShellWidth, getShellWidth)
   const [showSleepTimer, setShowSleepTimer] = useState(false)
@@ -80,7 +83,12 @@ export function MiniPlayer() {
   const { isFavorite, toggle: toggleFavorite, isPending: isFavPending } =
     useFavoriteToggle(song?.id ?? 0, song != null && !cachedSongIdentity(song))
 
-  if (!song) return null
+  if (!song) return <>
+    <view className='mini-player mini-player--idle'>
+      <view className='mini-player__row'><view className='mini-player__cover mini-player__cover--empty' /><view className='mini-player__meta'><text className='mini-player__title'>{out('noSong')}</text></view><view className='mini-player__center'><view className='mini-player__transport'>{(['skip-prev', 'play', 'skip-next'] as const).map(icon => <view key={icon} className='mini-player__btn mini-player__btn--disabled' accessibility-traits='disabled'><Icon name={icon} size={22} color={ICON_COLORS.content2} /></view>)}</view></view></view>
+      <OutputTransportControls />
+    </view><PlaylistDrawer />
+  </>
 
   const cover = song.coverUrl ? buildCoverUrl(song.coverUrl, song.updatedAt) : ''
   const subtitle = [song.artist, song.album].filter(Boolean).join(' · ')
@@ -105,7 +113,23 @@ export function MiniPlayer() {
           <text className='mini-player__title'>{song.title}</text>
           {subtitle ? <text className='mini-player__subtitle'>{subtitle}</text> : null}
         </view>
-        <view className='mini-player__transport'>
+        {(!cachedSongIdentity(song)) && <view
+          className={isFavPending
+            ? 'mini-player__favorite mini-player__favorite--pending'
+            : 'mini-player__favorite'}
+          catchtap={isFavPending ? undefined : toggleFavorite}
+          accessibility-element={true}
+          accessibility-label={isFavorite ? t('player.unfavorite') : t('player.favorite')}
+          data-testid='mini-favorite-btn'
+        >
+          <Icon
+            name={isFavorite ? 'heart-filled' : 'heart'}
+            size={20}
+            color={isFavorite ? ICON_COLORS.primary : ICON_COLORS.content2}
+          />
+        </view>}
+        <view className='mini-player__center'><view className='mini-player__transport'>
+          <view className='mini-player__desktop-output'><OutputTransportControls part='signal' /></view>
           {controls !== 'playOnly' && <view
             className={canPrev
               ? 'mini-player__btn'
@@ -151,54 +175,12 @@ export function MiniPlayer() {
           >
             <Icon name={({ order: 'order', loop: 'repeat', single: 'repeat-one', random: 'shuffle', singlePlay: 'play' } satisfies Record<PlayMode, IconName>)[playMode]} size={20} color={ICON_COLORS.content} />
           </view>}
-        </view>
-        {(!cachedSongIdentity(song)) && <view
-          className={isFavPending
-            ? 'mini-player__favorite mini-player__favorite--pending'
-            : 'mini-player__favorite'}
-          catchtap={isFavPending ? undefined : toggleFavorite}
-          accessibility-element={true}
-          accessibility-label={isFavorite ? t('player.unfavorite') : t('player.favorite')}
-          data-testid='mini-favorite-btn'
-        >
-          <Icon
-            name={isFavorite ? 'heart-filled' : 'heart'}
-            size={20}
-            color={isFavorite ? ICON_COLORS.primary : ICON_COLORS.content2}
-          />
-        </view>}
-        {/* Wide-only, like the favorite: phone capsules have no room for a
-            fifth control, and hardware keys cover volume there. */}
-        <view
-          id={volumeAnchor.anchorId}
-          className='mini-player__btn mini-player__volume'
-          catchtap={() => {
-            volumeAnchor.measure((anchor) => songRowOverlays.openMiniVolume(anchor))
-          }}
-          accessibility-element={true}
-          accessibility-label={t('player.volume')}
-          data-testid='mini-volume-btn'
-        >
-          <Icon
-            name={muted ? 'volume-mute' : 'volume'}
-            size={20}
-            color={ICON_COLORS.content2}
-          />
-        </view>
-        {/* Queue and overflow: wide-only, like the favorite and volume. The
-            Flutter dense capsule grows its row with the same set at tablet
-            width; phones keep the transport cluster and open the full player
-            for everything else. */}
-        <view
-          className='mini-player__btn mini-player__wide-action'
-          catchtap={() => usePlayerStore.getState().togglePlaylistDrawer()}
-          accessibility-element={true}
-          accessibility-label={t('player.queue')}
-          data-testid='mini-queue-btn'
-        >
-          <Icon name='queue' size={20} color={ICON_COLORS.content2} />
-        </view>
-        <PlayerMoreMenu
+          <view className='mini-player__desktop-output'><OutputTransportControls part='queue' /></view>
+        </view><view className='mini-player__timeline'><text>{timeLabel(currentTime)}</text><view className='mini-player__timeline-track'><view className='mini-player__timeline-fill' style={{ width: pct }} /></view><text>{timeLabel(duration)}</text></view></view>
+      </view>
+      <view className='mini-player__desktop-output'><OutputTransportControls part='zone-volume' /></view>
+      <view className='mini-player__mobile-output'><OutputTransportControls /></view>
+      <view className='mini-player__overflow'>        <PlayerMoreMenu
           song={song}
           onOpenSleepTimer={() => setShowSleepTimer(true)}
           timerActive={sleepTimer != null}
@@ -209,8 +191,7 @@ export function MiniPlayer() {
           // The capsule root opens the full player on tap; a bubbling trigger
           // would open the menu and navigate away in the same gesture.
           stopTriggerPropagation={true}
-        />
-      </view>
+        /></view>
     </view>
     <PlaylistDrawer />
     <SleepTimerSheet show={showSleepTimer} onClose={() => setShowSleepTimer(false)} />

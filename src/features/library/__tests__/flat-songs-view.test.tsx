@@ -1,3 +1,5 @@
+const collection = vi.hoisted(() => ({ apply: vi.fn(async (_songs: Song[]) => {}), create: vi.fn() }))
+vi.mock('../../output/runtime.js', async importOriginal => ({ ...await importOriginal<typeof import('../../output/runtime.js')>(), createCollectionAction: (action: string) => { collection.create(action); return collection.apply } }))
 import '../../../shims/router-env.js'
 
 import '@testing-library/jest-dom'

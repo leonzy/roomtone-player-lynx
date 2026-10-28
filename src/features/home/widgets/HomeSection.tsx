@@ -1,3 +1,4 @@
+import type { AnchorMeasurement } from '../../../shared/ui/anchored-overlay.js'
 import { useTranslation } from 'react-i18next'
 
 import type { Playlist } from '../../../models/playlist.js'
@@ -35,7 +36,7 @@ export interface HomeSectionProps {
   onTapPlaylist: (playlist: Playlist) => void
   /** One-tap "play this playlist" from the cover's play disc. Mirrors the
    * PlaylistsView affordance; when omitted the disc does not render. */
-  onPlayAll?: (playlist: Playlist) => void
+  onPlayAll?: (playlist: Playlist, anchor?: AnchorMeasurement) => void
   playingPlaylistId?: number
   /** Title shown in the section's own empty state (items=0, not failed, not
    * loading). Constructive, not an error — styled via `.home-section__empty`. */
@@ -136,7 +137,7 @@ export function HomeSection({
                   coverUrl={playlist.coverUrl ? buildCoverUrl(playlist.coverUrl, playlist.updatedAt) : undefined}
                   isPlaying={playingPlaylistId === playlist.id}
                   onTap={() => onTapPlaylist(playlist)}
-                  onPlayAll={onPlayAll ? () => onPlayAll(playlist) : undefined} />)}
+                  onPlayAll={onPlayAll ? anchor => onPlayAll(playlist, anchor) : undefined} />)}
               </view>
             : resolveHomeLayout(layout, isWide) === 'grid'
             ? (

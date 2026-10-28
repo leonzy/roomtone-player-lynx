@@ -1,3 +1,5 @@
+import { useTapAnchor } from '../../../shared/ui/anchored-overlay.js'
+import type { AnchorMeasurement } from '../../../shared/ui/anchored-overlay.js'
 import { useState } from '@lynx-js/react'
 import { useParams, useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -6,7 +8,7 @@ import { buildCoverUrl } from '../../../core/network/url-helper.js'
 import type { Song } from '../../../models/song.js'
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { usePlayerStore } from '../../player/store/index.js'
-import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
+import { chooseCollectionPlayback } from '../../player/data/collection-playback.js'
 import { PlayHistoryPanel } from '../../player/widgets/PlayHistoryPanel.js'
 import { flattenSongs } from '../data/pagination.js'
 import { useTagSongsInfiniteQuery } from '../data/song-tags-query.js'
@@ -19,6 +21,7 @@ import './TagSongsPage.css'
 
 export function TagSongsPage() {
   const { t } = useTranslation()
+  const playAnchor = useTapAnchor()
   const params = useParams({ strict: false }) as { tagId?: string }
   const search = useSearch({ strict: false }) as { name?: string; cover?: string }
 
@@ -55,11 +58,11 @@ export function TagSongsPage() {
     }
   }
 
-  const playAll = async () => {
+  const playAll = async (anchor?: AnchorMeasurement) => {
     try {
-      const started = await playAllWithBackgroundFill(
+      const started = await chooseCollectionPlayback(
         (offset, limit) => getSongsApi().getSongs({ tagId }, { limit, offset }),
-        playbackCtx,
+        playbackCtx, anchor,
       )
       if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {
@@ -81,8 +84,8 @@ export function TagSongsPage() {
         <view className='category-songs__topbar-right'>
           {songs.length > 0
             ? (
-              <view className='category-songs__play-all' bindtap={() => { void playAll() }}>
-                <text className='category-songs__play-all-text'>{t('playlist.playAll')}</text>
+              <view className='category-songs__play-all' id={playAnchor.anchorId} bindtap={() => playAnchor.measure(anchor => { void playAll(anchor ?? undefined) })}>
+                <text className='category-songs__play-all-text'>{t('playlist.playAll')}</text><Icon name='chevron-down' size={14} color={ICON_COLORS.content2} />
               </view>
             )
             : null}

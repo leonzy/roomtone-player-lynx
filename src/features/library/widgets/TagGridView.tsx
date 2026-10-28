@@ -1,3 +1,4 @@
+import type { AnchorMeasurement } from '../../../shared/ui/anchored-overlay.js'
 import { useState } from '@lynx-js/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -9,7 +10,7 @@ import { useScrollNotifier } from '../../../shared/nav/scroll-visibility.js'
 import { useDebounce } from '../data/use-debounce.js'
 import { flattenTags, useTagListInfiniteQuery } from '../data/song-tags-query.js'
 import { getSongsApi } from '../api/index.js'
-import { playAllWithBackgroundFill } from '../../player/data/play-all.js'
+import { chooseCollectionPlayback } from '../../player/data/collection-playback.js'
 import { toast } from '../../../shared/ui/toast-store.js'
 import { MediaListItem } from '../../../shared/ui/MediaListItem.js'
 import { GridSpacers } from '../../../shared/ui/GridSpacers.js'
@@ -39,11 +40,11 @@ export function TagGridView({ viewMode = 'grid' }: TagGridViewProps) {
   const [renameTag, setRenameTag] = useState<SongTag | null>(null)
   const [deleteTag, setDeleteTag] = useState<SongTag | null>(null)
 
-  const onPlayAll = async (tag: SongTag) => {
+  const onPlayAll = async (tag: SongTag, anchor?: AnchorMeasurement) => {
     try {
-      const started = await playAllWithBackgroundFill(
+      const started = await chooseCollectionPlayback(
         (offset, limit) => getSongsApi().getSongs({ tagId: tag.id }, { limit, offset }),
-        { type: 'tag' as const, key: String(tag.id) },
+        { type: 'tag' as const, key: String(tag.id) }, anchor,
       )
       if (!started) toast.show(t('playlist.emptyPlaylist'))
     } catch {
@@ -101,7 +102,7 @@ export function TagGridView({ viewMode = 'grid' }: TagGridViewProps) {
                           )}
                           coverUrl={tag.coverUrl ? buildCoverUrl(tag.coverUrl) : undefined}
                           onTap={() => navigateToTag(tag)}
-                          onPlayAll={() => { void onPlayAll(tag) }}
+                          onPlayAll={anchor => { void onPlayAll(tag, anchor) }}
                           onMore={() => setRenameTag(tag)}
                         />
                       )

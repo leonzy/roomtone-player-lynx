@@ -1,6 +1,8 @@
 import '../../../shims/router-env.js'
 
 import '@testing-library/jest-dom'
+// Output controls have their own state/query integration coverage.
+vi.mock('../../output/OutputPanels.js', () => ({ OutputRoot: () => null, OutputTransportControls: () => null }))
 vi.mock('../../player/store/player-store.js', async (original) => {
   const actual = await original<Record<string, unknown>>()
   const { makePlayerStoreMock } = await import('../../../__tests__/_render-mocks.js')
