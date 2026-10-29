@@ -84,7 +84,7 @@ test('renders actual bilingual release tables with inline formatting inside a ho
     expect(scroller.querySelectorAll('.markdown__table-row')).toHaveLength(6)
     expect(scroller.querySelectorAll('.markdown__table-header')).toHaveLength(3)
     expect(scroller.querySelector('.markdown__code')?.textContent).toBe(
-      'songloft-lynx-android.apk',
+      'roomtone-lynx-android.apk',
     )
   }
   expect(root.textContent).not.toContain('| --- |')

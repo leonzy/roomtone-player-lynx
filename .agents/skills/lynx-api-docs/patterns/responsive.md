@@ -15,7 +15,7 @@ import { pluginLynxConfig } from '@lynx-js/config-rsbuild-plugin'
 pluginLynxConfig({ enableCSSRule: true })
 ```
 
-Verify the installed config plugin and encoder support this option and that the bundle's engine compatibility matches the target hosts. Songloft currently targets `engineVersion: '2.14'` and does not enable `enableCSSRule` in `lynx.config.ts`; upgrading native hosts to 4.0 alone does not activate media queries. Do not change that build contract merely to follow a documentation example.
+Verify the installed config plugin and encoder support this option and that the bundle's engine compatibility matches the target hosts. Roomtone currently targets `engineVersion: '2.14'` and does not enable `enableCSSRule` in `lynx.config.ts`; upgrading native hosts to 4.0 alone does not activate media queries. Do not change that build contract merely to follow a documentation example.
 
 ```css
 .container {
@@ -31,7 +31,7 @@ Verify the installed config plugin and encoder support this option and that the 
 
 - Supported queries include viewport width/height, aspect ratio, orientation, pixel density, and `prefers-color-scheme`, with min/max forms, range syntax, query lists, and logical conditions.
 - `device-*` dimensions use the viewport, not the physical device size. The host must update viewport/screen metrics during resizing or folding.
-- Native `prefers-color-scheme` depends on the host's color-scheme update API; a theme class or globalProps field alone does not establish that integration. Preserve Songloft's existing theme and reduce-motion contracts.
+- Native `prefers-color-scheme` depends on the host's color-scheme update API; a theme class or globalProps field alone does not establish that integration. Preserve Roomtone's existing theme and reduce-motion contracts.
 - Native `hover`/`pointer` queries have no host-provided environment values; do not use them as reliable capability probes. Unrecognized features evaluate to false. `print` and other non-screen media types never match.
 - For older hosts or builds without CSS Rule encoding, use fluid units and host-driven JavaScript breakpoints. Web behavior must be checked independently against the installed web-core/build pipeline.
 

@@ -135,3 +135,7 @@ With update signing configured, release also validates the prepared shell snapsh
 Production JS replaces the devtools/E2E entry point by default. Native TestBridge registration/startup is Debug-only and listens on `127.0.0.1:9230`. Downloadable dev packages are Release builds too and cannot be used for TestBridge E2E. See [testing](testing.md) for test builds.
 
 CI verifies compilation and packages. Background playback, permissions, DLNA, video, and HarmonyOS still require device testing. After the new workflow first succeeds, check all five downloads, metadata and signing identities, then test installation and upgrade behavior on actual devices.
+
+## Fork test packages
+
+Enable `test_only` when manually dispatching Actions to build five test packages without release signing credentials. Android is explicitly labeled `-test.apk`, HarmonyOS `-unsigned.hap`, and iOS requires re-signing. After all platforms pass, `roomtone-lynx-test-packages` contains the packages, checksums and build metadata. This mode publishes no formal Release or automatic-update manifest; formal releases still require all signing credentials. Bilingual installation tables live in `.github/release-notes.md`.

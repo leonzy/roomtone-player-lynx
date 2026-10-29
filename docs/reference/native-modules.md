@@ -24,7 +24,7 @@
 | `SongloftNavigation` | `navigation/SongloftNavigationModule.kt`（+ `BackKeyState.kt`、`MainActivity.kt`） | **iOS 刻意不做** —— 没有返回键可拦（无 `UINavigationController`，连边缘滑动都没有），TS facade 降级为惰性桩 | `src/native/navigation.ts` | 硬件 / 浏览器返回键 |
 | `SongloftPluginBridge` | `plugin/SongloftPluginBridgeModule.kt` | `SongloftPluginBridgeModule.swift` | 内联在 `src/features/jsplugin/widgets/LynxPluginFrame.tsx`（无独立 facade 文件） | 父页 ⇄ 子 `<frame>` 插件的双向桥（跨 `LynxContext` 通信，按 `frameId` 注册） |
 | `SongloftWebview` | **无（仅 Web）** —— native 构建渲染真实 `<webview>` 元素 | **无（仅 Web）** | `src/native/web-webview.ts` | 插件页 iframe（worker 侧 `web/songloft-webview-module.js` + 主线程 `web/webview-host.js`） |
-| `SongloftLynxFrame` | **无（仅 Web）** —— native 构建用 `<frame>` 元素渲染 Lynx 插件 | **无（仅 Web）** | `src/native/web-lynx-frame.ts` | Lynx 插件页的 Web 宿主（worker 侧 `web/songloft-lynx-frame-module.js` + 主线程 `web/lynx-frame-host.js`） |
+| `SongloftLynxFrame` | **无（仅 Web）** —— native 构建用 `<frame>` 元素渲染 Lynx 插件 | **无（仅 Web）** | `src/native/web-lynx-frame.ts` | Lynx 插件页的 Web 宿主（worker 侧 `web/roomtone-lynx-frame-module.js` + 主线程 `web/lynx-frame-host.js`） |
 
 Android 路径均省略前缀 `android/app/src/main/java/org/songloft/lynx/`；iOS 路径均省略前缀 `ios/SongloftLynx/`。
 
@@ -368,7 +368,7 @@ WebView 插件的 `songloft-theme` 外观消息使用有效材质档位，并携
 
 ### 2.12 `SongloftLynxFrame`（6 方法，仅 Web）
 
-Web 上渲染 Lynx 插件的宿主（native 构建用真实 `<frame>` 元素，不需要这个模块）。契约跑在三个文件之间：facade `src/native/web-lynx-frame.ts`、worker 侧 `web/songloft-lynx-frame-module.js`、主线程 `web/lynx-frame-host.js`。
+Web 上渲染 Lynx 插件的宿主（native 构建用真实 `<frame>` 元素，不需要这个模块）。契约跑在三个文件之间：facade `src/native/web-lynx-frame.ts`、worker 侧 `web/roomtone-lynx-frame-module.js`、主线程 `web/lynx-frame-host.js`。
 
 | 方法 | 签名 |
 |---|---|

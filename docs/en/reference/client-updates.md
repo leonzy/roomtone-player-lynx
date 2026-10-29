@@ -18,7 +18,7 @@ The five full installation/deployment packages remain. With valid signing config
 
 | File | Meaning |
 |---|---|
-| `songloft-lynx-main.lynx.bundle` | Shared native template; maximum 32 MiB |
+| `roomtone-lynx-main.lynx.bundle` | Shared native template; maximum 32 MiB |
 | `version.json` | One identity, sizes/SHA-256 for six assets, and `bundle_update` compatibility declarations; maximum 128 KiB |
 | `version.json.sig` | Independent signature of the original manifest bytes; JSON envelope |
 | `checksums.txt` | SHA-256 for full packages, bundle, manifest, and signature |
@@ -66,7 +66,7 @@ About separates client updates from backend upgrades and displays immutable shel
 - Dev queries only `releases/tags/dev`; stable queries only `releases/latest`. Drafts, cross-channel manifests, stable prereleases, and unexpected asset URLs are rejected. No history or alternate channel is consulted; bundle and package links share one candidate.
 - Matching valid dev commits mean no update; different commits mean an update. Missing commits fall back to build timestamps with a ten-minute minimum increase. Stable versions must strictly increase numerically. Insufficient metadata displays an unknown comparison and the channel release page instead of claiming current or suggesting an older package.
 - Public release data is cached for 60 seconds and concurrent reads deduplicate by channel/proxy; explicit checks bypass cache. Dev revisions/assets are checked before and after reading, with one retry on changes. Signature failure also allows at most one dev recheck; continued failure offers only installation/release links.
-- Metadata bypasses business HttpClient and never sends Songloft tokens, Authorization, or Cookie. Native system TLS permits at most eight HTTPS-validated redirects, a twelve-second overall network deadline, and bounded streaming: API 512 KiB, manifest 128 KiB, signature 8 KiB. Web uses browser TLS and bounded credential-free fetch.
+- Metadata bypasses business HttpClient and never sends Roomtone tokens, Authorization, or Cookie. Native system TLS permits at most eight HTTPS-validated redirects, a twelve-second overall network deadline, and bounded streaming: API 512 KiB, manifest 128 KiB, signature 8 KiB. Web uses browser TLS and bounded credential-free fetch.
 - The existing HTTPS GitHub proxy prefix wraps API and download addresses separately, without credentials/query parameters. Proxy transport failures retry only the same direct URL. Native signature/hash checks remain mandatory.
 - Android/HarmonyOS offer APK/HAP; iOS explains IPA signing. Web offers the matching standalone/embedded deployment archive and refresh guidance; native bundles cannot update the Web host scripts.
 - Client release notes and backend update changelogs share the GitHub Flavored Markdown component for headings, paragraphs, lists (including task lists), quotes, separators, bold/italic/strikethrough, code and tables. Tables scroll horizontally. HTTP/HTTPS links open through the host; other links retain their text. Images show alt text and HTML stays literal. Client notes retain the 16000-character limit; backend notes render in full. Parser errors fall back to plain text. Parsing runs only on the background thread to keep Markdown regex rules out of Lynx main-thread bytecode compilation. Before parsing, missing `Array.prototype.at` and `Object.hasOwn` implementations are installed for Android PrimJS; existing implementations stay unchanged.

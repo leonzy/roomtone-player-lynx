@@ -1,6 +1,6 @@
-# Songloft Player (Lynx)
+# Roomtone Player (Lynx)
 
-A ReactLynx + TypeScript rewrite of the Songloft Flutter client, targeting Android, iOS, HarmonyOS, and Web.
+A ReactLynx + TypeScript rewrite of the Roomtone Flutter client, targeting Android, iOS, HarmonyOS, and Web.
 
 Learn about the underlying technology: [Lynx official website](https://lynxjs.org/) · [ReactLynx documentation](https://lynxjs.org/react/).
 
@@ -25,22 +25,22 @@ Web playback settings also provide a persisted keyboard-shortcut switch: Space t
 
 ## Installation and downloads
 
-- [Stable releases](https://github.com/songloft-org/songloft-player-lynx/releases/latest): published from version tags.
-- [Development release](https://github.com/songloft-org/songloft-player-lynx/releases/tag/dev): automatically built after code pushes to `main`; updated only when every platform succeeds.
+- [Stable releases](https://github.com/leonzy/roomtone-player-lynx/releases/latest): published from version tags.
+- [Development release](https://github.com/leonzy/roomtone-player-lynx/releases/tag/dev): automatically built after code pushes to `main`; updated only when every platform succeeds.
 - [Installation guide](docs/en/guides/installation.md): package names, signing requirements, server connections, and checksums.
 - [简体中文](README.md)
 
 Download assets published in GitHub Releases; the four-platform CI updates dev only after all five packages build and pass verification. Maintainers of a fork must configure signing secrets; see the [release guide](docs/en/guides/releasing.md).
 
-This client connects to a running [Songloft server](https://github.com/songloft-org/songloft). Enter the server address and sign in after installation. The client does not include a local backend. Choose a package for your platform under **Assets** on the release page:
+This client connects to a running [Roomtone server](https://github.com/leonzy/roomtone). Enter the server address and sign in after installation. The client does not include a local backend. Choose a package for your platform under **Assets** on the release page:
 
 | Platform | Download | Installation / deployment |
 | --- | --- | --- |
-| Android | `songloft-lynx-android.apk` | Download and open the APK, then allow installation when prompted. The package uses the maintainer's release signature. |
-| iOS | `songloft-lynx-ios-nosign.ipa` | Unsigned device build; re-sign with your developer certificate and a provisioning profile for your device before installing. |
-| HarmonyOS | `songloft-lynx-harmony.hap` | Install with DevEco Studio or `hdc install songloft-lynx-harmony.hap`. The signing profile must authorize your device. |
-| Web (standalone) | `songloft-lynx-web-standalone.tar.gz` | Extract to a static server, then open the site and enter the Songloft API address. |
-| Web (embedded) | `songloft-lynx-web-embedded.tar.gz` | Extract and configure same-origin static hosting with the same-origin backend; does not automatically replace the server's existing embedded frontend. |
+| Android | `roomtone-lynx-android.apk` | Download and open the APK, then allow installation when prompted. The package uses the maintainer's release signature. |
+| iOS | `roomtone-lynx-ios-nosign.ipa` | Unsigned device build; re-sign with your developer certificate and a provisioning profile for your device before installing. |
+| HarmonyOS | `roomtone-lynx-harmony.hap` | Install with DevEco Studio or `hdc install roomtone-lynx-harmony.hap`. The signing profile must authorize your device. |
+| Web (standalone) | `roomtone-lynx-web-standalone.tar.gz` | Extract to a static server, then open the site and enter the Roomtone API address. |
+| Web (embedded) | `roomtone-lynx-web-embedded.tar.gz` | Extract and configure same-origin static hosting with the same-origin backend; does not automatically replace the server's existing embedded frontend. |
 
 See the [Web deployment guide](docs/en/guides/web-deployment.md) for response headers, MIME types, and browser requirements.
 
@@ -64,7 +64,7 @@ Release bodies contain categorized changes and installation links to this sectio
 
 ## Quick start
 
-Requires Node `^20.19 || >=22.12`, pnpm, and a Songloft backend at `http://localhost:58091` (initial credentials: `admin/admin`).
+Requires Node `^20.19 || >=22.12`, pnpm, and a Roomtone backend at `http://localhost:58091` (initial credentials: `admin/admin`).
 
 ```bash
 pnpm install
@@ -146,4 +146,4 @@ Version history is maintained in the Chinese-only root [CHANGELOG.md](CHANGELOG.
 
 ## License
 
-[Apache-2.0](LICENSE), matching the Songloft backend and Flutter client. Dependencies retain their own licenses.
+[Apache-2.0](LICENSE), matching the Roomtone backend and Flutter client. Dependencies retain their own licenses.

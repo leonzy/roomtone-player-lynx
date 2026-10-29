@@ -15,7 +15,7 @@ All 33 internal RPC endpoints in web-core 0.23.1 are asynchronous. The generic R
 
 Hosts opting into cross-origin isolation can configure `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` with compatible cross-origin resource/frame policies. web/serve.mjs supplies isolation headers by default, but they are not required for the full edition. The parent `make build-frontend-web-embedded` builds the default full frontend; `embedded-build.json` records client and server identities separately.
 
-Plugin iframes retain the browser's normal cookie/storage context. Do not add the `credentialless` attribute: it removes existing gateway session cookies, including HttpOnly cookies, from plugin document requests. Songloft URL tokens cannot authenticate gateways such as FN Connect. Hosts opting into isolation rely on the backend plugin HTML's COEP response header; upgrade older backends missing it or disable optional isolation. The iframe attribute differs from the `Cross-Origin-Embedder-Policy: credentialless` response header, which preserves cookies on document navigation and same-origin resources. See [#543](../project/issue-543.md) for reproduction and verification.
+Plugin iframes retain the browser's normal cookie/storage context. Do not add the `credentialless` attribute: it removes existing gateway session cookies, including HttpOnly cookies, from plugin document requests. Roomtone URL tokens cannot authenticate gateways such as FN Connect. Hosts opting into isolation rely on the backend plugin HTML's COEP response header; upgrade older backends missing it or disable optional isolation. The iframe attribute differs from the `Cross-Origin-Embedder-Policy: credentialless` response header, which preserves cookies on document navigation and same-origin resources. See [#543](../project/issue-543.md) for reproduction and verification.
 
 Example root-path Nginx static serving (provide TLS separately; embedded also needs an /api/v1/ proxy location):
 
@@ -62,7 +62,7 @@ Final acceptance uses the new standalone/embedded packages from source `f5d00c0`
 
 ## Playlist JSON import and export
 
-Settings → Data accepts a previously exported Songloft version 1 JSON backup or exports all server playlists. Web enables this entry only when the host supplies `pickTextFile/saveTextFile/cancelTextFile`; older hosts hide the entry and explain the limitation on the data page.
+Settings → Data accepts a previously exported Roomtone version 1 JSON backup or exports all server playlists. Web enables this entry only when the host supplies `pickTextFile/saveTextFile/cancelTextFile`; older hosts hide the entry and explain the limitation on the data page.
 
 File selection and Blob downloads run on the main thread; the business Worker receives file text only. Import files are limited to 20 MiB. If a cross-thread call or network delay loses transient user activation, the main thread displays an actual file/download control and a cancel button. Click that control to continue. Object URLs are revoked after downloads; cancellation or leaving the data page removes temporary file controls. Cancellation uploads nothing. Empty files, invalid JSON and backups other than version 1 are rejected locally.
 

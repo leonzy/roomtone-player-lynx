@@ -15,7 +15,7 @@ pnpm run build:web-embedded   # embedded → 父仓库 clients/player-build/web-
 
 若宿主主动启用跨源隔离，可配置 `Cross-Origin-Opener-Policy: same-origin` 与 `Cross-Origin-Embedder-Policy: require-corp`，并确保跨源资源/插件 frame 的策略兼容。`web/serve.mjs` 默认提供隔离头，但这不是完整版部署的必要前提。父仓库 `make build-frontend-web-embedded` 构建默认完整版，`embedded-build.json` 分别记录客户端与服务器身份。
 
-插件 iframe 使用浏览器正常的 Cookie/存储上下文；不要添加 `credentialless` 属性，否则 FN Connect 等网关的既有登录 Cookie（包括 HttpOnly Cookie）不会随插件文档请求发送，Songloft 的 URL token 无法替代网关认证。主动启用隔离的宿主依赖后端插件 HTML 的 COEP 响应头；旧后端若缺少该头，应升级后端或关闭可选隔离。iframe 属性与后端的 `Cross-Origin-Embedder-Policy: credentialless` 响应头语义不同，后者保留文档导航和同源资源的 Cookie。复现与验证见 [#543](../project/issue-543.md)。
+插件 iframe 使用浏览器正常的 Cookie/存储上下文；不要添加 `credentialless` 属性，否则 FN Connect 等网关的既有登录 Cookie（包括 HttpOnly Cookie）不会随插件文档请求发送，Roomtone 的 URL token 无法替代网关认证。主动启用隔离的宿主依赖后端插件 HTML 的 COEP 响应头；旧后端若缺少该头，应升级后端或关闭可选隔离。iframe 属性与后端的 `Cross-Origin-Embedder-Policy: credentialless` 响应头语义不同，后者保留文档导航和同源资源的 Cookie。复现与验证见 [#543](../project/issue-543.md)。
 
 Nginx 静态根路径示例（TLS 配置由部署者提供；embedded 的 `/api/v1/` 另配置反向代理）：
 
@@ -62,7 +62,7 @@ location /songloft/ {
 
 ## 歌单 JSON 导入与导出
 
-在「设置 → 数据管理」选择之前导出的 Songloft 版本 1 JSON 备份，或导出服务器的全部歌单。Web 宿主按 `pickTextFile/saveTextFile/cancelTextFile` 三个真实方法开放入口；旧宿主未实现这些方法时隐藏入口，并在数据页说明原因。
+在「设置 → 数据管理」选择之前导出的 Roomtone 版本 1 JSON 备份，或导出服务器的全部歌单。Web 宿主按 `pickTextFile/saveTextFile/cancelTextFile` 三个真实方法开放入口；旧宿主未实现这些方法时隐藏入口，并在数据页说明原因。
 
 文件选择与 Blob 下载在主线程执行，业务 Worker 只接收文件文本；读取的导入文件上限为 20 MiB。若跨线程调用或网络等待丢失浏览器临时用户激活，主线程显示可点击的文件选择/下载控件与取消按钮，继续点击即可。下载后撤销临时 object URL，取消或离开数据页会移除文件控件；取消不上传文件。空文件、无效 JSON 和非版本 1 备份在客户端报错。
 

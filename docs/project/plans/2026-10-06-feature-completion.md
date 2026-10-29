@@ -117,7 +117,7 @@
 - 完整兼容时提供 bundle 更新；要求更高原生契约时说明需要升级客户端安装包。旧壳没有更新模块仍提供安装包链接，不能通过下载 bundle 自行补上更新器。
 - Android 链接 APK，HarmonyOS 链接 HAP，iOS 提供 IPA/发版页并说明需重签；安装包交由平台打开链接。iOS bundle 更新无需重新签名整个 IPA，但不能靠它更新原生代码。
 - Web 保持 standalone/embedded 部署包更新与刷新说明；Web 引擎和主线程宿主脚本与部署产物配套，不直接复用原生 bundle 更新器。
-- GitHub 请求不携带 Songloft bearer token，短期缓存、并发去重；限流、未发布、缺失/不兼容资产、断网和签名失败分别反馈。代理区分 API 与下载域，仍执行验签，不能猜测代理格式。
+- GitHub 请求不携带 Roomtone bearer token，短期缓存、并发去重；限流、未发布、缺失/不兼容资产、断网和签名失败分别反馈。代理区分 API 与下载域，仍执行验签，不能猜测代理格式。
 
 主要文件：`features/settings/{api,data,domain,widgets}/`、`pages/AboutPage.tsx`、`core/config/constants.ts`、新增 native 更新 facade/宿主模块、本地 prefs、三端启动加载器、`scripts/{release-lib,finalize-release}.mjs`、版本注入和 Release CI。后端接口/数据库默认不改。
 

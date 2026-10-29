@@ -18,7 +18,7 @@
 
 | 文件 | 含义 |
 |---|---|
-| `songloft-lynx-main.lynx.bundle` | 三端共用的原生模板，最大 32 MiB |
+| `roomtone-lynx-main.lynx.bundle` | 三端共用的原生模板，最大 32 MiB |
 | `version.json` | 同一版本身份、六种资产的大小/SHA-256，以及 `bundle_update` 兼容声明，最大 128 KiB |
 | `version.json.sig` | 对原始 `version.json` 字节的独立签名，JSON 信封 |
 | `checksums.txt` | 五种完整包、bundle、清单和签名文件的 SHA-256 |
@@ -66,7 +66,7 @@ HarmonyOS 在 `filesDir/bundle_updates` 保存签名文件和相同指针，通�
 - dev 仅 GET `releases/tags/dev`，正式仅 GET `releases/latest`；拒绝草稿、跨通道清单、正式预发布及异常资产 URL，不查历史或另一通道。bundle 和安装包共用同一候选。
 - 有效 dev commit 相同不更新、不同更新；缺失 commit 时才比较构建时间，至少晚 10 分钟才更新。正式按数字语义版本严格递增，元数据不足显示无法确定并提供本通道发版页，不猜测已经最新或引导安装较旧资产。
 - 公共 Release 数据缓存 60 秒、同通道/代理并发去重；显式检查绕过缓存。dev 读取前后核对 Release 及资产修订，变化时重查一次；验签失败也最多重查一次 dev，仍失败仅提供安装包/发版页。
-- 元数据请求不经过业务 HttpClient，也不带 Songloft token、Authorization 或 Cookie。三端独立系统 TLS、最多八次经验证的 HTTPS 跳转、12 秒网络总期限、流式大小限制：API 512 KiB、清单 128 KiB、签名 8 KiB。Web 使用浏览器 TLS 和无凭据有界 fetch。
+- 元数据请求不经过业务 HttpClient，也不带 Roomtone token、Authorization 或 Cookie。三端独立系统 TLS、最多八次经验证的 HTTPS 跳转、12 秒网络总期限、流式大小限制：API 512 KiB、清单 128 KiB、签名 8 KiB。Web 使用浏览器 TLS 和无凭据有界 fetch。
 - 代理按既有 GitHub HTTPS 前缀约定分别包装 API 与下载 URL，不包含凭据/查询参数；代理网络失败仅回退同一 URL 的直连。下载时仍由壳验签与检查 hash，不因代理放宽安全要求。
 - Android/HarmonyOS 提供 APK/HAP，iOS 提醒 IPA 需要重签；Web 提供对应 standalone/embedded 部署包及部署后刷新说明，不能用原生 bundle 更新 Web 主线程宿主。
 - 客户端 Release 说明与后端更新 changelog 共用 GitHub Flavored Markdown 组件，显示标题、段落、列表（含任务列表）、引用、分隔线、粗体/斜体/删除线、代码和表格；表格可横向滚动。HTTP/HTTPS 链接通过宿主打开，其他链接保留文字；图片显示替代文字，HTML 按字面文本显示。客户端保持 16000 字符上限，后端说明完整显示，解析失败回退纯文本。解析仅在后台线程执行，避免 Markdown 正则进入 Lynx 主线程字节码编译；解析前按需补齐 Android PrimJS 缺失的 `Array.prototype.at` 和 `Object.hasOwn`，已有实现保持不变。

@@ -1,4 +1,4 @@
-# Songloft Player Lynx — Apple HIG 风格 UI 重构总计划
+# Roomtone Player Lynx — Apple HIG 风格 UI 重构总计划
 
 > **Superseded（2026-09-20）：本方案已由 DESIGN.md 现行 Liquid Glass / `--material-*` 体系取代，仅作历史参考。**
 >
@@ -11,7 +11,7 @@
 
 ## 背景与目标
 
-Songloft Player Lynx 从 Flutter 版整体重写，当前已实现完整的音乐播放功能，具备 Muse 设计语言（CSS Custom Properties 驱动）和 Liquid Glass 伪玻璃表面。但整体视觉与交互尚未系统性地对齐 Apple Human Interface Guidelines。
+Roomtone Player Lynx 从 Flutter 版整体重写，当前已实现完整的音乐播放功能，具备 Muse 设计语言（CSS Custom Properties 驱动）和 Liquid Glass 伪玻璃表面。但整体视觉与交互尚未系统性地对齐 Apple Human Interface Guidelines。
 
 **目标**：按照 DESIGN.md 中整理的 Apple HIG，对全部 UI 进行系统性重构，使应用在视觉层级、组件规范、动效、无障碍等维度达到「感觉像原生」的水准。
 

@@ -1,4 +1,4 @@
-# AGENTS.md — Songloft Player (Lynx)
+# AGENTS.md — Roomtone Player (Lynx)
 
 This entry contains constraints that affect code changes, validation, and exploration order. Historical incidents and measurements belong in [pitfalls](docs/project/pitfalls.md) and [progress](docs/project/progress.md). [Chinese counterpart](AGENTS.md).
 

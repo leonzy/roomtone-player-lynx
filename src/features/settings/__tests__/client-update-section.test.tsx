@@ -114,10 +114,10 @@ test('signature rejection has a readable package fallback and cannot download', 
 })
 test('an unknown comparison opens this channel release page instead of suggesting an installation package', async () => {
   const value = result()
-  const asset = { name: 'songloft-lynx-android.apk', size: 123, sha256: 'a'.repeat(64) }
+  const asset = { name: 'roomtone-lynx-android.apk', size: 123, sha256: 'a'.repeat(64) }
   value.candidate = {
     ...value.candidate, manifest: { ...manifest, assets: [asset] },
-    release: { ...value.candidate.release, assets: [{ ...asset, id: 2, updated_at: '2026-10-06T00:00:00Z', browser_download_url: 'https://github.com/leonzy/roomtone-player-lynx/releases/download/dev/songloft-lynx-android.apk' }] }
+    release: { ...value.candidate.release, assets: [{ ...asset, id: 2, updated_at: '2026-10-06T00:00:00Z', browser_download_url: 'https://github.com/leonzy/roomtone-player-lynx/releases/download/dev/roomtone-lynx-android.apk' }] }
   }
   mocks.check.mockResolvedValue({ ...value, comparison: 'unknown', bundleURL: null })
   render(<ClientUpdateSection />); await settle()

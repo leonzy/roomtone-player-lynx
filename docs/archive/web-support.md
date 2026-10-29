@@ -27,7 +27,7 @@
 
 ## 背景
 
-Songloft Player Lynx 客户端目前支持 Android 和 iOS 两个平台。`@lynx-js/web-core` 提供了在浏览器中加载 Lynx 渲染 bundle 的能力，`rspeedy dev` 的 dev server 已经内置了 web-core 中间件。需要补齐 Web 平台的音频、平台适配层和部署路径。
+Roomtone Player Lynx 客户端目前支持 Android 和 iOS 两个平台。`@lynx-js/web-core` 提供了在浏览器中加载 Lynx 渲染 bundle 的能力，`rspeedy dev` 的 dev server 已经内置了 web-core 中间件。需要补齐 Web 平台的音频、平台适配层和部署路径。
 
 ## 整体架构
 

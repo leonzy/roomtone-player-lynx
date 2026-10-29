@@ -9,6 +9,11 @@ on:
     branches: [main]
     paths-ignore: ["**.md", "LICENSE", "NOTICE"]
   workflow_dispatch:
+    inputs:
+      test_only:
+        description: Build test packages (Android test signature, unsigned HarmonyOS), without publishing a formal Release
+        type: boolean
+        default: false
 
 concurrency:
   group: lynx-release-${{ github.ref }}
@@ -96,12 +101,12 @@ jobs:
           fi
           node scripts/copy-bundle-web.mjs "${EXTRA[@]}" --out-dir ".build/web-$MODE"
           cp .build/version.json ".build/web-$MODE/version.json"
-          tar -czf "songloft-lynx-web-$MODE.tar.gz" -C ".build/web-$MODE" .
-          python3 scripts/verify-package.py "$PLATFORM" "songloft-lynx-web-$MODE.tar.gz" .build/version.json
+          tar -czf "roomtone-lynx-web-$MODE.tar.gz" -C ".build/web-$MODE" .
+          python3 scripts/verify-package.py "$PLATFORM" "roomtone-lynx-web-$MODE.tar.gz" .build/version.json
       - uses: actions/upload-artifact@v4
         with:
           name: release-web-${{ matrix.mode }}
-          path: songloft-lynx-web-${{ matrix.mode }}.tar.gz
+          path: roomtone-lynx-web-${{ matrix.mode }}.tar.gz
           if-no-files-found: error
           retention-days: 7
 
@@ -128,7 +133,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Configure release signing
         # Fork PRs compile a local debug-signed release APK without publishing.
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && inputs.test_only != true
         env:
           KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -152,13 +157,16 @@ jobs:
       - name: Inspect APK version, payload and signature
         run: |
           set -euo pipefail
-          cp android/app/build/outputs/apk/release/app-release.apk songloft-lynx-android.apk
-          python3 scripts/verify-package.py android songloft-lynx-android.apk .build/version.json
-          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose songloft-lynx-android.apk
+          cp android/app/build/outputs/apk/release/app-release.apk roomtone-lynx-android.apk
+          python3 scripts/verify-package.py android roomtone-lynx-android.apk .build/version.json
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose roomtone-lynx-android.apk
+      - name: Label Android test signature explicitly
+        if: inputs.test_only == true
+        run: mv roomtone-lynx-android.apk roomtone-lynx-android-test.apk
       - uses: actions/upload-artifact@v4
         with:
           name: release-android
-          path: songloft-lynx-android.apk
+          path: roomtone-lynx-android*.apk
           if-no-files-found: error
           retention-days: 7
 
@@ -277,8 +285,8 @@ jobs:
           test -d "$APP"
           mkdir Payload
           cp -R "$APP" Payload/
-          zip -qry songloft-lynx-ios-nosign.ipa Payload
-          python3 scripts/verify-package.py ios songloft-lynx-ios-nosign.ipa .build/version.json
+          zip -qry roomtone-lynx-ios-nosign.ipa Payload
+          python3 scripts/verify-package.py ios roomtone-lynx-ios-nosign.ipa .build/version.json
       - name: Save iOS compilation and CocoaPods caches
         if: github.event_name != 'pull_request'
         uses: actions/cache/save@v4
@@ -291,7 +299,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: release-ios
-          path: songloft-lynx-ios-nosign.ipa
+          path: roomtone-lynx-ios-nosign.ipa
           if-no-files-found: error
           retention-days: 7
 
@@ -345,9 +353,9 @@ jobs:
           set -euo pipefail
           mapfile -t HAPS < <(find harmony/entry/build -name '*-unsigned.hap' -type f)
           test "${#HAPS[@]}" -eq 1
-          cp "${HAPS[0]}" songloft-lynx-harmony.hap
+          cp "${HAPS[0]}" roomtone-lynx-harmony.hap
       - name: Sign and verify HAP
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && inputs.test_only != true
         env:
           SIGNING_KEY: ${{ secrets.HARMONY_SIGNING_KEY_BASE64 }}
           SIGNING_PROFILE: ${{ secrets.HARMONY_SIGNING_PROFILE_BASE64 }}
@@ -369,24 +377,60 @@ jobs:
             -signAlg SHA256withECDSA -mode localSign \
             -appCertFile "$RUNNER_TEMP/signing-cert.cer" -profileFile "$RUNNER_TEMP/signing-profile.p7b" \
             -keystoreFile "$RUNNER_TEMP/signing-key.p12" -keystorePwd "$KEYSTORE_PASSWORD" \
-            -keyPwd "$KEY_PASSWORD" -inFile songloft-lynx-harmony.hap \
-            -outFile songloft-lynx-harmony-signed.hap -signCode 1
-          java -jar "$SIGN_TOOL" verify-app -inFile songloft-lynx-harmony-signed.hap \
+            -keyPwd "$KEY_PASSWORD" -inFile roomtone-lynx-harmony.hap \
+            -outFile roomtone-lynx-harmony-signed.hap -signCode 1
+          java -jar "$SIGN_TOOL" verify-app -inFile roomtone-lynx-harmony-signed.hap \
             -outCertChain "$RUNNER_TEMP/verified-chain.cer" -outProfile "$RUNNER_TEMP/verified-profile.p7b"
-          mv songloft-lynx-harmony-signed.hap songloft-lynx-harmony.hap
-      - run: python3 scripts/verify-package.py harmony songloft-lynx-harmony.hap .build/version.json
+          mv roomtone-lynx-harmony-signed.hap roomtone-lynx-harmony.hap
+      - run: python3 scripts/verify-package.py harmony roomtone-lynx-harmony.hap .build/version.json
+      - name: Label unsigned HarmonyOS test package explicitly
+        if: inputs.test_only == true
+        run: mv roomtone-lynx-harmony.hap roomtone-lynx-harmony-unsigned.hap
       - uses: actions/upload-artifact@v4
         with:
           name: release-harmony
-          path: songloft-lynx-harmony.hap
+          path: roomtone-lynx-harmony*.hap
           if-no-files-found: error
           retention-days: 7
+
+
+  test-packages:
+    name: Collect complete test packages
+    needs: [prepare, web, android, ios, harmony]
+    if: github.event_name == 'workflow_dispatch' && inputs.test_only == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: test-packages
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: js-bundles
+          path: shared-build
+      - name: Check all five test packages and record hashes
+        run: |
+          set -euo pipefail
+          cd test-packages
+          for file in roomtone-lynx-android-test.apk roomtone-lynx-ios-nosign.ipa roomtone-lynx-harmony-unsigned.hap roomtone-lynx-web-standalone.tar.gz roomtone-lynx-web-embedded.tar.gz; do
+            test -s "$file"
+          done
+          sha256sum *.apk *.ipa *.hap *.tar.gz > checksums.txt
+          cp ../shared-build/.build/version.json version.json
+          printf '%s\n' 'TEST PACKAGES: Android uses a test signing key; HarmonyOS is unsigned and requires a device-authorized signing profile. iOS requires re-signing. These packages are not a formal or automatic-update release.' > TEST-PACKAGES.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roomtone-lynx-test-packages
+          path: test-packages/
+          if-no-files-found: error
+          retention-days: 30
 
   release:
     name: Publish complete release
     needs: [prepare, web, android, ios, harmony]
     # Manual dispatch can publish dev only from main, or rebuild a v* tag.
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.event_name != 'pull_request' && inputs.test_only != true && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
     outputs:
       previous_tag: ${{ steps.previous_tag.outputs.previous_tag }}

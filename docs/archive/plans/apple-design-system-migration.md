@@ -168,7 +168,7 @@ Apple fill 用于「内容之上的小形状」：搜索框底、滑轨、分段
 | `--system-green` | `#34C759` | `#30D158` | 新增（开关开启态） |
 | `--system-gray` … `--system-gray6` | `#8E8E93`…`#F2F2F7` | `#8E8E93`…`#1C1C1E` | 新增 |
 
-`--tint-fill` **不是 Apple 语义色**——Apple 的做法是 `tintColor.opacity(0.15)`，没有对应命名令牌。它作为 Songloft 扩展保留，因为主题包需要一个可重指向的强调色 wash 通道。tokens.css 里会显式注明这一点，避免被误认为 Apple 原生语义。实测可见性：浅 1.22 / 暗 1.24，均过 1.08 下限。
+`--tint-fill` **不是 Apple 语义色**——Apple 的做法是 `tintColor.opacity(0.15)`，没有对应命名令牌。它作为 Roomtone 扩展保留，因为主题包需要一个可重指向的强调色 wash 通道。tokens.css 里会显式注明这一点，避免被误认为 Apple 原生语义。实测可见性：浅 1.22 / 暗 1.24，均过 1.08 下限。
 
 ### 3.6 `--font-sm`（14px，167 处）的处置
 
@@ -247,7 +247,7 @@ ramp / sheen / rim / highlight / border / glow 六组保留现有推导值不动
 - `.app-switch__track.ui-checked` 背景（`shared/ui/AppSwitch.css:36`）→ `--system-green`
 
 **C 类 — 不能变蓝**（需要新的中性令牌）：
-- `.toast` 背景（`shared/ui/ToastHost.css:37`）。现在是墨色胶囊 + 白字，语义上是「中性通知」。变蓝会读成「信息提示/可点击」。Apple 没有 toast 组件，故新增 Songloft 扩展 `--toast-fill`（浅 `#1C1C1E` / 暗 `#F2F2F7`，即反相灰），文字用 `--toast-content`。**AGENTS.md 记载 toast 刻意不玻璃化**，此处沿用该决定。
+- `.toast` 背景（`shared/ui/ToastHost.css:37`）。现在是墨色胶囊 + 白字，语义上是「中性通知」。变蓝会读成「信息提示/可点击」。Apple 没有 toast 组件，故新增 Roomtone 扩展 `--toast-fill`（浅 `#1C1C1E` / 暗 `#F2F2F7`，即反相灰），文字用 `--toast-content`。**AGENTS.md 记载 toast 刻意不玻璃化**，此处沿用该决定。
 - `.home-stats` 填充（`--primary-2`，`HomePage.css`）。整条统计带填成 systemBlue 会过于抢眼且与 Apple「统计卡用 secondary 背景」的做法冲突。改为 `--secondary-system-background` + `--label` 文字，`--accent-2` 因此可能不再需要，待 P4 确认后决定删除。
 
 `--accent`（27 处）全部属 A 类，直接迁移；`--primary-content`（42 处）统一为 `#FFFFFF`——浅色本来就是白，暗色从 `#0f0f11` 变白，这是暗色主题下的正确变化（白字在蓝底上）。
@@ -804,7 +804,7 @@ Apple 自己的设置图标在浅色下 Green/Orange/Teal 配白字都过不了 
 | 清缓存 ×2 | logout | red(danger) | 破坏性 |
 | 导出日志 | menu | orange | 诊断 |
 | 服务器条目 | link | blue | 网络 |
-| 版本/服务器/Songloft/许可 | info/link/music/info | gray/blue/pink/gray | 信息+品牌 |
+| 版本/服务器/Roomtone/许可 | info/link/music/info | gray/blue/pink/gray | 信息+品牌 |
 | 重复检测 | fingerprint | indigo | 检索/身份 |
 | 清无效曲 | stop | red(danger) | 破坏性 |
 
@@ -1262,7 +1262,7 @@ P10 之后、真机体验之前的一轮收尾。目标：把「编码绿」尽�
 
 - 选中态全圆角 **pill(999)→圆角矩形 `--radius-grouped`(10px)**（iPadOS 侧栏是圆角矩形，pill 是 iOS tab-bar 语言）。
 - 项间距 8px→4px（iPad 选中矩形近乎相接）。
-- 选中填充按用户选「灰底圆角矩形+accent 文字」：淡 accent wash→`--system-gray5`（#e5e5ea 浅/#2c2c2e 深），图标+文字走 accent。注：accent 在 gray5 上对比 2.8，与 Apple Music iPad 侧栏（红字/同款灰，亦 ~2.8）一致，属 Apple 值原样落地的既有取舍。品牌块（Songloft）按用户要求保留。
+- 选中填充按用户选「灰底圆角矩形+accent 文字」：淡 accent wash→`--system-gray5`（#e5e5ea 浅/#2c2c2e 深），图标+文字走 accent。注：accent 在 gray5 上对比 2.8，与 Apple Music iPad 侧栏（红字/同款灰，亦 ~2.8）一致，属 Apple 值原样落地的既有取舍。品牌块（Roomtone）按用户要求保留。
 
 ## Docker Chrome 登录打通（可复现）
 

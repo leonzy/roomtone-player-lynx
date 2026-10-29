@@ -8,7 +8,7 @@
 |---|---|
 | Node | `^20.19.0 \|\| >=22.12.0` |
 | 包管理 | pnpm |
-| 后端 | Songloft 后端跑在 `http://localhost:58091`（账号 `admin/admin`） |
+| 后端 | Roomtone 后端跑在 `http://localhost:58091`（账号 `admin/admin`） |
 
 后端不在本仓库。它的 API 契约（OpenAPI）也不在——权威来源是后端仓库的 `docs/swagger.json`，或开发模式下的 `http://localhost:58091/swagger/index.html`。**刻意不往本仓库复制副本**：复制品必然漂移，而后端是 121 个 path 的活契约。
 

@@ -1,4 +1,4 @@
-# Songloft Player：Flutter → Lynx 迁移路线图
+# Roomtone Player：Flutter → Lynx 迁移路线图
 
 > **⚠️ 文档性质：预研阶段参考**
 > 本文档产出于迁移启动前。当前进度：

@@ -1,6 +1,6 @@
 # 平台差异
 
-Songloft Player 一套 ReactLynx 代码跑四个宿主：Android（Kotlin + ExoPlayer）、iOS（Swift + AVPlayer）、HarmonyOS（ArkTS + AVPlayer）、Web（`@lynx-js/web-core`，业务代码在真 Worker 里）。四端**不是**同一套能力的四份实现，差异有三个不同来源：
+Roomtone Player 一套 ReactLynx 代码跑四个宿主：Android（Kotlin + ExoPlayer）、iOS（Swift + AVPlayer）、HarmonyOS（ArkTS + AVPlayer）、Web（`@lynx-js/web-core`，业务代码在真 Worker 里）。四端**不是**同一套能力的四份实现，差异有三个不同来源：
 
 1. **平台交互不同** —— iOS 没有 Android 式硬件返回键；悬浮歌词和 Live Activity 也不能直接把一个平台的 API 搬到其他宿主，需要分别设计实现与降级。
 2. **同一个 OS 概念的实现语义不同** —— iOS 的 `addPeriodicTimeObserver(forInterval:)` 按**媒体时间**计间隔，Android 的 `postDelayed` 按**墙钟**计。两者都"每 500ms 上报一次进度"，变速时行为分叉。

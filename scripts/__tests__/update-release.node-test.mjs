@@ -23,8 +23,8 @@ function fixture(t) {
   const directory = join(base, 'release')
   const dist = join(base, 'dist')
   mkdirSync(directory); mkdirSync(dist)
-  for (const name of ['songloft-lynx-android.apk', 'songloft-lynx-ios-nosign.ipa',
-    'songloft-lynx-harmony.hap', 'songloft-lynx-web-standalone.tar.gz', 'songloft-lynx-web-embedded.tar.gz'])
+  for (const name of ['roomtone-lynx-android.apk', 'roomtone-lynx-ios-nosign.ipa',
+    'roomtone-lynx-harmony.hap', 'roomtone-lynx-web-standalone.tar.gz', 'roomtone-lynx-web-embedded.tar.gz'])
     writeFileSync(join(directory, name), `package ${name}`)
   writeFileSync(join(directory, 'version.json'), JSON.stringify(metadata))
   const bundleSource = join(dist, 'main.lynx.bundle')

@@ -1,6 +1,6 @@
 # 文档索引
 
-Songloft Player Lynx 客户端项目文档。按 [Diátaxis](https://diataxis.fr/) 组织 —— **按你此刻的意图找，而不是按主题猜**。
+Roomtone Player Lynx 客户端项目文档。按 [Diátaxis](https://diataxis.fr/) 组织 —— **按你此刻的意图找，而不是按主题猜**。
 
 [English](en/README.md) · [安装](guides/installation.md) · [发版](guides/releasing.md) · [贡献](../CONTRIBUTING.md)
 

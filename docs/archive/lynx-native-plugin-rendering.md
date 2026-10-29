@@ -199,7 +199,7 @@ function buildLynxBundleUrl(entryPath: string): string {
 - `close()`: 销毁嵌套 `<lynx-view>`
 - 子→父消息通过 `sendGlobalEvent('SongloftLynxFrame.message', ...)` 转发
 
-**新文件**: `web/songloft-lynx-bridge-module.js`
+**新文件**: `web/roomtone-lynx-bridge-module.js`
 
 子 `<lynx-view>` 的 NativeModule ESM，暴露 `hostCall`/`registerChild` 方法，实际通过 parent `lynx-frame-host.js` 的拦截回调向上转发。
 

@@ -68,9 +68,9 @@ export function ClientUpdateSection() {
   }
   const openPackage = () => {
     const platform = getPlatformTarget()
-    const assetName = web ? `songloft-lynx-web-${appConfig.isEmbedded ? 'embedded' : 'standalone'}.tar.gz`
-      : platform === 'android' ? 'songloft-lynx-android.apk' : platform === 'ios' ? 'songloft-lynx-ios-nosign.ipa'
-        : platform === 'harmony' ? 'songloft-lynx-harmony.hap' : null
+    const assetName = web ? `roomtone-lynx-web-${appConfig.isEmbedded ? 'embedded' : 'standalone'}.tar.gz`
+      : platform === 'android' ? 'roomtone-lynx-android.apk' : platform === 'ios' ? 'roomtone-lynx-ios-nosign.ipa'
+        : platform === 'harmony' ? 'roomtone-lynx-harmony.hap' : null
     const asset = check?.comparison === 'newer' && assetName ? releaseAsset(check.candidate, assetName) : null
     const address = asset && check ? withGithubProxy(asset.browser_download_url, check.candidate.proxy) : page
     if (address) openURL(address)

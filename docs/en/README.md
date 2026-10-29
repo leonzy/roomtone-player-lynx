@@ -1,6 +1,6 @@
 # Documentation index
 
-Songloft Player (Lynx) documentation, organized by task using Diátaxis.
+Roomtone Player (Lynx) documentation, organized by task using Diátaxis.
 
 [简体中文](../README.md) · [Installation](guides/installation.md) · [Releasing](guides/releasing.md) · [Contributing](../../CONTRIBUTING.en.md)
 

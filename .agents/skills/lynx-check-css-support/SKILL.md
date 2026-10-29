@@ -78,7 +78,7 @@ Treat `availability` as follows:
 
 ## Keep data current
 
-The bundled snapshot was reviewed and synchronized from the official npm package `@lynx-js/css-defines@0.0.18` on 2026-10-08. It includes declarations for SDK versions newer than Songloft's hosts (for example 4.2); always pass `--lynx-version` when checking this project. Package freshness does not imply host availability.
+The bundled snapshot was reviewed and synchronized from the official npm package `@lynx-js/css-defines@0.0.18` on 2026-10-08. It includes declarations for SDK versions newer than Roomtone's hosts (for example 4.2); always pass `--lynx-version` when checking this project. Package freshness does not imply host availability.
 
 Report the displayed package version with every compatibility answer. When the user asks whether the data is current, or freshness is important to the task, run:
 

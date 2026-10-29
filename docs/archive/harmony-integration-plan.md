@@ -4,7 +4,7 @@
 
 ## 背景
 
-Songloft Player Lynx 当前支持 Android（Kotlin）和 iOS（Swift）两个原生宿主。Lynx SDK 4.0.0 已将 `'Harmony'` 作为一等平台写入类型系统（`SystemInfo.platform === 'Harmony'`），CSS 兼容数据也包含 harmony 列，UI 组件均有 `@Harmony` 标注。JS bundle 跨平台共用，只需新增 ArkTS 原生宿主即可在鸿蒙上运行。
+Roomtone Player Lynx 当前支持 Android（Kotlin）和 iOS（Swift）两个原生宿主。Lynx SDK 4.0.0 已将 `'Harmony'` 作为一等平台写入类型系统（`SystemInfo.platform === 'Harmony'`），CSS 兼容数据也包含 harmony 列，UI 组件均有 `@Harmony` 标注。JS bundle 跨平台共用，只需新增 ArkTS 原生宿主即可在鸿蒙上运行。
 
 ## 总体方案
 

@@ -135,3 +135,7 @@ prepare job 运行类型检查、生产双产物构建、完整 JS 测试与发�
 正式 JS 构建默认替换掉 devtools/E2E 入口。原生测试桥只能在 Debug 注册/启动，监听 `127.0.0.1:9230`；dev 下载包同样为 Release，不能用于 TestBridge E2E。测试构建方法见[测试指南](testing.md)。
 
 CI 通过证明构建和包检查通过。后台播放、系统权限、DLNA、视频与 HarmonyOS 仍需要对应设备验收。首次切换新工作流后，要核对 Release 的五个包、版本信息、签名身份，并实际安装验证覆盖升级。
+
+## Fork 测试包
+
+在 Actions 手动运行时开启 `test_only`，可在没有发布签名的 fork 中打包五端测试制品。Android 明确标为 `-test.apk`，鸿蒙明确标为 `-unsigned.hap`；iOS 仍需自行重签。所有平台成功后汇总为 `roomtone-lynx-test-packages` artifact，包含校验和与构建元数据，不发布正式 Release 或自动更新清单。正式发布继续要求完整签名配置。双语 Release 安装表维护在 `.github/release-notes.md`。

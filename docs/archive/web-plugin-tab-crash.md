@@ -149,7 +149,7 @@ shadow root**（`LynxView.js` 的 `shadowRoot.innerHTML = ''`），`awaitDispose
 
 `web/index.html` 有 `<script src="/lynx-frame-host.js">`，但
 `scripts/copy-bundle-web.mjs` 的 `HOST_SCRIPTS` 清单里**没有**它，也没有
-`songloft-lynx-frame-module.js` 与 `songloft-lynx-bridge-module.js`。也就是说
+`roomtone-lynx-frame-module.js` 与 `roomtone-lynx-bridge-module.js`。也就是说
 **`renderEngine: "lynx"` 的插件在 standalone 可部署产物里从来没工作过**：script 标签
 404 → `SongloftLynxFrame` 从未注册 → facade 报 unavailable。
 

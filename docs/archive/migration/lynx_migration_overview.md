@@ -1,4 +1,4 @@
-# Songloft Player：Flutter → Lynx 迁移总览
+# Roomtone Player：Flutter → Lynx 迁移总览
 
 > **⚠️ 文档性质：预研阶段参考**
 > 本文档产出于迁移启动前，用于论证可行性。项目已完成 P0–P2（技术验证 + 基础设施 + 核心业务），下列结论大部分已被实践验证。当前项目实际状态见 [docs/README.md](../../README.md)。
@@ -23,7 +23,7 @@
 
 ## 1. 迁移动机
 
-现有 Songloft Player 是一个 Flutter 客户端，覆盖 Android / iOS / Web / macOS / Windows / Linux 六端。迁移到 Lynx 的动机不是「Flutter 不好用」，而是围绕**热更新合规**与**分发架构简化**的一组具体收益：
+现有 Roomtone Player 是一个 Flutter 客户端，覆盖 Android / iOS / Web / macOS / Windows / Linux 六端。迁移到 Lynx 的动机不是「Flutter 不好用」，而是围绕**热更新合规**与**分发架构简化**的一组具体收益：
 
 1. **原生热更新能力**。当前为绕过应用商店审核限制而自建了一整套 Flutter 补丁机制（`flutter_patcher` / `libapp.so` 补丁 / Dart 契约哈希闸 / Kotlin 层冻结规则）。Lynx bundle 本身就是可下发的 JS 产物，热更新是**框架原生能力**，这套自研机制可整体删除。
 2. **解除 GPL 传染**。当前客户端因链接了 `webf`（GPL-3.0-only）而整体按 GPL-3.0 分发，并承担随包分发源码通知义务。Lynx 的 `<webview>` 可替代 WebF 承载 JS 插件页，解除这一传染。

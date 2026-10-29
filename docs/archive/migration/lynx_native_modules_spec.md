@@ -1,4 +1,4 @@
-# Songloft Player：Lynx 自研原生能力规范
+# Roomtone Player：Lynx 自研原生能力规范
 
 > **⚠️ 文档性质：预研阶段参考**
 > 本文档产出于迁移启动前。以下模块已实现（Android + iOS）：

@@ -12,7 +12,7 @@
 
 ## 概述
 
-本计划覆盖 Songloft Player Lynx 的所有页面和核心交互流程，基于现有 TestBridge 架构（TCP 9230 端口 + JS eval），通过 zustand store 直接驱动和验证应用状态。
+本计划覆盖 Roomtone Player Lynx 的所有页面和核心交互流程，基于现有 TestBridge 架构（TCP 9230 端口 + JS eval），通过 zustand store 直接驱动和验证应用状态。
 
 **测试原则：**
 - 每个 scenario 文件对应一个功能域

@@ -117,7 +117,7 @@ try {
       `refs/tags/${tag}`,
     ])
   console.error(
-    `Prepared ${tag}${flags.has('--no-push') ? ' locally' : ': https://github.com/songloft-org/songloft-player-lynx/releases/tag/' + tag}`,
+    `Prepared ${tag}${flags.has('--no-push') ? ' locally' : ': https://github.com/leonzy/roomtone-player-lynx/releases/tag/' + tag}`,
   )
   // 统一发布契约：stdout 末行输出新版本号（带 v 前缀），方便链式调用。
   console.log(tag)

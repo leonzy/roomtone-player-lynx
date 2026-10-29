@@ -1,4 +1,4 @@
-# AGENTS.md — Songloft Player (Lynx)
+# AGENTS.md — Roomtone Player (Lynx)
 
 本文件只保留会直接影响代码修改、验证范围和探索顺序的约束。事故经过、测量数据和历史批次统一放在 [`docs/project/pitfalls.md`](docs/project/pitfalls.md) 与 [`docs/project/progress.md`](docs/project/progress.md)，不要在这里复制第二份。
 

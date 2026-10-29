@@ -457,11 +457,11 @@ test('finalizer rejects incomplete assets and writes reproducible SHA-256 eviden
   const version = JSON.parse(readFileSync(join(root, 'package.json'))).version
   const meta = createBuildMetadata({ packageVersion: version, now })
   const names = [
-    'songloft-lynx-android.apk',
-    'songloft-lynx-ios-nosign.ipa',
-    'songloft-lynx-harmony.hap',
-    'songloft-lynx-web-standalone.tar.gz',
-    'songloft-lynx-web-embedded.tar.gz',
+    'roomtone-lynx-android.apk',
+    'roomtone-lynx-ios-nosign.ipa',
+    'roomtone-lynx-harmony.hap',
+    'roomtone-lynx-web-standalone.tar.gz',
+    'roomtone-lynx-web-embedded.tar.gz',
   ]
   writeFileSync(join(directory, 'version.json'), JSON.stringify(meta))
   const run = () =>
