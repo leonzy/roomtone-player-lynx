@@ -42,10 +42,11 @@ export async function refreshOutputs() {
   const generation = ++refreshGeneration
   const key = outputKey()
   const value = await outputApi.outputs()
-  if (generation !== refreshGeneration) return
+  if (generation !== refreshGeneration) return value
   getQueryClient().setQueryData(key, value)
   if (!focusedGroup() && localGroup()) useZoneState.setState({ focus: localGroup()!.id })
   await projectRemote()
+  return value
 }
 let local: StoreApi<PlayerState> | null = null
 let display: StoreApi<PlayerState> | null = null
@@ -275,7 +276,12 @@ async function handleCommand(message: Record<string, unknown>) {
     pendingLoad = (async () => {
       suppressQueue++
       try {
-        const g = localGroup()!, status = await outputApi.getQueue(g.id)
+        // Membership changes before its WS event: discard the old solo-group cache.
+        const outputs = await refreshOutputs()
+        if (generation !== commandGeneration) return
+        const g = outputs.groups.find(g => g.members.some(m => m.player_id === useZoneState.getState().deviceId))
+        if (!g) return
+        const status = await outputApi.getQueue(g.id)
         const songs = await outputApi.songs(status.queue.items)
         if (generation !== commandGeneration || songs[status.queue.current]?.id !== message.song_id) return
         await local!.getState().loadZoneQueue({ songs, index: status.queue.current, positionMs: Number(message.position_ms ?? 0) })

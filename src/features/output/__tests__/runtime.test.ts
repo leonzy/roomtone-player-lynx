@@ -107,7 +107,7 @@ test('stop during a pending queue load prevents a late load or scheduled play', 
   let resolve!: (value: ReturnType<typeof song>[]) => void
   vi.mocked(outputApi.songs).mockImplementationOnce(() => new Promise(r => { resolve = r }))
   socket.callbacks!.message({ cmd: 'load', song_id: 1 })
-  await Promise.resolve(); await Promise.resolve()
+  for (let i = 0; i < 30; i++) await Promise.resolve()
   socket.callbacks!.message({ cmd: 'stop' })
   resolve([song(1), song(2)])
   for (let i = 0; i < 12; i++) await Promise.resolve()
@@ -141,7 +141,7 @@ test('local user playback supersedes an in-flight server load', async () => {
   let resolve!: (value: ReturnType<typeof song>[]) => void
   vi.mocked(outputApi.songs).mockImplementationOnce(() => new Promise(r => { resolve = r }))
   socket.callbacks!.message({ cmd: 'load', song_id: 1 })
-  await Promise.resolve(); await Promise.resolve()
+  for (let i = 0; i < 30; i++) await Promise.resolve()
   await player.getState().playSong(song(9))
   resolve([song(1), song(2)])
   for (let i = 0; i < 12; i++) await Promise.resolve()
@@ -221,3 +221,16 @@ test('remote play all replaces the selected zone queue, not appends to it', asyn
   expect(outputApi.transport).toHaveBeenLastCalledWith('remote', 'play')
   expect(engine.getState().playAll).not.toHaveBeenCalled()
 })
+
+ test('hot join loads the new group instead of a deleted solo group', async () => {
+  vi.spyOn(getSharedClient(), 'post').mockResolvedValue({ data: { ticket: 'one-use' } } as never)
+  cleanup = await startOutputRuntime()
+  await Promise.resolve(); await Promise.resolve()
+  socket.callbacks!.open()
+  outputs.groups = [outputs.groups[1]!]
+  outputs.groups[0]!.members.push({ player_id: 'web', delay_ms: 0, volume_offset: 0, position: 1 })
+  socket.callbacks!.message({ cmd: 'load', song_id: 3, position_ms: 45000 })
+  for (let i = 0; i < 50; i++) await Promise.resolve()
+  expect(outputApi.getQueue).toHaveBeenLastCalledWith('remote')
+  expect(engine.getState().loadZoneQueue).toHaveBeenCalledWith({ songs: [song(3), song(4)], index: 0, positionMs: 45000 })
+ })
