@@ -101,7 +101,7 @@ test('old shells provide only this channel release page and do not run a network
   await act(async () => { fireEvent.tap(queries.queryByTestId('client-update-check')!) })
   expect(mocks.check).not.toHaveBeenCalled()
   await act(async () => { fireEvent.tap(queries.queryByTestId('client-update-package')!) })
-  expect(mocks.open).toHaveBeenCalledExactlyOnceWith('https://github.com/songloft-org/songloft-player-lynx/releases/tag/dev')
+  expect(mocks.open).toHaveBeenCalledExactlyOnceWith('https://github.com/leonzy/roomtone-player-lynx/releases/tag/dev')
 })
 test('signature rejection has a readable package fallback and cannot download', async () => {
   mocks.check.mockResolvedValue({ ...result(), bundleURL: null, bundleReason: 'signature_invalid' })
@@ -117,14 +117,14 @@ test('an unknown comparison opens this channel release page instead of suggestin
   const asset = { name: 'songloft-lynx-android.apk', size: 123, sha256: 'a'.repeat(64) }
   value.candidate = {
     ...value.candidate, manifest: { ...manifest, assets: [asset] },
-    release: { ...value.candidate.release, assets: [{ ...asset, id: 2, updated_at: '2026-10-06T00:00:00Z', browser_download_url: 'https://github.com/songloft-org/songloft-player-lynx/releases/download/dev/songloft-lynx-android.apk' }] }
+    release: { ...value.candidate.release, assets: [{ ...asset, id: 2, updated_at: '2026-10-06T00:00:00Z', browser_download_url: 'https://github.com/leonzy/roomtone-player-lynx/releases/download/dev/songloft-lynx-android.apk' }] }
   }
   mocks.check.mockResolvedValue({ ...value, comparison: 'unknown', bundleURL: null })
   render(<ClientUpdateSection />); await settle()
   const queries = getQueriesForElement(elementTree.root!)
   await act(async () => { fireEvent.tap(queries.queryByTestId('client-update-check')!) }); await settle()
   await act(async () => { fireEvent.tap(queries.queryByTestId('client-update-package')!) })
-  expect(mocks.open).toHaveBeenCalledExactlyOnceWith('https://github.com/songloft-org/songloft-player-lynx/releases/tag/dev')
+  expect(mocks.open).toHaveBeenCalledExactlyOnceWith('https://github.com/leonzy/roomtone-player-lynx/releases/tag/dev')
 })
 test('restore requires a second tap, stays on the current root and displays next cold start after success', async () => {
   await automaticUpdatePolicy.setEnabled(true)

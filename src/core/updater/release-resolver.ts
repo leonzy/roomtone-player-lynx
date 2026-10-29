@@ -1,7 +1,7 @@
 import { compareStableVersions, parseReleaseManifest, type BuildIdentity, type ReleaseManifest } from './update-contract.js'
 
-export const RELEASE_REPOSITORY = 'https://github.com/songloft-org/songloft-player-lynx'
-const RELEASE_API = 'https://api.github.com/repos/songloft-org/songloft-player-lynx/releases'
+export const RELEASE_REPOSITORY = 'https://github.com/leonzy/roomtone-player-lynx'
+const RELEASE_API = 'https://api.github.com/repos/leonzy/roomtone-player-lynx/releases'
 export type ReleaseChannel = 'dev' | 'stable'
 export type VersionComparison = 'newer' | 'current' | 'unknown'
 export type MetadataFetch = (url: string, maxBytes: number) => Promise<{ status: number; body: string }>
