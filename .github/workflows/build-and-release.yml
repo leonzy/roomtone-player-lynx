@@ -16,7 +16,7 @@ on:
         default: false
 
 concurrency:
-  group: lynx-release-${{ github.ref }}
+  group: lynx-release-${{ github.ref }}-${{ inputs.test_only && 'test' || 'release' }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:

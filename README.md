@@ -1,5 +1,9 @@
 # Roomtone Player (Lynx)
 
+> Roomtone fork，源自 [Songloft](https://github.com/songloft-org/songloft-player-lynx)。原作者署名与许可证保留。
+
+> 本 fork 的未签名/测试签名包通过 [Actions](https://github.com/leonzy/roomtone-player-lynx/actions/workflows/build-and-release.yml) 手动开启 `test_only` 构建，下载 `roomtone-lynx-test-packages` artifact。Android 测试包为 `-test.apk`，鸿蒙为 `-unsigned.hap`；正式包等待发布签名配置。
+
 Roomtone Player 的 Lynx 客户端，从 Flutter 版整体重写为 ReactLynx + TypeScript。支持 Android / iOS / HarmonyOS / Web 四端。
 
 了解底层技术：[Lynx 官网](https://lynxjs.org/) · [ReactLynx 官方文档](https://lynxjs.org/react/)。

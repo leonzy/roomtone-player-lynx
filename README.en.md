@@ -1,5 +1,9 @@
 # Roomtone Player (Lynx)
 
+> Roomtone fork of [Songloft](https://github.com/songloft-org/songloft-player-lynx). Original attribution and licenses are preserved.
+
+> Build unsigned/test-signed packages using `test_only` in [Actions](https://github.com/leonzy/roomtone-player-lynx/actions/workflows/build-and-release.yml), then download the `roomtone-lynx-test-packages` artifact. Android uses `-test.apk`, HarmonyOS `-unsigned.hap`; formal packages require release signing credentials.
+
 A ReactLynx + TypeScript rewrite of the Roomtone Flutter client, targeting Android, iOS, HarmonyOS, and Web.
 
 Learn about the underlying technology: [Lynx official website](https://lynxjs.org/) · [ReactLynx documentation](https://lynxjs.org/react/).
