@@ -442,9 +442,9 @@ export class SongsApi {
    * only broadcasts the event to plugins, which is correct for playback that has
    * no stable context (the flat library list).
    */
-  async recordPlayed(songId: number, context?: PlaybackContext): Promise<void> {
+  async recordPlayed(songId: number, context?: PlaybackContext, type: 'play' | 'finish' = 'play'): Promise<void> {
     await this.client.post(`${apiPrefix}/songs/${songId}/played`, undefined, {
-      query: playedEventParams(context),
+      query: { ...playedEventParams(type === 'play' ? context : undefined), type },
     })
   }
 }

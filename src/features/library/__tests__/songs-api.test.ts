@@ -208,6 +208,14 @@ describe('playedEventParams (pure)', () => {
 })
 
 describe('play history endpoints', () => {
+  test('completion sends finish without attributing it to a newly selected context', async () => {
+    const cap = captureRequest(null)
+    await new SongsApi(client(cap.transport)).recordPlayed(5, { type: 'playlist', key: '3' }, 'finish')
+    expect(cap.req().url).toContain('type=finish')
+    expect(cap.req().url).not.toContain('context_type')
+    expect(cap.req().body).toBeUndefined()
+  })
+
   test('recordPlayed puts type + context in the QUERY, not the body', async () => {
     const cap = captureRequest(null)
     await new SongsApi(client(cap.transport)).recordPlayed(5, { type: 'playlist', key: '3' })

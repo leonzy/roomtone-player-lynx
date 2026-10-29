@@ -17,7 +17,7 @@ vi.mock('../../../native/dlna.js', () => ({ getDlnaModule: () => dlna }))
 vi.mock('../store/lyric-store.js', () => ({
   useLyricStore: { getState: () => ({ loadForSong: vi.fn(), syncPosition: vi.fn(), clear: vi.fn() }) },
 }))
-const events = vi.hoisted(() => ({ recordPlayed: vi.fn(async (_id: number, _context?: unknown) => {}) }))
+const events = vi.hoisted(() => ({ recordPlayed: vi.fn(async (_id: number, _context?: unknown, _type?: string) => {}) }))
 const cache = vi.hoisted(() => ({ getCachedPath: vi.fn(async (_id: number): Promise<string | null> => null) }))
 vi.mock('../../library/api/index.js', () => ({ getSongsApi: () => events }))
 vi.mock('../data/song-cache.js', async (original) => ({
@@ -184,6 +184,36 @@ test('native command acknowledgement without actual playing does not enter histo
   await state().playNext()
   await state().playPrev()
   expect(state().currentSong?.id).toBe(3)
+})
+
+test('natural completion reports finish once, including the final song', async () => {
+  await state().playPlaylist([song(1)])
+  emit({ type: 'stateChanged', state: 'completed' })
+  await flush()
+  emit({ type: 'stateChanged', state: 'completed' })
+  await flush()
+  expect(events.recordPlayed.mock.calls.filter(call => call[2] === 'finish')).toEqual([
+    [1, undefined, 'finish'],
+  ])
+})
+
+test('server-owned playback and manual next do not send client completion', async () => {
+  await state().playPlaylist([song(1), song(2)])
+  await state().playNext()
+  expect(events.recordPlayed.mock.calls.filter(call => call[2] === 'finish')).toEqual([])
+  await state().loadZoneQueue({ songs: [song(3)], index: 0, positionMs: 0 })
+  emit({ type: 'stateChanged', state: 'playing' })
+  emit({ type: 'stateChanged', state: 'completed' })
+  await flush()
+  expect(events.recordPlayed.mock.calls.filter(call => call[2] === 'finish')).toEqual([])
+})
+
+test('a completion signal before audio actually starts is not counted', async () => {
+  vi.spyOn(audio, 'play').mockResolvedValueOnce(undefined)
+  await state().playPlaylist([song(1)])
+  emit({ type: 'stateChanged', state: 'completed' })
+  await flush()
+  expect(events.recordPlayed.mock.calls.filter(call => call[2] === 'finish')).toEqual([])
 })
 
 test('first playback succeeding on retry reports exactly one actual play event', async () => {

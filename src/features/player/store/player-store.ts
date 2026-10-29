@@ -190,12 +190,15 @@ let _awaitingPlayback: { song: Song; generation: number } | null = null
 // A source retry/switch can happen before the first playing event. Carry its
 // pending report across that reload, then consume it once playback starts.
 let _playEventPending = false
+let _finishEventPending = false
+let _finishEligibleSong: Song | null = null
 let _trackPlayIntent: boolean | null = null
 
 function invalidateSourceLoad(): number {
   ++_loadGeneration
   _awaitingPlayback = null
   _playEventPending = false
+  _finishEventPending = false
   cancelSourceLoad(audio)
   _trackPlayIntent = null
   return _loadGeneration
@@ -748,6 +751,8 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
         audioTrackError: undefined,
       })
       _playEventPending = !cachedSongIdentity(song)
+      // Server-owned zones report completion in the backend, once for the whole group.
+      _finishEligibleSong = !server && !cachedSongIdentity(song) ? song : null
       syncNavigation()
       // Lyrics are loaded by the currentSong subscription below, not here: every
       // path that swaps the song flows through it (see the subscription's notes).
@@ -833,6 +838,11 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
     if (s.currentSong?.isLive) {
       if (!useDlnaStore.getState().activeDevice) scheduleRetry(s.currentSong, { positionMs: 0, autoplay: true })
       return
+    }
+
+    if (_finishEventPending && s.currentSong) {
+      _finishEventPending = false
+      void getSongsApi().recordPlayed(s.currentSong.id, undefined, 'finish').catch(() => {})
     }
 
     // afterSongs sleep timer: decrement first; pause if it expires.
@@ -1244,8 +1254,10 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
       const positionMs = state.currentTime
       const intent = _trackPlayIntent ?? state.isPlaying
       const pendingReport = _playEventPending
+      const pendingFinish = _finishEventPending
       const generation = invalidateSourceLoad()
       _playEventPending = pendingReport
+      _finishEventPending = pendingFinish
       _trackPlayIntent = intent
       cancelRetry()
       set({ audioTrackPending: trackIndex, isAudioTrackSwitching: true, audioTrackError: undefined })
@@ -1415,6 +1427,7 @@ audio.on('stateChanged', (e) => {
         _awaitingPlayback.song === useLocalPlayerStore.getState().currentSong) {
         const started = _awaitingPlayback
         _awaitingPlayback = null
+        _finishEventPending = _finishEligibleSong === started.song
         markCurrentPlayed()
         if (_playEventPending) {
           _playEventPending = false
