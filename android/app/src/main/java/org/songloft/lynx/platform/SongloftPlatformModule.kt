@@ -37,7 +37,7 @@ class SongloftPlatformModule(context: Context) : LynxModule(context) {
     private fun playbackEvent(id: String, type: String, data: String = "") {
         val context = mContext as? LynxContext ?: return
         context.sendGlobalEvent("roomtonePlaybackSocket", com.lynx.react.bridge.JavaOnlyArray.of(
-            com.lynx.react.bridge.JavaOnlyMap.of("id", id, "type", type, "data", data)))
+            com.lynx.react.bridge.JavaOnlyMap.from(mapOf("id" to id, "type" to type, "data" to data))))
     }
 
     @LynxMethod
