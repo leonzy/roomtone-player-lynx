@@ -40,7 +40,7 @@ import { REQUEST_TIMEOUT_HEADER } from '../core/network/http-client.js'
 
 const repoRoot = path.resolve(__dirname, '../..')
 const read = (relative: string): string =>
-  readFileSync(path.join(repoRoot, relative), 'utf8')
+  readFileSync(path.join(repoRoot, relative), 'utf8').replace(/\r\n/g, '\n')
 
 test('iOS cold widget actions return a scalar callback matching the JS consumer', () => {
   const platform = read('ios/SongloftLynx/SongloftPlatformModule.swift')

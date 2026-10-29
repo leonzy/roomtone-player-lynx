@@ -158,7 +158,7 @@ class NowPlayingWidget : AppWidgetProvider() {
             )
             view.setTextViewText(
                 R.id.widget_artist,
-                if (hasSong) data.optString("artist") else "Songloft",
+                if (hasSong) data.optString("artist") else "Roomtone Lynx",
             )
             val cover =
                 if (hasSong)
