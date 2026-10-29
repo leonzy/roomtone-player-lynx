@@ -283,5 +283,5 @@ test('cleanup reads the host total and allows a large library path check to fini
     return { status: 200, headers: {}, body: JSON.stringify({ total: 7, file_not_found: 5, in_excluded_dir: 2 }) }
   }
   expect(await new SongsApi(client(transport)).cleanInvalidSongs()).toEqual({ cleaned: 7 })
-  expect(timeout).toBe(120_000)
+  expect(timeout).toBe(300_000)
 })

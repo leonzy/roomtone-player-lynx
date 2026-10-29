@@ -332,7 +332,7 @@ export class SongsApi {
   }
 
   async cleanInvalidSongs(): Promise<{ cleaned: number }> {
-    const res = await this.client.post<Record<string, unknown>>(`${apiPrefix}/songs/clean`, {}, { receiveTimeoutMs: 120_000 })
+    const res = await this.client.post<Record<string, unknown>>(`${apiPrefix}/songs/clean`, {}, { receiveTimeoutMs: 300_000 })
     const data = res.data ?? {}
     return { cleaned: Number(data.total ?? data.cleaned ?? data.count ?? 0) }
   }
