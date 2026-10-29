@@ -291,7 +291,7 @@ export function LibraryOpsPage({ onOpenDuplicates }: LibraryOpsPageProps = {}) {
             setCleanResult(null)
             void getSongsApi().cleanInvalidSongs()
               .then(r => setCleanResult(t('libops.cleanResult', { count: r.cleaned })))
-              .catch(() => setCleanResult(t('libops.cleanFailed')))
+              .catch(error => setCleanResult(`${t('libops.cleanFailed')}: ${error instanceof Error ? error.message : String(error)}`))
               .finally(() => setCleaning(false))
           }}
           testId='libops-clean-invalid'

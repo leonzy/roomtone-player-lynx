@@ -32,7 +32,7 @@ export class FingerprintApi {
 
   /** `GET /scan/fingerprints/status` — fingerprint stats overview. */
   async getFingerprintStatus(): Promise<FingerprintStatus> {
-    const res = await this.client.get<unknown>(`${apiPrefix}/scan/fingerprints/status`)
+    const res = await this.client.get<unknown>(`${apiPrefix}/scan/fingerprints/status`, { receiveTimeoutMs: 120_000 })
     return parseFingerprintStatus(res.data)
   }
 
@@ -50,6 +50,7 @@ export class FingerprintApi {
     await this.client.post<unknown>(
       `${apiPrefix}/scan/fingerprints`,
       Object.keys(body).length > 0 ? body : undefined,
+      { receiveTimeoutMs: 120_000 },
     )
   }
 
@@ -67,7 +68,7 @@ export class FingerprintApi {
 
   /** `GET /songs/duplicates` — fetch all duplicate groups. */
   async getDuplicates(): Promise<DuplicatesResult> {
-    const res = await this.client.get<unknown>(`${apiPrefix}/songs/duplicates`)
+    const res = await this.client.get<unknown>(`${apiPrefix}/songs/duplicates`, { receiveTimeoutMs: 120_000 })
     return parseDuplicatesResult(res.data)
   }
 

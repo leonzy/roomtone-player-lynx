@@ -139,3 +139,19 @@ describe('FingerprintApi.batchDelete', () => {
     expect(result.deleted).toBe(3)
   })
 })
+
+
+test('library-wide fingerprint operations have a maintenance deadline while progress polls stay short', async () => {
+  const timeouts: number[] = []
+  const transport: Transport = async req => {
+    timeouts.push(req.timeoutMs ?? 0)
+    return { status: 200, headers: {}, body: '{}' }
+  }
+  const api = new FingerprintApi(client(transport))
+  await api.getFingerprintStatus()
+  await api.startFingerprintCompute({ retryFailed: true })
+  await api.getDuplicates()
+  await api.getFingerprintProgress()
+  expect(timeouts.slice(0,3)).toEqual([120_000,120_000,120_000])
+  expect(timeouts[3]).toBe(15_000)
+})

@@ -274,3 +274,14 @@ describe('play history endpoints', () => {
     expect(url).toContain('song_id=11')
   })
 })
+
+
+test('cleanup reads the host total and allows a large library path check to finish', async () => {
+  let timeout = 0
+  const transport: Transport = async req => {
+    timeout = req.timeoutMs ?? 0
+    return { status: 200, headers: {}, body: JSON.stringify({ total: 7, file_not_found: 5, in_excluded_dir: 2 }) }
+  }
+  expect(await new SongsApi(client(transport)).cleanInvalidSongs()).toEqual({ cleaned: 7 })
+  expect(timeout).toBe(120_000)
+})

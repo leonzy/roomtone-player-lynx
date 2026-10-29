@@ -676,3 +676,14 @@ test('the restored controls can start a reimport', async () => {
     expect.anything(),
   )
 })
+
+
+test('cleanup errors retain the actionable server or network reason', async () => {
+  h.cleanInvalid.mockRejectedValueOnce(new Error('permission denied'))
+  const { queryByTestId, queryByText } = await renderPage()
+  await act(async () => {
+    fireEvent.tap(queryByTestId('libops-clean-invalid')!)
+    for (let i=0; i<5; i++) await Promise.resolve()
+  })
+  expect(queryByText('Clean failed: permission denied')).toBeInTheDocument()
+})

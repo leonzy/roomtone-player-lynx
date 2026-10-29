@@ -332,9 +332,9 @@ export class SongsApi {
   }
 
   async cleanInvalidSongs(): Promise<{ cleaned: number }> {
-    const res = await this.client.post<Record<string, unknown>>(`${apiPrefix}/songs/clean`, {})
+    const res = await this.client.post<Record<string, unknown>>(`${apiPrefix}/songs/clean`, {}, { receiveTimeoutMs: 120_000 })
     const data = res.data ?? {}
-    return { cleaned: Number(data.cleaned ?? data.count ?? 0) }
+    return { cleaned: Number(data.total ?? data.cleaned ?? data.count ?? 0) }
   }
 
   async addRemoteSongs(songs: { title: string; url: string; artist?: string; album?: string; cover_url?: string; duration?: number; is_video?: boolean }[]): Promise<void> {
