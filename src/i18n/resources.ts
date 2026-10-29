@@ -174,7 +174,7 @@ export const en = {
     backToCurrent: 'Back to now playing',
   },
   auth: {
-    title: 'Songloft',
+    title: 'Roomtone',
     subtitle: 'Sign in to continue',
     username: 'Username',
     password: 'Password',
@@ -1413,7 +1413,7 @@ export const zh: TranslationTree = {
     backToCurrent: '回到正在播放',
   },
   auth: {
-    title: 'Songloft',
+    title: 'Roomtone',
     subtitle: '登录以继续',
     username: '用户名',
     password: '密码',

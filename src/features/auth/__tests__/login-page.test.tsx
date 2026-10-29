@@ -166,7 +166,7 @@ afterEach(async () => {
 test('renders the login page with title, labels, agreement and login button', async () => {
   const { appRouter, queryByText, queryByTestId } = await renderLogin()
   expect(appRouter.state.location.pathname).toBe('/login')
-  expect(queryByText('Songloft')).toBeInTheDocument()
+  expect(queryByText('Roomtone')).toBeInTheDocument()
   expect(queryByText('Sign in to continue')).toBeInTheDocument()
   expect(queryByText('Username')).toBeInTheDocument()
   expect(queryByText('Password')).toBeInTheDocument()
