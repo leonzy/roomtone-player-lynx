@@ -789,6 +789,8 @@ describe('togglePlay when the engine holds nothing (cold start, auto-resume off)
     await flush()
 
     expect(loadSpy).toHaveBeenCalledTimes(1)
+    expect(audio.lastLoad?.opts).toEqual(expect.objectContaining({ initialPositionMs: 42_000, autoplay: false }))
+    expect(usePlayerStore.getState().currentTime).toBe(42_000)
     expect(usePlayerStore.getState().isPlaying).toBe(true)
     loadSpy.mockRestore()
   })
@@ -869,6 +871,10 @@ describe('restorePlaybackState', () => {
     // Lyrics follow the restored song — the bug this whole describe pins.
     expect(lyricStore.loadForSong).toHaveBeenCalledWith(playback.saved.playlist[0])
     expect(loadSpy).toHaveBeenCalledTimes(1)
+    expect((getAudio() as MockSongloftAudio).lastLoad?.opts).toEqual(
+      expect.objectContaining({ initialPositionMs: 42_000, autoplay: false }),
+    )
+    expect(usePlayerStore.getState().currentTime).toBe(42_000)
 
     // Pause then resume: the engine already holds the song, so no reload.
     // Without `_loadedSongId` being set after the resume load, this togglePlay
@@ -888,6 +894,40 @@ describe('restorePlaybackState', () => {
 
     expect(usePlayerStore.getState().currentSong?.id).toBe(8)
     expect(lyricStore.loadForSong).toHaveBeenCalledWith(usePlayerStore.getState().currentSong)
+  })
+
+  test('a restored local library song waits for preparation before playing at the saved position', async () => {
+    const audio = getAudio() as MockSongloftAudio
+    playback.saved = { playlist: [song(8, 300)], currentIndex: 0, positionMs: 73_000 }
+    prefs.autoResume = true
+    let options: AudioLoadOptions | undefined
+    const load = vi.spyOn(audio, 'load').mockImplementation(async (_url, value) => { options = value })
+    const play = vi.spyOn(audio, 'play')
+    const seek = vi.spyOn(audio, 'seek')
+    const restoring = restorePlaybackState()
+    for (let i = 0; i < 40 && !options; i++) await flush()
+    expect(options).toMatchObject({ initialPositionMs: 73_000, autoplay: false })
+    expect(play).not.toHaveBeenCalled()
+    expect(seek).not.toHaveBeenCalled()
+    const emit = (audio as unknown as { emit(event: AudioEvent): void }).emit.bind(audio)
+    emit({ type: 'sourceReady', sourceId: options!.sourceId!, positionMs: 72_900 })
+    await restoring
+    expect(usePlayerStore.getState().currentTime).toBe(72_900)
+    expect(play).toHaveBeenCalledTimes(1)
+    expect(seek).not.toHaveBeenCalled()
+    load.mockRestore()
+    play.mockRestore()
+    seek.mockRestore()
+  })
+
+  test('manual resume keeps the saved position, but choosing the next song starts at zero', async () => {
+    playback.saved = { playlist: [song(8, 300), song(9, 300)], currentIndex: 0, positionMs: 73_000 }
+    await restorePlaybackState()
+    expect(usePlayerStore.getState()).toMatchObject({ currentTime: 73_000, isPlaying: false })
+    await usePlayerStore.getState().togglePlay()
+    expect(usePlayerStore.getState()).toMatchObject({ currentTime: 73_000, isPlaying: true })
+    await usePlayerStore.getState().playNext()
+    expect(usePlayerStore.getState()).toMatchObject({ currentTime: 0, currentSong: { id: 9 } })
   })
 })
 

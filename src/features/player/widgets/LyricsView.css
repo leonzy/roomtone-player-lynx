@@ -72,6 +72,9 @@
 .player-lyrics__state-text {
   color: var(--player-secondary);
   font-size: var(--font-footnote);
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
 }
 
 .player-lyrics__inner {

@@ -1,5 +1,11 @@
 # Lynx 客户端开发经验
 
+## LYR-003：歌词失败面板必须展示宿主 detail 并在换歌时清除
+
+2026-10-31，通用 loadFailed 掩盖了 HTTP 与各歌词来源的具体原因。新增 loadError 承接 ApiError.detail，在可换行的失败面板显示，并保留重试。store 回归验证换歌后清除旧错误，渲染回归断言 QQ/网易云/LRCLIB 原因实际可见；111 项相关测试通过。真实网络失败不能被当作“无歌词”。
+
+English: The lyric failure panel now displays ApiError.detail and retains retry. Store and render regressions verify per-provider reasons are visible and old errors disappear on song changes; 111 related tests pass. Upstream/network failures must not be represented as missing lyrics.
+
 ## 2026-10-28 · 输出控制与本机音频所有权
 
 Roomtone 移植中，选择控制的区域与正在运行的本机音频必须独立。服务器队列投影由 Query 缓存持有，本机回调只写本机 store；仅明确的 transport/transfer 命令改变播放。迟到服务器装载按代际取消，但普通跳曲不能取消正常后台补队列。根级音量面板由根级返回处理器管理，播放器局部测试应断言面板请求，不能继续假设局部 popover。93 项初次运行时/播放器检查及后续队列/覆盖层回归提供证据，完整范围见 [记录](docs/project/roomtone-output-parity.md)。Seen 1×，经验；本轮不试听。
@@ -215,3 +221,19 @@ Roomtone 移植中，选择控制的区域与正在运行的本机音频必须�
 - Done right：修复后断言闲置缓存回收、当前数据保留、快照恒为 1、相同进度场景最多 2 次 map；另覆盖迟到投影、源加载、队列/区域按钮及持久化。日志 `C:/Users/leon/.local/roomtone-tools/playback-lifetime-*.log`。
 - Not run：一小时真实音频播放、故障页面的堆快照；不能把缓存与负载修复声称为已复现并彻底修复用户的点击卡死。
 - Seen 1× (2026-10-31)。
+
+### RESUME-001：恢复选择与恢复音频源必须保留同一个进度
+
+- 证据（2026-10-31）：Web 刷新后，关闭自动续播的选择保留了 42 秒，但首次 togglePlay 调用普通 playAtIndex 将其归零；自动续播使用 load 后立即 seek，没有等待 sourceReady。新增回归在旧代码中两项失败。
+- 修复：手动续播与自动续播均在装载时提交初始位置，等待 sourceReady 后使用宿主确认的位置；新选歌曲仍从零开始，服务端装载仍保持暂停和原有完成事件归属。覆盖不带 URL 的本地曲库歌曲。
+- 验证：126 项播放器、持久化与区域 runtime 回归通过，类型和 Web 构建通过。真实音频及长时间 Web 卡死复验 Not run；本项不证明点击卡死已解决。
+
+English: On reload, the first manual play discarded a restored 42-second position; automatic resume sought before source preparation completed. Both paths now use initial-position/sourceReady preparation, preserving the host-confirmed position. Fresh selections still start at zero; server-owned loads remain paused. The two original regressions failed before the fix; 126 related tests, types and Web build pass. Real audio and long-running Web-freeze validation remain Not run.
+
+### RENDER-001：高频进度订阅应下沉到实际变化的叶子
+
+- 证据（2026-10-31）：用户补充仅 Web 本机播放时交互越来越慢，进度仍走。渲染回归证明 20 次 250ms 进度更新触发 20 次 MiniPlayer 控制区渲染；旧测试的静态 store mock 无法观察此负载。
+- 修复：进度与时间叶子独立订阅，只消费实际显示的整数百分比和秒数，控制区不再订阅 currentTime。订阅型测试证明进度仍到 0:05，而控制区额外渲染为 0；145 项相关回归通过。
+- 边界：这是已验证的不必要渲染开销，不是长时间极慢点击的完整根因证明。实际浏览器持续播放及故障现场性能采样仍 Not run。
+
+English: The reported slowdown affects Web local playback while progress still advances. A subscribing render fixture found 20 whole-control renders for 20 progress ticks; static store fixtures hid this cost. Progress/time leaves now subscribe only to displayed integer percentages/seconds. The same test advances to 0:05 with zero extra control renders; 145 related tests pass. This verifies removed work, not the complete cause of the long-running slowdown; real-browser soak/profiling remains Not run.

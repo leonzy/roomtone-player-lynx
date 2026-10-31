@@ -48,6 +48,7 @@ export function LyricsView() {
   const currentIndex = useLyricStore((s) => s.currentIndex)
   const isLoading = useLyricStore((s) => s.isLoading)
   const loadFailed = useLyricStore((s) => s.loadFailed)
+  const loadError = useLyricStore((s) => s.loadError)
   const synced = useLyricStore((s) => s.synced)
   const translationMap = useLyricStore((s) => s.translationMap)
   const romanizationMap = useLyricStore((s) => s.romanizationMap)
@@ -164,7 +165,7 @@ export function LyricsView() {
   if (loadFailed) {
     return (
       <StatusPlaceholder
-        message={t('lyricAdjust.loadFailed')}
+        message={loadError || t('lyricAdjust.loadFailed')}
         canRefetch={canRefetch}
         onRefetch={onRefetch}
         refetchLabel={t('lyricAdjust.refetch')}

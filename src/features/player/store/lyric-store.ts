@@ -24,6 +24,7 @@ export interface LyricState {
   currentIndex: number
   isLoading: boolean
   loadFailed: boolean
+  loadError?: string
   synced: boolean
   translationMap: Map<number, string>
   romanizationMap: Map<number, string>
@@ -58,6 +59,7 @@ const EMPTY = {
   currentIndex: -1,
   isLoading: false,
   loadFailed: false,
+  loadError: undefined,
   synced: true,
   translationMap: EMPTY_MAP,
   romanizationMap: EMPTY_MAP,
@@ -185,7 +187,8 @@ export const useLyricStore = create<LyricState>((set, get) => {
         // The failure was swallowed silently before: an exported log showed a
         // healthy app while the lyric store sat in loadFailed forever.
         logWarn('lyric', `load failed song=${song.id}: ${e instanceof Error ? e.message : String(e)}`)
-        set({ ...EMPTY, loadFailed: true })
+        const detail = (e as { detail?: unknown })?.detail
+        set({ ...EMPTY, loadFailed: true, loadError: typeof detail === 'string' && detail ? detail : e instanceof Error ? e.message : '歌词请求失败' })
       }
     },
 

@@ -86,6 +86,14 @@ beforeEach(() => {
 })
 
 describe('loadForSong', () => {
+  test('preserves per-source failure details and clears them when switching songs', async () => {
+    const detail = 'QQ音乐：业务错误码 2001；网易云：未找到匹配；LRCLIB：HTTP 503'
+    await useLyricStore.getState().loadForSong(song(), async () => { throw Object.assign(new Error('歌词获取失败'), { detail }) })
+    expect(useLyricStore.getState()).toMatchObject({ loadFailed: true, loadError: detail })
+    await useLyricStore.getState().loadForSong(song({ id: 9 }), async () => PAYLOAD)
+    expect(useLyricStore.getState().loadFailed).toBe(false)
+    expect(useLyricStore.getState().loadError).toBeUndefined()
+  })
   test('keeps notification lyric placement across loading, missing lyrics and failures', async () => {
     useLyricStore.getState().setNotificationLyricInTitle(false)
     await useLyricStore.getState().loadForSong(song(), async () => PAYLOAD)

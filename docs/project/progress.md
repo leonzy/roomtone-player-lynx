@@ -1,5 +1,19 @@
 # 进展与交接（PROGRESS）
 
+## 2026-10-31 · 刷新后续播位置
+
+补充：用户确认 Web 本机播放时进度正常但点击极慢，AirPlay 不受影响。已移除 MiniPlayer 随 250ms 进度更新重渲染整个控制区的开销，渲染回归由 20 次降至 0，进度和原布局保留。合计 145 项相关测试通过。长时交互退化尚未完成实际浏览器复现，不声称彻底修复。
+
+English: The user clarified that progress continues while Web-local interactions become extremely slow; AirPlay is unaffected. MiniPlayer now isolates progress leaves, removing 20 whole-control renders in the regression while retaining displayed progress and layout. All 145 related tests pass. A long-running real-browser reproduction is still outstanding.
+
+部署核对：leonFN 当前运行 `10109ad2-web-progress-fix`（基线加本批未提交改动）；HTTP 前端 SHA-256 为 `c31b2d6d008351917f07224c970a8d3d78d360b05d9e4de9134da5a50fd50b13`，与本机构建一致。区域、播放状态和 chromaprint 检查通过；独立浏览器实际打开区域和空队列面板，未启动播放。另 66 项界面/区域/查询生命周期检查通过。镜像及容器仍为 Roomtone，旧镜像保留回滚；未提交或推送代码。
+
+English: leonFN runs `10109ad2-web-progress-fix` (baseline plus uncommitted changes). The served bundle matches local SHA-256 `c31b2d6d008351917f07224c970a8d3d78d360b05d9e4de9134da5a50fd50b13`. Output/playback APIs and chromaprint checks pass. An independent browser opened zones and the empty queue without starting audio; another 66 UI/output/query-lifetime checks pass. Roomtone container/image naming is retained with a rollback image. No source commit or push was made.
+
+基于 `574f52ea` 的未提交工作树，修复关闭自动续播后首次播放归零、自动续播提前 seek、不带 URL 的本地歌曲未自动装载。两项回归在原代码失败；126 项相关测试、类型与 Web 构建通过。仅离线与模拟宿主验证，未主动播放。Web 独有的长时点击卡死仍待定位，不能把续播修复当作卡死修复；本机保存的旧页面启动时间早于上一轮部署。
+
+English: Uncommitted work on `574f52ea` fixes manual resume resetting the saved position, automatic resume seeking before preparation, and local library songs without an explicit URL being skipped. Both original regressions failed; 126 related tests, types and Web build pass. No audio was started. The Web-only long-running click freeze remains unconfirmed and is distinct from this resume fix.
+
 ## 2026-10-28 · Roomtone 播放输出
 
 区域与音箱能力从 Flutter fork 接入 Lynx 共用前端及三端 WebSocket 宿主。显示状态与本机音频状态分离，避免切控制区域停 Web；迟到服务器装载不覆盖本机新播放，普通后台补队列继续有效。实际窄屏界面与不播放约束已核对。双构建、类型、Go 播放测试通过；全量测试的 13 项既有失败在原始 HEAD 复现。完整矩阵、日志、Not run 与仓库交付边界见 [记录](roomtone-output-parity.md)。

@@ -54,6 +54,27 @@ function accessibilityTrait(enabled: boolean) {
   return enabled ? 'button' : 'disabled'
 }
 
+// Progress is frequent on Web (250ms). Keep these subscriptions below the
+// transport/menu boundary so each tick updates only the progress leaves.
+function MiniPlayerProgress() {
+  const percent = usePlayerStore(s => Math.round(progressOf(s) * 100))
+  return <view className='mini-player__progress'>
+    <view className='mini-player__progress-fill' style={{ width: `${percent}%` }} />
+  </view>
+}
+
+function MiniPlayerTimeline() {
+  const currentTime = usePlayerStore(s => Math.floor(s.currentTime / 1000))
+  const duration = usePlayerStore(s => Math.floor(s.duration / 1000))
+  const percent = usePlayerStore(s => Math.round(progressOf(s) * 100))
+  const timeLabel = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+  return <view className='mini-player__timeline'>
+    <text>{timeLabel(currentTime)}</text>
+    <view className='mini-player__timeline-track'><view className='mini-player__timeline-fill' style={{ width: `${percent}%` }} /></view>
+    <text>{timeLabel(duration)}</text>
+  </view>
+}
+
 export function MiniPlayer() {
   const navigate = useNavigate()
   const capsuleMaterialStyle = useCapsuleMaterialStyle()
@@ -61,10 +82,6 @@ export function MiniPlayer() {
   const out = useOutputText()
   const song = usePlayerStore((s) => s.currentSong)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
-  const progress = usePlayerStore(progressOf)
-  const currentTime = usePlayerStore(s => s.currentTime)
-  const duration = usePlayerStore(s => s.duration)
-  const timeLabel = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`
   const canNext = usePlayerStore(hasNext)
   const canPrev = usePlayerStore(hasPrev)
   const playMode = usePlayerStore((s) => s.playMode)
@@ -92,7 +109,6 @@ export function MiniPlayer() {
 
   const cover = song.coverUrl ? buildCoverUrl(song.coverUrl, song.updatedAt) : ''
   const subtitle = [song.artist, song.album].filter(Boolean).join(' · ')
-  const pct = `${Math.round(progress * 100)}%`
 
   return (
     <>
@@ -102,9 +118,7 @@ export function MiniPlayer() {
           `bindtap` still receives taps, since a child bubbles to it. */}
       <BackdropBlur className='ui-backdrop-blur--pill' />
       <view className='ui-capsule-material' style={capsuleMaterialStyle} flatten={false} accessibility-element={false} />
-      <view className='mini-player__progress'>
-        <view className='mini-player__progress-fill' style={{ width: pct }} />
-      </view>
+      <MiniPlayerProgress />
       <view className='mini-player__row'>
         {cover
           ? <image className='mini-player__cover' mode='aspectFill' src={cover} />
@@ -176,7 +190,7 @@ export function MiniPlayer() {
             <Icon name={({ order: 'order', loop: 'repeat', single: 'repeat-one', random: 'shuffle', singlePlay: 'play' } satisfies Record<PlayMode, IconName>)[playMode]} size={20} color={ICON_COLORS.content} />
           </view>}
           <view className='mini-player__desktop-output'><OutputTransportControls part='queue' /></view>
-        </view><view className='mini-player__timeline'><text>{timeLabel(currentTime)}</text><view className='mini-player__timeline-track'><view className='mini-player__timeline-fill' style={{ width: pct }} /></view><text>{timeLabel(duration)}</text></view></view>
+        </view><MiniPlayerTimeline /></view>
       </view>
       <view className='mini-player__desktop-output'><OutputTransportControls part='zone-volume' /></view>
       <view className='mini-player__mobile-output'><OutputTransportControls /></view>

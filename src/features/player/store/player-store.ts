@@ -725,9 +725,10 @@ function scheduleRetry(song: Song, { positionMs, autoplay }: { positionMs: numbe
 
 export const useLocalPlayerStore = create<PlayerState>((set, get) => {
   /** Load + play the song at `index` (index/currentSong already computable). */
-  async function playAtIndex(index: number, server?: { positionMs: number }): Promise<void> {
+  async function playAtIndex(index: number, resume?: { positionMs: number, serverOwned: boolean }): Promise<void> {
     const song = get().playlist[index]
     if (!song) return
+    const serverOwned = resume?.serverOwned ?? false
     const generation = invalidateSourceLoad()
     cancelRetry()
     _livePlayIntent = song.isLive
@@ -741,7 +742,7 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
       set({
         currentIndex: index,
         currentSong: song,
-        currentTime: 0,
+        currentTime: song.isLive ? 0 : resume?.positionMs ?? 0,
         duration: stateDurationMsOf(song),
         errorMessage: undefined,
         ...(song.isLive ? { isPlaying: true, isBuffering: true } : {}),
@@ -752,7 +753,7 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
       })
       _playEventPending = !cachedSongIdentity(song)
       // Server-owned zones report completion in the backend, once for the whole group.
-      _finishEligibleSong = !server && !cachedSongIdentity(song) ? song : null
+      _finishEligibleSong = !serverOwned && !cachedSongIdentity(song) ? song : null
       syncNavigation()
       // Lyrics are loaded by the currentSong subscription below, not here: every
       // path that swaps the song flows through it (see the subscription's notes).
@@ -778,10 +779,10 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
       // title/artwork — the "点下一曲偶尔不及时更新" symptom.
       await syncQueueWindow(get().playlist, get().currentIndex)
       if (generation !== _loadGeneration) return
-      const restoredPosition = server
+      const restoredPosition = resume
         ? await loadAudioSource(audio, { url: source.url, load: {
           durationMs: durationMsOf(song), hls: source.hls,
-          initialPositionMs: server.positionMs, autoplay: false,
+          initialPositionMs: song.isLive ? 0 : resume.positionMs, autoplay: false,
         } })
         : (await audio.load(source.url, { durationMs: durationMsOf(song), hls: source.hls }), 0)
       if (generation !== _loadGeneration) return
@@ -789,9 +790,10 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
       _loadedSongId = song.id
       _loadedSourceKind = source.cached ? 'cache' : 'stream'
       _awaitingPlayback = { song, generation }
-      if (server) {
+      if (resume) {
         set({ currentTime: restoredPosition, isPlaying: false })
-      } else await audio.play()
+      }
+      if (!serverOwned) await audio.play()
       if (generation !== _loadGeneration) return
       if (cachedSongIdentity(song)) void audio.setFavorite(false)
       else syncFavoriteToNative(song.id)
@@ -934,7 +936,7 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
       _queueLoader.invalidate()
       _navigation.reset(get().playMode)
       set({ playlist: [...songs], currentIndex: index, currentSong: songs[index], playbackContext: undefined, sourcePlaylistId: undefined })
-      await playAtIndex(index, { positionMs })
+      await playAtIndex(index, { positionMs, serverOwned: true })
     },
     playPlaylist: async (songs, startIndex = 0, context) => {
       if (songs.length === 0) return
@@ -1007,7 +1009,9 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
         return
       }
       if (_loadedSongId !== s.currentSong.id) {
-        await playAtIndex(s.currentIndex >= 0 ? s.currentIndex : 0)
+        // A restored selection has no engine item yet. Prepare and seek before
+        // playing, rather than discarding its persisted position on reload.
+        await playAtIndex(s.currentIndex >= 0 ? s.currentIndex : 0, { positionMs: s.currentTime, serverOwned: false })
         return
       }
       await audio.play()
@@ -1819,7 +1823,7 @@ export async function restorePlaybackState(): Promise<void> {
   })
   _navigation.reset(useLocalPlayerStore.getState().playMode)
   syncNavigation()
-  if (autoResume && (song.url || local)) {
+  if (autoResume) {
     // Use the shared `toAudioItem`/`durationMsOf` rather than re-inlining the
     // mapping: this path used to carry its own copy, which silently omitted any
     // field added to the queue item (it missed `artworkUrl` on arrival).
@@ -1827,7 +1831,10 @@ export async function restorePlaybackState(): Promise<void> {
     if (generation !== _loadGeneration) return
     const restored = await resolvePlaybackSource(song)
     if (generation !== _loadGeneration) return
-    await audio.load(restored.url, { durationMs: durationMsOf(song), hls: restored.hls })
+    const restoredPosition = await loadAudioSource(audio, { url: restored.url, load: {
+      durationMs: durationMsOf(song), hls: restored.hls,
+      initialPositionMs: song.isLive ? 0 : saved.positionMs, autoplay: false,
+    } })
     if (generation !== _loadGeneration) return
     // Record what the engine now holds: without this the first `togglePlay`
     // took the `playAtIndex` path and reloaded a media item the engine
@@ -1835,8 +1842,7 @@ export async function restorePlaybackState(): Promise<void> {
     _loadedSongId = song.id
     _loadedSourceKind = restored.cached ? 'cache' : 'stream'
     _awaitingPlayback = { song, generation }
-    await audio.seek(saved.positionMs)
-    if (generation !== _loadGeneration) return
+    useLocalPlayerStore.setState({ currentTime: restoredPosition })
     await audio.play()
     if (generation !== _loadGeneration) return
   }

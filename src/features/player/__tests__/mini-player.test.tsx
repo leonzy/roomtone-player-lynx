@@ -1,9 +1,12 @@
 import '@testing-library/jest-dom'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { act, fireEvent, getQueriesForElement, render } from '@lynx-js/react/testing-library'
+import type { PlayerState } from '../store/player-store.js'
+
+const renderCounts = vi.hoisted(() => ({ controls: vi.fn() }))
 
 /**
- * MiniPlayer render smoke. Mocks the player store (static, non-subscribing),
+ * MiniPlayer render smoke. Models player-store selector subscriptions,
  * `useNavigate`, and the favorites hook (react-query backed — would throw
  * `No QueryClient set` otherwise); asserts the mini-player shows the current
  * song's title + "artist · album" subtitle, the play control, and the skip
@@ -30,7 +33,7 @@ vi.mock('../../../shared/ui/anchored-overlay.js', async (importOriginal) => ({
 }))
 vi.mock('../../library/data/favorites.js', () => ({
   useIsFavorite: () => false,
-  useFavoriteToggle: () => ({ isFavorite: false, toggle: vi.fn(), isPending: false }),
+  useFavoriteToggle: () => { renderCounts.controls(); return { isFavorite: false, toggle: vi.fn(), isPending: false } },
   getFavoriteState: async () => false,
   toggleFavoriteNonReact: async () => {},
 }))
@@ -50,7 +53,30 @@ vi.mock('../store/player-store.js', async () => {
     '../store/player-store.js',
   )
   const { makePlayerStoreMock } = await import('../../../__tests__/_render-mocks.js')
-  return makePlayerStoreMock(actual)
+  const mocked = makePlayerStoreMock(actual)
+  const { useEffect, useRef, useState } = await import('@lynx-js/react')
+  const listeners = new Set<() => void>()
+  // Model selector notifications without the renderer's unsupported
+  // useSyncExternalStore consistency pass. Keep all existing fixture actions.
+  function usePlayerStore<T>(selector: (s: PlayerState) => T) {
+    const select = useRef(selector)
+    select.current = selector
+    const [value, setValue] = useState(() => selector(mocked.usePlayerStore.getState()))
+    useEffect(() => {
+      const update = () => setValue(select.current(mocked.usePlayerStore.getState()))
+      listeners.add(update)
+      return () => { listeners.delete(update) }
+    }, [])
+    return value
+  }
+  return { ...mocked, usePlayerStore: Object.assign(usePlayerStore, {
+    getState: mocked.usePlayerStore.getState,
+    setState: (value: Partial<PlayerState>) => {
+      Object.assign(mocked.usePlayerStore.getState(), value)
+      listeners.forEach(listener => listener())
+    },
+    subscribe: mocked.usePlayerStore.subscribe,
+  }) }
 })
 
 const { MiniPlayer } = await import('../widgets/MiniPlayer.js')
@@ -74,6 +100,21 @@ const { setShellWidth } = await import('../../../shared/nav/shell-navigation.js'
 // The play-mode button is gated on the measured shell width; the test renderer
 // has no layout, so seed it with a phone width.
 beforeEach(() => { setShellWidth(390) })
+
+test('progress updates advance the timeline without rerendering transport and output controls', async () => {
+  const { usePlayerStore } = await import('../store/player-store.js')
+  const previous = { currentTime: usePlayerStore.getState().currentTime, duration: usePlayerStore.getState().duration }
+  usePlayerStore.setState({ currentTime: 0, duration: 200_000 })
+  render(<MiniPlayer />)
+  await act(async () => { await Promise.resolve() })
+  renderCounts.controls.mockClear()
+  for (let i = 1; i <= 20; i++) {
+    await act(async () => { usePlayerStore.setState({ currentTime: i * 250 }) })
+  }
+  expect(elementTree.root!.querySelector('.mini-player__timeline')?.textContent).toContain('0:05')
+  expect(renderCounts.controls).not.toHaveBeenCalled()
+  await act(async () => { usePlayerStore.setState(previous) })
+})
 
 afterEach(() => { vi.clearAllMocks(); miniPlayerControls.setState({ mode: 'prevNext' }); setSongloftStorage(createMemoryStorage()) })
 
