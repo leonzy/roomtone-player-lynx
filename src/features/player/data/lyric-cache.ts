@@ -19,7 +19,9 @@ export interface CachedLyric {
 }
 
 function cacheKey(songId: number): string {
-  return `lyric_${songId}`
+  // Results cached before strict source identity checks may contain another
+  // track's lyrics. Re-read from the server once after this upgrade.
+  return `lyric_v2_${songId}`
 }
 
 export async function getCachedLyric(
@@ -29,7 +31,10 @@ export async function getCachedLyric(
   try {
     const s = storage ?? getSongloftStorage()
     const raw = await s.prefs.get(cacheKey(songId))
-    if (raw == null) return null
+    if (raw == null) {
+      try { await s.prefs.remove(`lyric_${songId}`) } catch { /* legacy cache cleanup is best-effort */ }
+      return null
+    }
     return JSON.parse(raw) as CachedLyric
   } catch {
     return null

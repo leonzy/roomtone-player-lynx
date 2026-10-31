@@ -1,5 +1,9 @@
 # Lynx Client Development Lessons
 
+## LYR-008: Invalidate pre-fix lyric caches after correcting source identity
+
+On 2026-10-31 the server had repaired wrongly enriched manual lyrics, but a persisted queue could retain the same older updatedAt as the browser cache. Existing timestamp invalidation alone could therefore reuse wrong lyrics after upgrade. The v2 cache namespace re-reads those results once and lazily removes legacy entries by song; normal updatedAt invalidation remains. All 80 related cache/lyrics/queue/navigation regressions pass. Cache cleanup does not alter audio files. Seen 1×.
+
 ## QUEUE-004: Keep played tracks visible in the same queue
 
 On 2026-10-31 slicing order-mode rows at currentIndex made played tracks appear deleted, and a separate history toggle hid previous-song navigation. The full queue now remains scrollable; preceding entries in ordered playback are marked Played and stay selectable without deletion. All 137 related drawer/editing/navigation/30,000-row virtualization regressions pass. Shuffle does not infer played status from canonical indices, avoiding false labels for unplayed entries. Seen 1×.

@@ -5,6 +5,12 @@ import { cacheLyric, getCachedLyric, removeCachedLyric, type CachedLyric } from 
 
 describe('lyric-cache', () => {
   describe('getCachedLyric', () => {
+    test('drops legacy results collected before strict song/artist validation', async () => {
+      const storage = createMemoryStorage()
+      await storage.prefs.set('lyric_42', JSON.stringify({ lyric: 'wrong old result', cachedAt: 1 }))
+      expect(await getCachedLyric(42, storage)).toBeNull()
+      expect(await storage.prefs.get('lyric_42')).toBeNull()
+    })
     test('returns null when no cache exists', async () => {
       const storage = createMemoryStorage()
       const result = await getCachedLyric(42, storage)
@@ -37,7 +43,7 @@ describe('lyric-cache', () => {
 
     test('returns null gracefully when stored value is invalid JSON', async () => {
       const storage = createMemoryStorage()
-      await storage.prefs.set('lyric_99', 'not-json{{{')
+      await storage.prefs.set('lyric_v2_99', 'not-json{{{')
       const result = await getCachedLyric(99, storage)
       expect(result).toBeNull()
     })
@@ -55,7 +61,7 @@ describe('lyric-cache', () => {
       const storage = createMemoryStorage()
       const data: CachedLyric = { lyric: '[00:05.00]Test', cachedAt: 500 }
       await cacheLyric(7, data, storage)
-      const raw = await storage.prefs.get('lyric_7')
+      const raw = await storage.prefs.get('lyric_v2_7')
       expect(raw).not.toBeNull()
       expect(JSON.parse(raw!)).toEqual(data)
     })

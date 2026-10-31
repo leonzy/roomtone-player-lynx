@@ -179,7 +179,7 @@ describe('loadForSong', () => {
 
     // And the newly written cache entry carries the new songUpdatedAt, so the
     // next load with the same updatedAt is a hit.
-    const stored = JSON.parse(mockStorage.get('lyric_7') ?? '{}')
+    const stored = JSON.parse(mockStorage.get('lyric_v2_7') ?? '{}')
     expect(stored.songUpdatedAt).toBe('2026-09-21T12:00:00Z')
   })
 
@@ -231,7 +231,7 @@ describe('refetch', () => {
   test('evicts the cache and reloads from the backend with refresh set', async () => {
     const fetcher = vi.fn(async () => PAYLOAD)
     await useLyricStore.getState().loadForSong(song(), fetcher)
-    expect(mockStorage.has('lyric_7')).toBe(true)
+    expect(mockStorage.has('lyric_v2_7')).toBe(true)
 
     const fresh: LyricPayload = { lyric: '[00:04.000]re-fetched\n' }
     defaultFetcherMock.mockImplementation(async () => fresh)
