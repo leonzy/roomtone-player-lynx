@@ -1,5 +1,9 @@
 # Lynx Client Development Lessons
 
+## LYR-006: Online local lyrics must not depend on an optional persisted URL
+
+On 2026-10-31 the UI showed no lyrics for NAS song 52622 while its actual endpoint returned 803 characters. Persisted queues can retain older titles and an absent lyricUrl; loadForSong previously cleared state without making any request or surfacing a real failure. Online local songs now derive their endpoint by ID, shared by automatic loading, manual refresh and the default fetcher. Remote songs without a URL and device-cached offline songs do not gain network requests. Installing the subscription with an existing current song immediately loads/synchronizes its progress; late results cannot sync after unsubscribe. Three new failure regressions were red before and green after, with 87 related parser/cache/offline/follow/render tests passing. Seen 1×.
+
 ## LYR-005: Square timestamps can repeat verses or time individual words
 
 On 2026-10-31 a local lyric file for the NAS song “03 花房姑娘（崔健）” contained 393 timestamps. Taking text only after the last timestamp converted its terminal word-end markers into 393 empty lyric entries, rendered as music icons. Adjacent leading timestamps repeat a verse; timestamps interleaved with text time words, and a terminal bare tag ends the previous word. The original file now parses to 48 nonempty sentences and 345 timed fragments without file changes. All 74 related parser/store/cache/adjustment/render tests pass; three new functional regressions fail under the old implementation. Seen 1×.

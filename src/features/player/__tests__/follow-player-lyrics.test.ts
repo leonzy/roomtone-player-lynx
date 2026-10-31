@@ -3,6 +3,17 @@ import { createStore } from 'zustand/vanilla'
 import { parseSong, type Song } from '../../../models/song.js'
 import { followPlayerLyrics } from '../data/follow-player-lyrics.js'
 
+test('a restored current song loads lyrics immediately without waiting for another song change', async () => {
+  const song = parseSong({ id: 52622, title: '当我想你的时候', type: 'local' })
+  const player = createStore<{ currentSong?: Song; currentTime: number }>(() => ({ currentSong: song, currentTime: 45000 }))
+  const lyrics = { loadForSong: vi.fn(async () => {}), syncPosition: vi.fn() }
+  const stop = followPlayerLyrics(player, lyrics, () => true)
+  await Promise.resolve()
+  expect(lyrics.loadForSong).toHaveBeenCalledExactlyOnceWith(song)
+  expect(lyrics.syncPosition).toHaveBeenCalledExactlyOnceWith(45000)
+  stop()
+})
+
 test('remote auto advance loads new lyrics and resets their position without changing local notifications', async () => {
   const first = parseSong({ id: 1, title: 'First' }), second = parseSong({ id: 2, title: 'Second' })
   const player = createStore<{ currentSong?: Song; currentTime: number }>(() => ({ currentSong: first, currentTime: 78000 }))

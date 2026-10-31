@@ -43,6 +43,7 @@ vi.mock('../data/lyric-source.js', async (importOriginal) => {
 import type { Song } from '../../../models/song.js'
 import type { LyricPayload } from '../../library/api/index.js'
 import { useLyricStore } from '../store/lyric-store.js'
+import { cacheIdentity, cacheNamespace } from '../domain/cache-identity.js'
 
 function song(over: Partial<Song> = {}): Song {
   return {
@@ -192,9 +193,37 @@ describe('loadForSong', () => {
     expect(useLyricStore.getState().lyrics).toHaveLength(0)
   })
 
-  test('clears state for a song without a lyric URL', async () => {
-    await useLyricStore.getState().loadForSong(song({ lyricUrl: undefined }))
+  test('loads local lyrics automatically when a restored queue has no lyric URL', async () => {
+    const fetcher = vi.fn(async (_song: Song) => PAYLOAD)
+    await useLyricStore.getState().loadForSong(song({ lyricUrl: undefined }), fetcher)
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    expect(fetcher.mock.calls[0]?.[0]).toMatchObject({ lyricUrl: '/api/v1/songs/7/lyric' })
+    expect(useLyricStore.getState().rawLyric).toBe(PAYLOAD.lyric)
+  })
+
+  test('shows the actual failure when a local queue lacks a lyric URL', async () => {
+    await useLyricStore.getState().loadForSong(song({ lyricUrl: undefined }), async () => {
+      throw Object.assign(new Error('歌词获取失败'), { detail: 'QQ音乐：请求超时；网易云：未找到匹配' })
+    })
+    expect(useLyricStore.getState().loadFailed).toBe(true)
+    expect(useLyricStore.getState().loadError).toContain('QQ音乐：请求超时')
+  })
+
+  test('clears state for a remote song without a lyric URL', async () => {
+    await useLyricStore.getState().loadForSong(song({ type: 'remote', lyricUrl: undefined }))
     expect(useLyricStore.getState().lyrics).toHaveLength(0)
+  })
+
+  test('never invents a network endpoint for device-cached offline songs', async () => {
+    const local = song({ lyricUrl: undefined })
+    const namespace = cacheNamespace({ profile: 'offline', server: 'https://example.com', username: 'alice' })
+    const cached = Object.assign(local, { deviceCache: cacheIdentity({ namespace, song: local,
+      variant: { track: null, quality: 'original', normalize: false }, format: 'mp3' }) })
+    const fetcher = vi.fn(async () => PAYLOAD)
+    await useLyricStore.getState().loadForSong(cached, fetcher)
+    await useLyricStore.getState().refetch(cached)
+    expect(fetcher).not.toHaveBeenCalled()
+    expect(defaultFetcherMock).not.toHaveBeenCalled()
   })
 })
 

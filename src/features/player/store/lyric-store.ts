@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 
 import { logInfo, logWarn } from '../../../core/logging/client-logger.js'
-import { apiPrefix } from '../../../core/config/app-config.js'
 import type { Song } from '../../../models/song.js'
 import { getAudio } from '../../../native/audio-facade.js'
 import { getFloatingLyricModule } from '../../../native/floating-lyric.js'
@@ -15,7 +14,7 @@ import {
   parseTranslation,
   type LyricLine,
 } from '../domain/lyric-parser.js'
-import { defaultLyricFetcher, type LyricFetcher } from '../data/lyric-source.js'
+import { defaultLyricFetcher, lyricUrlForSong, type LyricFetcher } from '../data/lyric-source.js'
 import { cacheLyric, getCachedLyric, removeCachedLyric } from '../data/lyric-cache.js'
 import { readNotificationLyricInTitle } from '../../settings/data/settings-prefs.js'
 
@@ -101,7 +100,8 @@ export const useLyricStore = create<LyricState>((set, get) => {
           .catch(() => {})
       }
       const token = ++loadToken
-      if (!song || !song.lyricUrl) {
+      const lyricUrl = song ? lyricUrlForSong(song) : undefined
+      if (!song || !lyricUrl) {
         // Distinguishing "never had a url" from "load failed" is the first
         // fork in the notification-lyric chain: no url here means the store
         // clears and nothing downstream (syncPosition → notif) ever fires.
@@ -109,6 +109,7 @@ export const useLyricStore = create<LyricState>((set, get) => {
         set({ ...EMPTY })
         return
       }
+      const lyricSong = song.lyricUrl === lyricUrl ? song : { ...song, lyricUrl }
       logInfo('lyric', `loading song=${song.id}${opts?.forceRefresh ? ' (refresh)' : ''}`)
       set({ ...EMPTY, isLoading: true })
       try {
@@ -131,7 +132,7 @@ export const useLyricStore = create<LyricState>((set, get) => {
           payload = cached
           logInfo('lyric', `cache hit song=${song.id}`)
         } else {
-          payload = await fetcher(song, { refresh: opts?.forceRefresh })
+          payload = await fetcher(lyricSong, { refresh: opts?.forceRefresh })
           if (token !== loadToken) return
           logInfo('lyric', `fetched song=${song.id} bytes=${(payload.lyric ?? '').length}`)
           cacheLyric(song.id, {
@@ -223,10 +224,7 @@ export const useLyricStore = create<LyricState>((set, get) => {
      */
     refetch: async (song) => {
       if (!song) return
-      let lyricUrl = song.lyricUrl
-      if (!lyricUrl && song.type === 'local') {
-        lyricUrl = `${apiPrefix}/songs/${song.id}/lyric`
-      }
+      const lyricUrl = lyricUrlForSong(song)
       if (!lyricUrl) return
       await removeCachedLyric(song.id)
       await get().loadForSong({ ...song, lyricUrl }, undefined, { forceRefresh: true })
