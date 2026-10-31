@@ -129,6 +129,48 @@ test('remote focus projects its queue without pausing or replacing local playbac
   expect(player.getState().currentSong?.id).toBe(1)
   expect(player.getState().currentTime).toBe(7000)
 })
+
+test('overlapping refreshes publish completed snapshots instead of starving auto advance', async () => {
+  await focusZone('remote')
+  const pending: Array<(value: Outputs) => void> = []
+  vi.mocked(outputApi.outputs).mockImplementation(() => new Promise(resolve => pending.push(resolve)))
+  const requests = [refreshOutputs(), refreshOutputs(), refreshOutputs()]
+  const next = structuredClone(outputs)
+  next.groups[1]!.status = { ...state([3, 4], 1, 'playing'), position: 1.25 }
+  pending[0]!(next)
+  for (let i = 0; i < 20; i++) await Promise.resolve()
+  expect(player.getState()).toMatchObject({ currentSong: { id: 4 }, currentIndex: 1, currentTime: 1250, isPlaying: true })
+  expect(pending).toHaveLength(2) // one in flight, one coalesced follow-up
+  pending[1]!(next)
+  await Promise.all(requests)
+  expect(engine.getState().currentSong?.id).toBe(1)
+  expect(outputApi.transport).not.toHaveBeenCalled()
+})
+
+test('state events advance the displayed song and lyrics while the snapshot request is slow', async () => {
+  vi.spyOn(getSharedClient(), 'post').mockResolvedValue({ data: { ticket: 'one-use' } } as never)
+  cleanup = await startOutputRuntime()
+  await focusZone('remote')
+  const { followPlayerLyrics } = await import('../../player/data/follow-player-lyrics.js')
+  const lyrics = { loadForSong: vi.fn(async () => {}), syncPosition: vi.fn() }
+  const stop = followPlayerLyrics(player, lyrics, () => false)
+  let finish!: (value: Outputs) => void
+  vi.mocked(outputApi.outputs).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+  const pending = refreshOutputs()
+  socket.callbacks!.message({ seq: 10, type: 'state', group_id: 'remote', song_id: 4, position_ms: 750, status: 'playing' })
+  await Promise.resolve(); await Promise.resolve()
+  expect(player.getState()).toMatchObject({ currentSong: { id: 4 }, currentIndex: 1, currentTime: 750, isPlaying: true })
+  expect(lyrics.loadForSong).toHaveBeenLastCalledWith(expect.objectContaining({ id: 4 }))
+  expect(lyrics.syncPosition).toHaveBeenLastCalledWith(750, false)
+  // A response captured before the event must not rewind the displayed song.
+  finish(structuredClone(outputs))
+  outputs.groups[1]!.status = { ...state([3, 4], 1, 'playing'), position: 2 }
+  for (let i = 0; i < 30; i++) await Promise.resolve()
+  await pending
+  expect(player.getState().currentSong?.id).toBe(4)
+  expect(engine.getState().currentSong?.id).toBe(1)
+  stop()
+})
 test('remote seek uses seconds and volume never changes the local audio volume', async () => {
   vi.spyOn(outputApi, 'groupVolume').mockResolvedValue({})
   await focusZone('remote')

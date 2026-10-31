@@ -1,5 +1,11 @@
 # Lynx Client Development Lessons
 
+## SYNC-001: Project track events immediately and coalesce snapshot refreshes
+
+On 2026-10-31 the dining speaker had advanced to Wind Chimes, with matching server song ID, queue cursor and progress, while the reported bar retained Promise. Two regressions against the isolated previous implementation fail: overlapping refreshes discard completed snapshots, and state events only start HTTP requests, leaving title, progress and lyrics stale during slow responses. Keep one in-flight refresh plus one pending follow-up per session, project known-queue state events immediately and reject responses started before a newer event. Resolve ambiguous duplicate-song indices through full snapshots. All 166 related tests pass, preserving local audio and metadata updates. The original faulty page was unavailable; real-device UI auto-advance validation remains Not run, and these reproduced races are not proven to be the sole cause. Seen 1×.
+
+Evidence: `src/features/output/__tests__/runtime.test.ts`; local `auto-advance-before.log` and `auto-advance-final.log`.
+
 ## META-001: Metadata saves must update playback snapshots, not only invalidate lists
 
 On 2026-10-31 song info showed new tags while the playback bar and queue retained old titles. Edit/manual-scrape saves invalidated library/playlist queries without updating local player state, remoteSongs or output query snapshots. After all writes, read the normalized server Song, cancel stale in-flight song queries and replace matching id/type metadata across library, playlists, tags, history and zone caches. Preserve transport/position and do not close the same video source on metadata-only changes. Startup checks only the restored current song; offline snapshots remain immutable. All 160 related tests cover duplicate entries, late responses, remote refocus, save order and unchanged progress; 14,400 Web progress ticks add no queue traversal. Seen 1×.

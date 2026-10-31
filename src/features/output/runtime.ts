@@ -39,15 +39,34 @@ export async function outputAction(action: () => Promise<unknown>) {
   finally { useZoneState.setState({ busy: false }) }
 }
 let refreshGeneration = 0
+let stateRevision = 0
+let pendingRefresh: { key: string; again: boolean; promise: Promise<Outputs> } | null = null
 export async function refreshOutputs() {
-  const generation = ++refreshGeneration
   const key = outputKey()
-  const value = await outputApi.outputs()
-  if (generation !== refreshGeneration) return value
-  getQueryClient().setQueryData(key, value)
-  if (!focusedGroup() && localGroup()) useZoneState.setState({ focus: localGroup()!.id })
-  await projectRemote()
-  return value
+  const session = JSON.stringify(key)
+  if (pendingRefresh?.key === session) {
+    pendingRefresh.again = true
+    return pendingRefresh.promise
+  }
+  const generation = refreshGeneration
+  const job = { key: session, again: false, promise: null! as Promise<Outputs> }
+  pendingRefresh = job
+  job.promise = (async () => {
+    let value: Outputs
+    do {
+      job.again = false
+      const revision = stateRevision
+      value = await outputApi.outputs()
+      if (generation !== refreshGeneration || session !== JSON.stringify(outputKey())) return value
+      // An event received after this request began is newer than its snapshot.
+      if (revision !== stateRevision) { job.again = true; continue }
+      getQueryClient().setQueryData(key, value)
+      if (!focusedGroup() && localGroup()) useZoneState.setState({ focus: localGroup()!.id })
+      await projectRemote()
+    } while (job.again)
+    return value
+  })().finally(() => { if (pendingRefresh === job) pendingRefresh = null })
+  return job.promise
 }
 let local: StoreApi<PlayerState> | null = null
 let display: StoreApi<PlayerState> | null = null
@@ -285,7 +304,26 @@ async function handleCommand(message: Record<string, unknown>) {
   if (!local) return
   if (typeof message.time_ms === 'number') serverOffsetMs = Date.now() - message.time_ms
   const command = message.cmd
-  if (typeof command !== 'string') { void refreshOutputs().catch(() => {}); return }
+  if (typeof command !== 'string') {
+    if (message.type === 'state') {
+      stateRevision++
+      const data = readOutputs(), group = data.groups.find(g => g.id === message.group_id)
+      if (group && typeof message.song_id === 'number' && message.song_id > 0 && typeof message.status === 'string') {
+        const queue = group.status.queue
+        // Keep the exact occurrence for repeat-one / duplicate queue entries.
+        const first = queue.items.indexOf(message.song_id)
+        const index = queue.items[queue.current] === message.song_id ? queue.current
+          : first === queue.items.lastIndexOf(message.song_id) ? first : -1
+        if (index >= 0) {
+          const status = { ...group.status, song_id: message.song_id, state: message.status,
+            position: Number(message.position_ms ?? 0) / 1000, queue: { ...queue, current: index } }
+          getQueryClient().setQueryData(outputKey(), { ...data, groups: data.groups.map(g => g === group ? { ...g, status } : g) })
+          publishDisplay()
+        }
+      }
+    }
+    void refreshOutputs().catch(e => useZoneState.setState({ error: String(e) })); return
+  }
   if (!localGroup()) return
   if (command === 'stop' || command === 'pause') {
     explicitStopped = command === 'stop'
@@ -387,6 +425,7 @@ export async function startOutputRuntime(): Promise<() => void> {
   stopRuntime = () => {
     if (generation !== runtimeGeneration) return
     stopped = true; commandGeneration++; refreshGeneration++; adoptGeneration++
+    pendingRefresh = null
     if (timer) clearTimeout(timer)
     if (heartbeat) clearTimeout(heartbeat)
     if (queueTimer) { clearTimeout(queueTimer); queueTimer = null }
