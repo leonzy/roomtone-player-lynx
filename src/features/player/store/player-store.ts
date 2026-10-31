@@ -1011,7 +1011,8 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
       if (_loadedSongId !== s.currentSong.id) {
         // A restored selection has no engine item yet. Prepare and seek before
         // playing, rather than discarding its persisted position on reload.
-        await playAtIndex(s.currentIndex >= 0 ? s.currentIndex : 0, { positionMs: s.currentTime, serverOwned: false })
+        const atEnd = s.duration > 0 && s.currentTime >= s.duration
+        await playAtIndex(s.currentIndex >= 0 ? s.currentIndex : 0, { positionMs: atEnd ? 0 : s.currentTime, serverOwned: false })
         return
       }
       await audio.play()

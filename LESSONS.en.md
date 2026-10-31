@@ -1,5 +1,9 @@
 # Lynx Client Development Lessons
 
+## RESUME-001: Distinguish restored playback from replay after completion
+
+On 2026-10-31 preserving a saved position for an unloaded engine also reused the final position of a completed single-play track. Preserve unfinished progress, but reload from zero when currentTime reaches a known duration; the existing offline single-play regression caught this. After extracting the progress component, the material source check must locate its JSX call rather than its earlier function definition. All 126 related offline/resume/player/lyrics/material regressions pass; no actual playback was started. Seen 1×.
+
 ## 2026-10-28 · Output control and local audio ownership
 
 The selected control zone must be independent of running local audio. Server projections live in Query cache; local callbacks only update the local engine store, and explicit transport/transfer commands change playback. Generation guards cancel stale server loads without cancelling ordinary queue pagination on normal skips. Root volume panels own root back handling; player-local tests should assert panel requests rather than expecting the former local popover. Initial runtime/player checks passed 93 tests, followed by queue/overlay regressions; see the [record](docs/project/roomtone-output-parity.md). Seen 1×; lesson. No listening tests this batch.
