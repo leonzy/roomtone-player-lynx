@@ -845,6 +845,15 @@ export const en = {
     refetch: 'Re-fetch lyrics',
     loadFailed: 'Failed to load lyrics',
   },
+  manualScrape: {
+    action: 'Manual scrape', preparing: 'Scraping…', saving: 'Saving…', save: 'Save result',
+    confirm: 'Save this match?', confirmHint: 'Review the result below. Saving updates the library and the audio file tags.',
+    genre: 'Genre', year: 'Year', track: 'Track', source: 'Source / match', lyricsFound: 'Lyrics found', saved: 'Scrape result saved',
+    notInstalled: 'The Tag Scraper plugin is not installed. Install it in Navigation & Plugins.',
+    disabled: 'The Tag Scraper plugin is disabled. Enable it in Navigation & Plugins.',
+    upgradeRequired: 'Update the Tag Scraper plugin to a version supporting scrape previews.',
+    fileFailed: 'Library information was saved, but writing the audio file tags failed. See server logs for details.',
+  },
   songDetail: {
     title: 'Song Detail',
     edit: 'Edit',
@@ -2067,6 +2076,15 @@ export const zh: TranslationTree = {
     discard: '放弃',
     refetch: '重新抓取歌词',
     loadFailed: '歌词加载失败',
+  },
+  manualScrape: {
+    action: '手动刮削', preparing: '正在刮削…', saving: '正在保存…', save: '保存结果',
+    confirm: '是否保存刮削结果？', confirmHint: '请核对以下匹配结果。保存后更新歌曲库信息和音频文件标签。',
+    genre: '流派', year: '年份', track: '曲号', source: '来源 / 匹配度', lyricsFound: '已找到歌词', saved: '刮削结果已保存',
+    notInstalled: '尚未安装标签刮削插件，请在“导航与插件”中安装。',
+    disabled: '标签刮削插件尚未启用，请在“导航与插件”中启用。',
+    upgradeRequired: '请升级标签刮削插件，当前版本不支持刮削预览。',
+    fileFailed: '歌曲库信息已保存，但音频文件标签写入失败，具体原因请查看服务器日志。',
   },
   songDetail: {
     title: '歌曲详情',

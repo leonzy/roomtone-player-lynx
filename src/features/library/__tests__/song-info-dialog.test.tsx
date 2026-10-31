@@ -18,7 +18,9 @@ import { clearBackHandlersForTests, dispatchBack } from '../../../shared/nav/bac
  *  - the cache rows vanish where the platform has no cache module (Web);
  *  - back closes it, and the edit button hands the song to the caller.
  */
-const { getSongSpy, writeTagsSpy, playbackSourceSpy, getCacheInfoSpy, caps } = vi.hoisted(() => ({
+const { getSongSpy, writeTagsSpy, playbackSourceSpy, getCacheInfoSpy, prepareSpy, saveScrapeSpy, caps } = vi.hoisted(() => ({
+  prepareSpy: vi.fn(),
+  saveScrapeSpy: vi.fn(),
   getSongSpy: vi.fn(),
   writeTagsSpy: vi.fn(async () => {}),
   playbackSourceSpy: vi.fn(),
@@ -34,6 +36,10 @@ vi.mock('@lynx-js/lynx-ui-dialog', async () =>
 )
 vi.mock('../api/index.js', () => ({
   getSongsApi: () => ({ getSong: getSongSpy, writeTags: writeTagsSpy }),
+}))
+vi.mock('../api/manual-scrape-api.js', () => ({
+  ScrapeUnavailableError: class extends Error { reason = 'notInstalled' },
+  getManualScrapeApi: () => ({ prepare: prepareSpy, save: saveScrapeSpy }),
 }))
 vi.mock('../../player/store/index.js', () => ({
   playbackSourceKindOf: playbackSourceSpy,
@@ -79,6 +85,7 @@ function makeSong(overrides: Partial<Song> = {}): Song {
 }
 
 beforeEach(() => {
+  prepareSpy.mockReset(); saveScrapeSpy.mockReset()
   getSongSpy.mockReset()
   playbackSourceSpy.mockReset()
   // Default: "not the current song" — the source row then falls back to cache state.
@@ -109,11 +116,11 @@ async function renderDialog(
   const onClose = vi.fn()
   const onEdit = vi.fn()
   getSongSpy.mockImplementation(server)
-  render(<SongInfoDialog show={show} song={song} onClose={onClose} onEdit={onEdit} />)
+  const view = render(<SongInfoDialog show={show} song={song} onClose={onClose} onEdit={onEdit} />)
   await act(async () => {
     await new Promise((r) => setTimeout(r, 10))
   })
-  return { onClose, onEdit, ...getQueriesForElement(elementTree.root!) }
+  return { rerender: view.rerender, onClose, onEdit, ...getQueriesForElement(elementTree.root!) }
 }
 
 test('the store song renders immediately — no spinner while getSong is in flight', async () => {
@@ -260,4 +267,63 @@ test('back closes the dialog', async () => {
 test('no card renders without a song (the mount point stays inert while closed)', async () => {
   const { queryByTestId } = await renderDialog(null)
   expect(queryByTestId('song-info-dialog')).not.toBeInTheDocument()
+})
+
+const scrapeResult = { songId: 42, title: 'Matched title', artist: 'Matched artist', album: 'Matched album', source: 'netease', score: 0.96 }
+
+test('scraping previews metadata and never saves until explicit confirmation', async () => {
+  prepareSpy.mockResolvedValue(scrapeResult)
+  saveScrapeSpy.mockResolvedValue({ song: makeSong({ title: 'Matched title' }), fileWrite: 'written' })
+  const ui = await renderDialog()
+  await act(async () => { fireEvent.tap(ui.getByTestId('song-info-scrape')); await Promise.resolve() })
+  expect(ui.getByTestId('song-info-scrape-preview')).toHaveTextContent('Matched title')
+  expect(saveScrapeSpy).not.toHaveBeenCalled()
+  expect(writeTagsSpy).not.toHaveBeenCalled()
+  await act(async () => { fireEvent.tap(ui.getByTestId('song-info-edit')); await Promise.resolve() })
+  expect(saveScrapeSpy).toHaveBeenCalledWith(42, scrapeResult)
+})
+
+test('canceling a successful scrape discards it without writing tags', async () => {
+  prepareSpy.mockResolvedValue(scrapeResult)
+  const ui = await renderDialog()
+  await act(async () => { fireEvent.tap(ui.getByTestId('song-info-scrape')); await Promise.resolve() })
+  await act(async () => { fireEvent.tap(ui.getByTestId('song-info-close')) })
+  expect(ui.queryByTestId('song-info-scrape-preview')).toBeNull()
+  expect(saveScrapeSpy).not.toHaveBeenCalled()
+})
+
+test('scrape errors display the actual failure reason', async () => {
+  prepareSpy.mockRejectedValue(new Error('netease: HTTP 503'))
+  const ui = await renderDialog()
+  await act(async () => { fireEvent.tap(ui.getByTestId('song-info-scrape')); await Promise.resolve() })
+  expect(ui.getByTestId('song-info-scrape-error')).toHaveTextContent('netease: HTTP 503')
+  expect(saveScrapeSpy).not.toHaveBeenCalled()
+})
+
+test('repeated clicks cannot start duplicate scrape requests', async () => {
+  prepareSpy.mockReturnValue(new Promise(() => {}))
+  const ui = await renderDialog()
+  await act(async () => { fireEvent.tap(ui.getByTestId('song-info-scrape')); fireEvent.tap(ui.getByTestId('song-info-scrape')) })
+  expect(prepareSpy).toHaveBeenCalledTimes(1)
+})
+
+test('a late scrape response cannot reopen a closed dialog or affect another song', async () => {
+  let complete!: (result: typeof scrapeResult) => void
+  prepareSpy.mockReturnValue(new Promise(resolve => { complete = resolve }))
+  const ui = await renderDialog()
+  await act(async () => { fireEvent.tap(ui.getByTestId('song-info-scrape')) })
+  await act(async () => { ui.rerender(<SongInfoDialog show={false} song={makeSong()} onClose={ui.onClose} onEdit={ui.onEdit} />) })
+  await act(async () => { complete(scrapeResult); await Promise.resolve() })
+  expect(ui.queryByTestId('song-info-scrape-preview')).toBeNull()
+  expect(saveScrapeSpy).not.toHaveBeenCalled()
+})
+
+test('a save failure keeps the preview and explains the error for retry', async () => {
+  prepareSpy.mockResolvedValue(scrapeResult)
+  saveScrapeSpy.mockRejectedValue(new Error('permission denied'))
+  const ui = await renderDialog()
+  await act(async () => { fireEvent.tap(ui.getByTestId('song-info-scrape')); await Promise.resolve() })
+  await act(async () => { fireEvent.tap(ui.getByTestId('song-info-edit')); await Promise.resolve() })
+  expect(ui.getByTestId('song-info-scrape-error')).toHaveTextContent('permission denied')
+  expect(ui.getByTestId('song-info-scrape-preview')).toBeInTheDocument()
 })

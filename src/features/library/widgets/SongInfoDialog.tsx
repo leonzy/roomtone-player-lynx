@@ -1,4 +1,4 @@
-import { useEffect, useState } from '@lynx-js/react'
+import { useEffect, useRef, useState } from '@lynx-js/react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -25,6 +25,9 @@ import { getCacheInfo } from '../../player/data/song-cache.js'
 import type { SongCacheStatus } from '../../player/data/song-cache.js'
 import { playbackSourceKindOf } from '../../player/store/index.js'
 import { getSongsApi } from '../api/index.js'
+import { getManualScrapeApi, ScrapeUnavailableError, type ScrapeResult } from '../api/manual-scrape-api.js'
+import { ApiError } from '../../../core/network/http-client.js'
+import { getQueryClient } from '../../../lib/query/index.js'
 import { formatDuration } from '../data/format.js'
 import { formatBitRate, formatSampleRate } from '../domain/song-tech-format.js'
 
@@ -41,7 +44,7 @@ export interface SongInfoDialogProps {
 }
 
 /**
- * Read-only song info as a dialog — the replacement for the song detail page,
+ * Song info with an explicit scrape-preview/save workflow, as a dialog — the replacement for the song detail page,
  * which existed mostly to double as the player's "song info" entry (the
  * Flutter build never had a detail page; its info view was always this
  * dialog).
@@ -65,6 +68,55 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
   const [serverSong, setServerSong] = useState<Song | null>(null)
   const [cacheInfo, setCacheInfo] = useState<SongCacheStatus | null>(null)
   const songId = song?.id ?? 0
+  const [preview, setPreview] = useState<ScrapeResult | null>(null)
+  const [scrapeError, setScrapeError] = useState('')
+  const [scrapeBusy, setScrapeBusy] = useState<'prepare' | 'save' | null>(null)
+  const scrapeScope = useRef(0)
+  const scrapeLock = useRef(false)
+  useEffect(() => {
+    scrapeScope.current++
+    scrapeLock.current = false
+    setPreview(null); setScrapeError(''); setScrapeBusy(null)
+    return () => { scrapeScope.current++ }
+  }, [show, songId])
+  const failureReason = (error: unknown) => error instanceof ScrapeUnavailableError
+    ? t(`manualScrape.${error.reason}`)
+    : error instanceof ApiError
+      ? [error.message, error.detail].filter(Boolean).join('：')
+      : error instanceof Error ? error.message : String(error)
+  const prepareScrape = async () => {
+    if (scrapeLock.current || !songId) return
+    scrapeLock.current = true
+    const scope = scrapeScope.current
+    setPreview(null); setScrapeError(''); setScrapeBusy('prepare')
+    try {
+      const result = await getManualScrapeApi().prepare(songId)
+      if (scope === scrapeScope.current) setPreview(result)
+    } catch (error) {
+      if (scope === scrapeScope.current) setScrapeError(failureReason(error))
+    } finally {
+      if (scope === scrapeScope.current) { scrapeLock.current = false; setScrapeBusy(null) }
+    }
+  }
+  const saveScrape = async () => {
+    if (scrapeLock.current || !preview) return
+    scrapeLock.current = true
+    const scope = scrapeScope.current
+    setScrapeBusy('save'); setScrapeError('')
+    try {
+      const result = await getManualScrapeApi().save(songId, preview)
+      void getQueryClient().invalidateQueries({ queryKey: ['library'] })
+      void getQueryClient().invalidateQueries({ queryKey: ['playlist'] })
+      if (scope !== scrapeScope.current) return
+      setServerSong(result.song); setPreview(null)
+      if (result.fileWrite === 'failed') setScrapeError(t('manualScrape.fileFailed'))
+      else toast.success(t('manualScrape.saved'))
+    } catch (error) {
+      if (scope === scrapeScope.current) setScrapeError(failureReason(error))
+    } finally {
+      if (scope === scrapeScope.current) { scrapeLock.current = false; setScrapeBusy(null) }
+    }
+  }
 
   /*
    * Back closes the dialog — registered here rather than at the call site for
@@ -176,102 +228,135 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
                * engines). See `dialog-viewport.ts`.
                */}
               <scroll-view
+                key={preview ? 'scrape-result' : 'song-info'}
                 className='song-info-dialog__body'
                 scroll-y
                 style={{ maxHeight: dialogBodyMaxHeight() }}
               >
-                <view className='song-detail__row'>
-                  <text className='song-detail__row-label'>{t('songDetail.artistField')}</text>
-                  <text className='song-detail__row-value'>{data.artist || '—'}</text>
-                </view>
-                <view className='song-detail__row'>
-                  <text className='song-detail__row-label'>{t('songDetail.albumField')}</text>
-                  <text className='song-detail__row-value'>{data.album || '—'}</text>
-                </view>
-                <view className='song-detail__row'>
-                  <text className='song-detail__row-label'>{t('songDetail.type')}</text>
-                  <text className='song-detail__row-value'>{data.type}{data.isVideo ? ' ▶' : ''}</text>
-                </view>
-                {data.genre ? (
-                  <view className='song-detail__row'>
-                    <text className='song-detail__row-label'>{t('songDetail.genre')}</text>
-                    <text className='song-detail__row-value'>{data.genre}</text>
+                {scrapeError ? <text className='song-info-scrape__error' data-testid='song-info-scrape-error'>{scrapeError}</text> : null}
+                {preview ? (
+                  <view className='song-info-scrape__preview' data-testid='song-info-scrape-preview'>
+                    <text className='song-info-scrape__title'>{t('manualScrape.confirm')}</text>
+                    <text className='song-info-scrape__hint'>{t('manualScrape.confirmHint')}</text>
+                    {([
+                      [t('songDetail.titleField'), preview.title],
+                      [t('songDetail.artistField'), preview.artist],
+                      [t('songDetail.albumField'), preview.album],
+                      [t('manualScrape.genre'), preview.genre],
+                      [t('manualScrape.year'), preview.year],
+                      [t('manualScrape.track'), preview.track],
+                      [t('manualScrape.source'), `${preview.source} · ${Math.round(preview.score * 100)}%`],
+                    ]).filter(([, value]) => value).map(([label, value]) => (
+                      <view className='song-detail__row' key={label}>
+                        <text className='song-detail__row-label'>{label}</text>
+                        <text className='song-detail__row-value'>{value}</text>
+                      </view>
+                    ))}
+                    {preview.cover_url ? <image className='song-info-dialog__cover' mode='aspectFill' src={preview.cover_url} /> : null}
+                    {preview.lyrics ? <text className='song-info-scrape__hint'>{t('manualScrape.lyricsFound')}</text> : null}
                   </view>
-                ) : null}
-                {data.year ? (
-                  <view className='song-detail__row'>
-                    <text className='song-detail__row-label'>{t('songDetail.year')}</text>
-                    <text className='song-detail__row-value'>{String(data.year)}</text>
-                  </view>
-                ) : null}
-                {data.duration > 0 ? (
-                  <view className='song-detail__row'>
-                    <text className='song-detail__row-label'>{t('songDetail.duration')}</text>
-                    <text className='song-detail__row-value'>{formatDuration(data.duration)}</text>
-                  </view>
-                ) : null}
-                {data.format ? (
-                  <view className='song-detail__row'>
-                    <text className='song-detail__row-label'>{t('songDetail.format')}</text>
-                    <text className='song-detail__row-value'>{data.format.toUpperCase()}</text>
-                  </view>
-                ) : null}
-                <view className='song-detail__row'>
-                  <text className='song-detail__row-label'>{t('songDetail.bitRate')}</text>
-                  <text className='song-detail__row-value'>{formatBitRate(data.bitRate) ?? '—'}</text>
-                </view>
-                <view className='song-detail__row'>
-                  <text className='song-detail__row-label'>{t('songDetail.sampleRate')}</text>
-                  <text className='song-detail__row-value'>{formatSampleRate(data.sampleRate) ?? '—'}</text>
-                </view>
-                {data.fileSize > 0 ? (
-                  <view className='song-detail__row'>
-                    <text className='song-detail__row-label'>{t('songDetail.fileSize')}</text>
-                    <text className='song-detail__row-value'>{formatBytes(data.fileSize)}</text>
-                  </view>
-                ) : null}
-                <view className='song-detail__row'>
-                  <text className='song-detail__row-label'>{t('songDetail.playbackSource')}</text>
-                  <text className='song-detail__row-value'>{sourceLabel}</text>
-                </view>
-                {/*
-                  On-device cache status. Hidden where the native cache module
-                  is absent (Web) — same gate the detail page used.
-                */}
-                {songCacheCapable ? (
-                  <view className='song-detail__row'>
-                    <text className='song-detail__row-label'>{t('songDetail.localCache')}</text>
-                    <text className='song-detail__row-value'>
-                      {cacheInfo?.cached
-                        ? `${t('songDetail.localCache')} · ${formatBytes(cacheInfo.sizeBytes ?? 0)}`
-                        : t('songDetail.notCached')}
-                    </text>
-                  </view>
-                ) : null}
-                {songCacheCapable && cacheInfo?.cached ? (
-                  <view className='song-detail__cache-note'>
-                    <text className='song-detail__cache-note-text'>{t('songDetail.cacheQualityNote')}</text>
-                  </view>
-                ) : null}
-                {/*
-                  Local songs only — writing tags to the file is the one action
-                  the detail page offered beyond editing.
-                */}
-                {data.type === 'local' ? (
-                  <view className='song-detail__tags-section'>
-                    <view
-                      className='song-detail__save-btn'
-                      data-testid='song-info-write-tags'
-                      bindtap={() => {
-                        void getSongsApi().writeTags(data.id)
-                          .then(() => toast.success(t('songDetail.tagsWritten')))
-                          .catch(() => toast.error(t('songDetail.tagsFailed')))
-                      }}
-                    >
-                      <text className='song-detail__save-btn-text'>{t('songDetail.writeTags')}</text>
+                ) : (
+                  <view>
+                    <view className='song-detail__row'>
+                      <text className='song-detail__row-label'>{t('songDetail.artistField')}</text>
+                      <text className='song-detail__row-value'>{data.artist || '—'}</text>
                     </view>
+                    <view className='song-detail__row'>
+                      <text className='song-detail__row-label'>{t('songDetail.albumField')}</text>
+                      <text className='song-detail__row-value'>{data.album || '—'}</text>
+                    </view>
+                    <view className='song-detail__row'>
+                      <text className='song-detail__row-label'>{t('songDetail.type')}</text>
+                      <text className='song-detail__row-value'>{data.type}{data.isVideo ? ' ▶' : ''}</text>
+                    </view>
+                    {data.genre ? (
+                      <view className='song-detail__row'>
+                        <text className='song-detail__row-label'>{t('songDetail.genre')}</text>
+                        <text className='song-detail__row-value'>{data.genre}</text>
+                      </view>
+                    ) : null}
+                    {data.year ? (
+                      <view className='song-detail__row'>
+                        <text className='song-detail__row-label'>{t('songDetail.year')}</text>
+                        <text className='song-detail__row-value'>{String(data.year)}</text>
+                      </view>
+                    ) : null}
+                    {data.duration > 0 ? (
+                      <view className='song-detail__row'>
+                        <text className='song-detail__row-label'>{t('songDetail.duration')}</text>
+                        <text className='song-detail__row-value'>{formatDuration(data.duration)}</text>
+                      </view>
+                    ) : null}
+                    {data.format ? (
+                      <view className='song-detail__row'>
+                        <text className='song-detail__row-label'>{t('songDetail.format')}</text>
+                        <text className='song-detail__row-value'>{data.format.toUpperCase()}</text>
+                      </view>
+                    ) : null}
+                    <view className='song-detail__row'>
+                      <text className='song-detail__row-label'>{t('songDetail.bitRate')}</text>
+                      <text className='song-detail__row-value'>{formatBitRate(data.bitRate) ?? '—'}</text>
+                    </view>
+                    <view className='song-detail__row'>
+                      <text className='song-detail__row-label'>{t('songDetail.sampleRate')}</text>
+                      <text className='song-detail__row-value'>{formatSampleRate(data.sampleRate) ?? '—'}</text>
+                    </view>
+                    {data.fileSize > 0 ? (
+                      <view className='song-detail__row'>
+                        <text className='song-detail__row-label'>{t('songDetail.fileSize')}</text>
+                        <text className='song-detail__row-value'>{formatBytes(data.fileSize)}</text>
+                      </view>
+                    ) : null}
+                    <view className='song-detail__row'>
+                      <text className='song-detail__row-label'>{t('songDetail.playbackSource')}</text>
+                      <text className='song-detail__row-value'>{sourceLabel}</text>
+                    </view>
+                    {/*
+                      On-device cache status. Hidden where the native cache module
+                      is absent (Web) — same gate the detail page used.
+                    */}
+                    {songCacheCapable ? (
+                      <view className='song-detail__row'>
+                        <text className='song-detail__row-label'>{t('songDetail.localCache')}</text>
+                        <text className='song-detail__row-value'>
+                          {cacheInfo?.cached
+                            ? `${t('songDetail.localCache')} · ${formatBytes(cacheInfo.sizeBytes ?? 0)}`
+                            : t('songDetail.notCached')}
+                        </text>
+                      </view>
+                    ) : null}
+                    {songCacheCapable && cacheInfo?.cached ? (
+                      <view className='song-detail__cache-note'>
+                        <text className='song-detail__cache-note-text'>{t('songDetail.cacheQualityNote')}</text>
+                      </view>
+                    ) : null}
+                    {/*
+                      Local songs only — writing tags to the file is the one action
+                      the detail page offered beyond editing.
+                    */}
+                    {data.type === 'local' ? (
+                      <view className='song-detail__tags-section'>
+                        <view className='song-detail__save-btn' data-testid='song-info-scrape'
+                          accessibility-element={true} accessibility-label={t('manualScrape.action')}
+                          bindtap={() => { if (!scrapeBusy) void prepareScrape() }}>
+                          <text className='song-detail__save-btn-text'>{t(scrapeBusy === 'prepare' ? 'manualScrape.preparing' : 'manualScrape.action')}</text>
+                        </view>
+                        <view
+                          className='song-detail__save-btn song-info-scrape__secondary'
+                          data-testid='song-info-write-tags'
+                          bindtap={() => {
+                            if (scrapeBusy || preview) return
+                            void getSongsApi().writeTags(data.id)
+                              .then(() => toast.success(t('songDetail.tagsWritten')))
+                              .catch(() => toast.error(t('songDetail.tagsFailed')))
+                          }}
+                        >
+                          <text className='song-detail__save-btn-text'>{t('songDetail.writeTags')}</text>
+                        </view>
+                      </view>
+                    ) : null}
                   </view>
-                ) : null}
+                )}
               </scroll-view>
 
               <view className='confirm-dialog__actions confirm-dialog__actions--pair'>
@@ -279,18 +364,18 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
                  * defaults made the buttons unequal in height; see ConfirmDialog. */}
                 <view
                   className='confirm-dialog__btn confirm-dialog__btn--cancel'
-                  bindtap={onClose}
+                  bindtap={() => { if (scrapeBusy === 'save') return; if (preview) { setPreview(null); setScrapeError('') } else onClose() }}
                   data-testid='song-info-close'
                 >
-                  <text className='confirm-dialog__btn-text'>{t('common.close')}</text>
+                  <text className='confirm-dialog__btn-text'>{t(preview ? 'common.cancel' : 'common.close')}</text>
                 </view>
                 <view
                   className='confirm-dialog__btn confirm-dialog__btn--submit'
-                  bindtap={() => onEdit(data)}
+                  bindtap={() => { if (scrapeBusy) return; if (preview) void saveScrape(); else onEdit(data) }}
                   data-testid='song-info-edit'
                 >
                   <text className='confirm-dialog__btn-text confirm-dialog__btn-text--submit'>
-                    {t('songDetail.edit')}
+                    {t(scrapeBusy === 'save' ? 'manualScrape.saving' : preview ? 'manualScrape.save' : 'songDetail.edit')}
                   </text>
                 </view>
               </view>
