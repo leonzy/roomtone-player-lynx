@@ -8,6 +8,7 @@ import { apiPrefix } from '../../core/config/app-config.js'
 import { getPlatformTarget } from '../../native/platform-target.js'
 import { getAudio } from '../../native/index.js'
 import type { Song } from '../../models/song.js'
+import { patchSongMetadata, updatedSong } from '../../models/song-metadata.js'
 import type { PlayerState } from '../player/store/player-store.js'
 import { outputApi, outputId, type OutputGroup, type Outputs, type OutputStatus } from './api.js'
 import { connectPlaybackSocket, type PlaybackConnection } from './socket.js'
@@ -53,6 +54,19 @@ let display: StoreApi<PlayerState> | null = null
 let remoteSongs: Song[] = []
 let adoptGeneration = 0
 let lastSongIds = ''
+
+/** Metadata edits update every zone's cached songs without a transport command. */
+export function updateOutputSong(saved: Song) {
+  getQueryClient().setQueriesData({ queryKey: [...outputKey(), 'songs'] }, data => patchSongMetadata(data, saved))
+  remoteSongs = patchSongMetadata(remoteSongs, saved) as Song[]
+  if (local) {
+    const state = local.getState()
+    const playlist = patchSongMetadata(state.playlist, saved) as Song[]
+    const currentSong = updatedSong(state.currentSong, saved)
+    if (playlist !== state.playlist || currentSong !== state.currentSong) local.setState({ playlist, currentSong })
+  }
+  publishDisplay()
+}
 export async function focusZone(id: string | null) {
   useZoneState.setState({ focus: id, error: '' })
   if (id) void getSongloftStorage().prefs.set(`roomtone.focus:${useAppSessionStore.getState().baseUrl}`, id).catch(() => {})
@@ -326,6 +340,14 @@ export async function startOutputRuntime(): Promise<() => void> {
   await refreshOutputs().catch(e => useZoneState.setState({ error: String(e) }))
   if (generation !== runtimeGeneration || session !== useAppSessionStore.getState().baseUrl) return () => {}
   const active = () => !stopped && generation === runtimeGeneration && session === useAppSessionStore.getState().baseUrl
+  // A persisted local queue can predate edits made before this client opened.
+  // Refresh its current song once, without replacing/reloading the audio queue.
+  const restoredSong = local?.getState().currentSong
+  if (restoredSong && !('deviceCache' in restoredSong)) {
+    void outputApi.songs([restoredSong.id]).then(songs => {
+      if (active() && songs[0]) updateOutputSong(songs[0])
+    }).catch(() => {})
+  }
   const connect = async () => {
     if (!active()) return
     try {

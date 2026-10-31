@@ -23,6 +23,7 @@ import {
 import { Icon, ICON_COLORS } from '../../../shared/ui/Icon.js'
 import { toast } from '../../../shared/ui/toast-store.js'
 import type { Song } from '../../../models/song.js'
+import { publishSavedSong } from '../data/song-metadata.js'
 import { ARTIST_ROLE_ARTIST, type ArtistInput } from '../../../models/artist.js'
 import { getSongsApi } from '../api/index.js'
 import { ModalMaterial } from '../../../shared/ui/ModalMaterial.js'
@@ -278,12 +279,12 @@ export function SongEditDialog({ show, song, onClose }: SongEditDialogProps) {
       .filter((s) => s.length > 0)
       .map((name, i) => ({ name, role: ARTIST_ROLE_ARTIST, position: i }))
     void submit(song, trimmedTitle, trimmedUrl, artistInputs)
-      .then(() => {
+      .then(async () => {
         // Lists and facets embed the edited fields (title/artist/album are facet
         // values), so a save must age every library/playlist cache, not just the
         // song row.
-        void queryClient.invalidateQueries({ queryKey: ['library'] })
-        void queryClient.invalidateQueries({ queryKey: ['playlist'] })
+        const saved = await getSongsApi().getSong(song.id)
+        await publishSavedSong(saved, queryClient)
         toast.success(t('songEdit.saveSuccess'))
         onClose()
       })

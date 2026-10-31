@@ -27,7 +27,7 @@ import { playbackSourceKindOf } from '../../player/store/index.js'
 import { getSongsApi } from '../api/index.js'
 import { getManualScrapeApi, ScrapeUnavailableError, type ScrapeResult } from '../api/manual-scrape-api.js'
 import { ApiError } from '../../../core/network/http-client.js'
-import { getQueryClient } from '../../../lib/query/index.js'
+import { applySongMetadata, publishSavedSong } from '../data/song-metadata.js'
 import { formatDuration } from '../data/format.js'
 import { formatBitRate, formatSampleRate } from '../domain/song-tech-format.js'
 
@@ -105,8 +105,7 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
     setScrapeBusy('save'); setScrapeError('')
     try {
       const result = await getManualScrapeApi().save(songId, preview)
-      void getQueryClient().invalidateQueries({ queryKey: ['library'] })
-      void getQueryClient().invalidateQueries({ queryKey: ['playlist'] })
+      await publishSavedSong(result.song)
       if (scope !== scrapeScope.current) return
       setServerSong(result.song); setPreview(null)
       if (result.fileWrite === 'failed') setScrapeError(t('manualScrape.fileFailed'))
@@ -142,7 +141,7 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
     }
     let alive = true
     void getSongsApi().getSong(songId)
-      .then((s) => { if (alive) setServerSong(s) })
+      .then((s) => { if (alive) { setServerSong(s); applySongMetadata(s) } })
       .catch(() => {})
     if (songCacheCapable) {
       getCacheInfo(songId)

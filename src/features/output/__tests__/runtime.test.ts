@@ -4,6 +4,7 @@ import { getQueryClient } from '../../../lib/query/index.js'
 import { createMemoryStorage, setSongloftStorage } from '../../../core/storage/index.js'
 import { getSharedClient } from '../../../core/network/api-client.js'
 import { parseSong } from '../../../models/song.js'
+import { applySongMetadata } from '../../library/data/song-metadata.js'
 import type { PlayerState } from '../../player/store/player-store.js'
 import { outputApi, outputId, volumeInt, type Outputs } from '../api.js'
 import { createQueueAppender, createCollectionAction, createZonePlayer, focusZone, outputKey, refreshOutputs, startOutputRuntime, useZoneState } from '../runtime.js'
@@ -47,6 +48,48 @@ beforeEach(async () => {
 })
 afterEach(() => { cleanup?.(); cleanup = undefined; getQueryClient().clear(); vi.restoreAllMocks(); vi.useRealTimers() })
 
+test('metadata refresh patches library, local queue and remote zones without playback commands', async () => {
+  const second = engine.getState().playlist[1]
+  const original = engine.getState().currentSong!
+  const client = getQueryClient()
+  client.setQueryData(['library', 'songs', 'all'], { pages: [{ items: [original, second], total: 2 }], pageParams: [0] })
+  client.setQueryData(['playlist', 'songs', 1], { items: [original] })
+  client.setQueryData(['song-tags', 1, 'songs'], { pages: [{ songs: [original] }] })
+  client.setQueryData(['play-history'], [{ song: original, playCount: 3 }])
+  await focusZone('remote')
+  const localSaved = { ...original, title: 'Edited title', artist: 'Edited artist', album: 'Edited album', coverUrl: '/new.jpg', updatedAt: 'new' }
+  applySongMetadata(localSaved)
+  expect(engine.getState().currentSong).toMatchObject(localSaved)
+  expect(engine.getState()).toMatchObject({ currentTime: 7000, isPlaying: true, currentIndex: 0 })
+  expect(engine.getState().playlist[1]).toBe(second)
+  expect(client.getQueryData(['library', 'songs', 'all'])).toMatchObject({ pages: [{ items: [{ title: 'Edited title' }, { id: 2 }] }] })
+  expect(client.getQueryData(['playlist', 'songs', 1])).toMatchObject({ items: [{ artist: 'Edited artist' }] })
+  expect(client.getQueryData(['song-tags', 1, 'songs'])).toMatchObject({ pages: [{ songs: [{ album: 'Edited album' }] }] })
+  expect(client.getQueryData(['play-history'])).toMatchObject([{ song: { title: 'Edited title' }, playCount: 3 }])
+  const remoteSaved = { ...song(3), title: 'Edited speaker title', updatedAt: 'new' }
+  applySongMetadata(remoteSaved)
+  expect(player.getState().currentSong?.title).toBe(remoteSaved.title)
+  expect(player.getState()).toMatchObject({ currentTime: 20000, isPlaying: false })
+  await refreshOutputs()
+  expect(player.getState().currentSong?.title).toBe(remoteSaved.title)
+  await focusZone('local')
+  expect(player.getState().currentSong?.title).toBe(localSaved.title)
+  expect(outputApi.transport).not.toHaveBeenCalled()
+  expect(outputApi.replaceQueue).not.toHaveBeenCalled()
+  expect(engine.getState().loadZoneQueue).not.toHaveBeenCalled()
+})
+
+test('startup refreshes persisted current-song metadata without losing playback progress', async () => {
+  engine.setState({ currentSong: { ...song(1), title: 'Old persisted title' } })
+  vi.spyOn(getSharedClient(), 'post').mockResolvedValue({ data: { ticket: 'one-use' } } as never)
+  cleanup = await startOutputRuntime()
+  await Promise.resolve(); await Promise.resolve()
+  expect(engine.getState().currentSong?.title).toBe('Track 1')
+  expect(engine.getState()).toMatchObject({ currentTime: 7000, isPlaying: true, currentIndex: 0 })
+  expect(engine.getState().loadZoneQueue).not.toHaveBeenCalled()
+  expect(outputApi.transport).not.toHaveBeenCalled()
+})
+
 test('successive queue snapshots do not retain every previous full queue', async () => {
   await focusZone('remote')
   for (let n = 0; n < 100; n++) {
@@ -66,8 +109,11 @@ test('an hour of Web progress ticks does not repeatedly serialize an unchanged l
   cleanup = await startOutputRuntime()
   await Promise.resolve(); await Promise.resolve()
   socket.callbacks!.open()
-  for (let tick = 1; tick <= 14_400; tick++) engine.setState({ currentTime: tick * 250 })
-  expect(map.mock.calls.length).toBeLessThanOrEqual(2)
+  engine.setState({ currentTime: 250 })
+  const startupPasses = map.mock.calls.length
+  for (let tick = 2; tick <= 14_400; tick++) engine.setState({ currentTime: tick * 250 })
+  expect(startupPasses).toBeLessThanOrEqual(3) // one bounded metadata refresh plus initial queue synchronization
+  expect(map.mock.calls.length).toBe(startupPasses)
 })
 
 test('remote focus projects its queue without pausing or replacing local playback', async () => {

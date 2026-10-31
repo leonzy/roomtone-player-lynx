@@ -1745,6 +1745,8 @@ useLocalPlayerStore.subscribe((state, prev) => {
   if (state.currentSong === prev.currentSong) return
   const outgoing = prev.currentSong
   if (!outgoing) return
+  const incoming = state.currentSong
+  if (incoming?.id === outgoing.id && incoming.type === outgoing.type && incoming.url === outgoing.url && incoming.isVideo === outgoing.isVideo) return
   if (resolveVideoSourceKind(outgoing, getPlatformTarget()) === 'none') return
   void getVideoModule().close()
 })

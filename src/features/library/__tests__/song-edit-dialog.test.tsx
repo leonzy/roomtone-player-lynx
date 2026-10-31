@@ -17,7 +17,8 @@ import { clearBackHandlersForTests } from '../../../shared/nav/back-stack.js'
  * placeholder-keyed testid plus a tap script, so tests can drive `onInput`
  * without a keyboard.
  */
-const { writeTagsSpy, updateSongSpy, updateLyricsSpy, copyToClipboardMock, invalidateSpy, inputTaps, getSongArtistsSpy, setSongArtistsSpy } = vi.hoisted(() => ({
+const { getSongSpy, writeTagsSpy, updateSongSpy, updateLyricsSpy, copyToClipboardMock, invalidateSpy, inputTaps, getSongArtistsSpy, setSongArtistsSpy } = vi.hoisted(() => ({
+  getSongSpy: vi.fn(),
   writeTagsSpy: vi.fn(async () => {}),
   updateSongSpy: vi.fn(async () => {}),
   updateLyricsSpy: vi.fn(async () => {}),
@@ -35,7 +36,7 @@ vi.mock('@lynx-js/lynx-ui-dialog', async () =>
   (await import('../../../__tests__/_render-mocks.js')).mockLynxUiDialog(),
 )
 vi.mock('@tanstack/react-query', () => ({
-  useQueryClient: () => ({ invalidateQueries: invalidateSpy }),
+  useQueryClient: () => ({ invalidateQueries: invalidateSpy, cancelQueries: vi.fn(async () => {}), setQueriesData: vi.fn() }),
 }))
 vi.mock('@lynx-js/lynx-ui-input', () => ({
   Input: ({
@@ -70,6 +71,7 @@ vi.mock('../../../native/native-platform.js', () => ({
 }))
 vi.mock('../api/index.js', () => ({
   getSongsApi: () => ({
+    getSong: getSongSpy,
     writeTags: writeTagsSpy,
     updateSong: updateSongSpy,
     updateLyrics: updateLyricsSpy,
@@ -151,6 +153,7 @@ const pluginRemoteSong = makeSong({
 })
 
 beforeEach(() => {
+  getSongSpy.mockReset(); getSongSpy.mockResolvedValue(localSong)
   writeTagsSpy.mockClear()
   updateSongSpy.mockClear()
   updateLyricsSpy.mockClear()
@@ -204,6 +207,8 @@ describe('local songs', () => {
       renameFile: true,
     })
     expect(updateSongSpy).not.toHaveBeenCalled()
+    expect(getSongSpy).toHaveBeenCalledWith(42)
+    expect(getSongSpy.mock.invocationCallOrder[0]).toBeGreaterThan(setSongArtistsSpy.mock.invocationCallOrder[0]!)
     // A save ages every library/playlist cache and closes the dialog — the
     // page's route-back became a plain close.
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['library'] })

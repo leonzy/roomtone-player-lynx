@@ -1,5 +1,9 @@
 # Lynx Client Development Lessons
 
+## META-001: Metadata saves must update playback snapshots, not only invalidate lists
+
+On 2026-10-31 song info showed new tags while the playback bar and queue retained old titles. Edit/manual-scrape saves invalidated library/playlist queries without updating local player state, remoteSongs or output query snapshots. After all writes, read the normalized server Song, cancel stale in-flight song queries and replace matching id/type metadata across library, playlists, tags, history and zone caches. Preserve transport/position and do not close the same video source on metadata-only changes. Startup checks only the restored current song; offline snapshots remain immutable. All 160 related tests cover duplicate entries, late responses, remote refocus, save order and unchanged progress; 14,400 Web progress ticks add no queue traversal. Seen 1×.
+
 ## LYR-008: Invalidate pre-fix lyric caches after correcting source identity
 
 On 2026-10-31 the server had repaired wrongly enriched manual lyrics, but a persisted queue could retain the same older updatedAt as the browser cache. Existing timestamp invalidation alone could therefore reuse wrong lyrics after upgrade. The v2 cache namespace re-reads those results once and lazily removes legacy entries by song; normal updatedAt invalidation remains. All 80 related cache/lyrics/queue/navigation regressions pass. Cache cleanup does not alter audio files. Seen 1×.
