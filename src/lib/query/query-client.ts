@@ -125,7 +125,11 @@ export const defaultQueryClientConfig: QueryClientConfig = {
       refetchOnReconnect: false,
       retry: 1,
       staleTime: 30_000,
+      // Lynx BTS / Web Workers have no window, so Query otherwise defaults
+      // to server-side Infinity and retains every visited song indefinitely.
+      gcTime: 5 * 60_000,
     },
+    mutations: { gcTime: 5 * 60_000 },
   },
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from '@lynx-js/react'
+import { useEffect, useState, type ReactNode } from '@lynx-js/react'
 import { useQuery } from '@tanstack/react-query'
 import { Input } from '@lynx-js/lynx-ui-input'
 import { SliderRoot, SliderTrack, SliderIndicator, SliderThumb } from '@lynx-js/lynx-ui-slider'
@@ -42,8 +42,13 @@ function Choices({ label, value, values, onChange }: { label: string; value: str
   const labels: Record<string, string> = { speaker: out('iconSpeaker'), bookshelf: out('iconBookshelf'), soundbar: out('iconSoundbar'), headphone: out('iconHeadphone'), tv: out('iconTv'), phone: out('iconPhone'), laptop: out('iconLaptop'), multiroom: out('iconMultiroom'), off: out('off'), track: out('track'), album: out('album'), pause: out('pause'), follow: out('follow'), device: out('device'), dsp: out('software'), fixed: out('fixed'), raop: 'AirPlay', dlna: 'DLNA', raat: 'RAAT' }
   return <view className='output-field'><text className='output-label'>{label}</text><view className='output-wrap'>{values.map(v => <Button key={v} selected={v === value} onTap={() => onChange(v)}>{labels[v] ?? v}</Button>)}</view></view>
 }
-const subscribeOutputs = (listener: () => void) => getQueryClient().getQueryCache().subscribe(listener)
-function useOutputs() { useAppSessionStore(s => s.baseUrl); const data = useSyncExternalStore(subscribeOutputs, readOutputs); return { data } }
+function useOutputs() {
+  useAppSessionStore(s => s.baseUrl)
+  // The runtime owns refreshes. A disabled observer still marks this live
+  // view as subscribed, preventing GC from briefly erasing visible outputs.
+  const query = useQuery({ queryKey: outputKey(), queryFn: () => outputApi.outputs(), enabled: false })
+  return { data: query.data ?? readOutputs() }
+}
 export function zoneLabel(group: OutputGroup, players = readOutputs().players) {
   if (group.members.length === 1) {
     const p = players.find(p => p.ID === group.master_id)

@@ -47,6 +47,29 @@ beforeEach(async () => {
 })
 afterEach(() => { cleanup?.(); cleanup = undefined; getQueryClient().clear(); vi.restoreAllMocks(); vi.useRealTimers() })
 
+test('successive queue snapshots do not retain every previous full queue', async () => {
+  await focusZone('remote')
+  for (let n = 0; n < 100; n++) {
+    outputs.groups[1]!.status = state(Array.from({ length: 700 }, (_, i) => n + i + 3))
+    await refreshOutputs()
+  }
+  const snapshots = getQueryClient().getQueryCache().findAll({ queryKey: [...outputKey(), 'songs'] })
+  expect(snapshots).toHaveLength(1)
+  expect(player.getState().currentSong?.id).toBe(102)
+})
+
+test('an hour of Web progress ticks does not repeatedly serialize an unchanged large queue', async () => {
+  const queue = Array.from({ length: 700 }, (_, i) => song(i + 1))
+  engine.setState({ playlist: queue, currentIndex: 0 })
+  const map = vi.spyOn(queue, 'map')
+  vi.spyOn(getSharedClient(), 'post').mockResolvedValue({ data: { ticket: 'one-use' } } as never)
+  cleanup = await startOutputRuntime()
+  await Promise.resolve(); await Promise.resolve()
+  socket.callbacks!.open()
+  for (let tick = 1; tick <= 14_400; tick++) engine.setState({ currentTime: tick * 250 })
+  expect(map.mock.calls.length).toBeLessThanOrEqual(2)
+})
+
 test('remote focus projects its queue without pausing or replacing local playback', async () => {
   await focusZone('remote')
   expect(player.getState().currentSong?.id).toBe(3)

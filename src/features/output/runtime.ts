@@ -67,9 +67,14 @@ async function projectRemote() {
   const ids = g.status.queue.items
   const key = `${g.id}:${ids.join(',')}`
   if (key !== lastSongIds) {
-    const songs = await getQueryClient().fetchQuery({ queryKey: [...outputKey(), 'songs', ids], queryFn: () => outputApi.songs(ids), staleTime: 60_000 })
+    const client = getQueryClient()
+    const prefix = [...outputKey(), 'songs', g.id]
+    const queryKey = [...prefix, ids]
+    const songs = await client.fetchQuery({ queryKey, queryFn: () => outputApi.songs(ids), staleTime: 60_000, gcTime: 60_000 })
     if (generation !== adoptGeneration || remoteGroup()?.id !== g.id) return
     remoteSongs = songs; lastSongIds = key
+    const currentHash = client.getQueryCache().find({ queryKey, exact: true })?.queryHash
+    client.removeQueries({ queryKey: prefix, predicate: query => query.queryHash !== currentHash })
   }
   publishDisplay()
 }
@@ -242,10 +247,16 @@ let runtimeGeneration = 0
 let suppressQueue = 0
 let queueTimer: ReturnType<typeof setTimeout> | null = null
 let lastLocalQueue = ''
+let observedLocalQueue: { playlist: Song[]; index: number; group: string } | null = null
 function scheduleLocalQueue() {
   if (suppressQueue || !local || !connection || !useZoneState.getState().connected) return
   const group = localGroup(); if (!group) return
-  const s = local.getState(), key = `${group.id}:${s.playlist.map(s => s.id)}:${s.currentIndex}`
+  const s = local.getState()
+  // Progress arrives four times a second. Immutable queues need encoding only
+  // when their identity, index or group changes, not on every audio tick.
+  if (observedLocalQueue?.playlist === s.playlist && observedLocalQueue.index === s.currentIndex && observedLocalQueue.group === group.id) return
+  observedLocalQueue = { playlist: s.playlist, index: s.currentIndex, group: group.id }
+  const key = `${group.id}:${s.playlist.map(s => s.id)}:${s.currentIndex}`
   if (lastLocalQueue === key) return
   lastLocalQueue = key
   if (queueTimer) clearTimeout(queueTimer)
@@ -273,6 +284,7 @@ async function handleCommand(message: Record<string, unknown>) {
     const generation = ++commandGeneration
     local.getState().cancelPendingPlayback()
     if (queueTimer) { clearTimeout(queueTimer); queueTimer = null }
+    observedLocalQueue = null
     pendingLoad = (async () => {
       suppressQueue++
       try {
@@ -356,6 +368,7 @@ export async function startOutputRuntime(): Promise<() => void> {
     if (timer) clearTimeout(timer)
     if (heartbeat) clearTimeout(heartbeat)
     if (queueTimer) { clearTimeout(queueTimer); queueTimer = null }
+    observedLocalQueue = null
     clearInterval(poll)
     connection?.send({ type: 'unregister_player', id }); connection?.close(); connection = null
     useZoneState.setState({ connected: false, focus: null, panel: null }); publishDisplay()

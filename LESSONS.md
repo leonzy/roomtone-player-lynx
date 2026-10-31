@@ -206,3 +206,12 @@ Roomtone 移植中，选择控制的区域与正在运行的本机音频必须�
 - 失败证据：Docker 无头 Chrome 首次点击 mini player「更多」后截图落在 `/player` 页而非菜单；触发器经 `bindtap` 冒泡到胶囊根的导航。修完触发器后同一批次再报：歌曲信息点开先跳全屏播放器才出弹窗（全局弹窗留在根级），均衡器被 `/player` 的第二次导航覆盖而打不开，睡眠定时面板随 ShellLayout 卸载一起消失。单测里 `fireEvent.tap` 只触达 `bindtap`，必须直接调用 `eventMap['catchEvent:tap']`。
 - Done right：`PopoverSurface` 的 `stopTriggerPropagation` 同时切换 trigger / panel / backdrop（mini player 传 `true`，其它入口不受影响）；无头 Chrome 1024×768 实测歌曲信息在列表页原地打开、均衡器进入 EQ 页、睡眠定时面板弹出、遮罩点击关闭且不导航（`/home/hanxi/songloft-ui-verify/mini-menu-{song-info,equalizer,sleep-timer}.png`）。
 - Seen 1× (2026-10-23；同一批次的后续缺陷 2026-10-24 不重复计数)。状态：经验，未达到三日期升级阈值。
+
+### CACHE-001：Worker 环境必须显式限制查询缓存寿命，进度事件不得编码完整队列
+
+- 范围：Web/Lynx BTS 查询层、区域投影与本机队列上报；基线 leonzy/roomtone-player-lynx `39123622`。
+- 证据：2026-10-31，无 DOM 测试强制服务端环境判断，闲置查询与已完成 mutation 超过五分钟仍被保留。100 次远程队列变化留下 101 份完整快照；模拟一小时、14,400 次进度更新，对 700 首队列执行 14,401 次 map。
+- 规则：无 DOM 不等于服务端请求生命周期。显式设置有限 gcTime；当前展示数据须通过 QueryObserver 持有，不能只监听整个缓存。队列快照及时淘汰；利用不可变队列引用、索引和区域标识避免进度 tick 的全量序列化。
+- Done right：修复后断言闲置缓存回收、当前数据保留、快照恒为 1、相同进度场景最多 2 次 map；另覆盖迟到投影、源加载、队列/区域按钮及持久化。日志 `C:/Users/leon/.local/roomtone-tools/playback-lifetime-*.log`。
+- Not run：一小时真实音频播放、故障页面的堆快照；不能把缓存与负载修复声称为已复现并彻底修复用户的点击卡死。
+- Seen 1× (2026-10-31)。

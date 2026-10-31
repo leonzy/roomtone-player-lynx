@@ -206,3 +206,12 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 - Failure evidence: The first headless-Chrome run tapping the mini-player "more" button landed on `/player` instead of the menu; the trigger bubbled through `bindtap` to the capsule root's navigation. After that trigger fix, the same batch reported: song info navigated to the full player before its (root-mounted) dialog appeared, the equalizer was overridden by the second `/player` navigation and never opened, and the sleep-timer sheet disappeared with the unmounted shell. In tests `fireEvent.tap` only reaches `bindtap`; call `eventMap['catchEvent:tap']` directly.
 - Done right: `PopoverSurface`'s `stopTriggerPropagation` now switches trigger, panel and backdrop together (the mini player passes `true`; other call sites are unchanged). Headless Chrome at 1024×768 confirms song info opens in place over the list, the equalizer enters its page, the sleep-timer sheet opens, and a backdrop tap closes without navigating (`/home/hanxi/songloft-ui-verify/mini-menu-{song-info,equalizer,sleep-timer}.png`).
 - Seen 1× (2026-10-23; the follow-up defect on 2026-10-24 is the same batch and is not counted again). Status: lesson; below the three-date promotion threshold.
+
+### CACHE-001: Bound query lifetime in Workers and never encode full queues on progress ticks
+
+- Scope: Web/Lynx BTS query layer, zone projection and local queue reports; baseline leonzy/roomtone-player-lynx `39123622`.
+- Evidence (2026-10-31): forced server-environment tests retained inactive queries and completed mutations beyond five minutes. One hundred remote queue changes left 101 full snapshots. Simulated one-hour playback (14,400 progress events) mapped a 700-song queue 14,401 times.
+- Rule: no DOM does not imply a server request lifetime. Set finite gcTime; retain displayed data through QueryObservers rather than a cache-wide subscription. Retire obsolete queue snapshots; use immutable queue identity, index and group to avoid full encoding on progress ticks.
+- Done right: inactive caches expire while displayed data remains; one current snapshot and at most two maps under the same workload. Related checks cover stale projection, source loading, queue/zone controls and persistence. Logs: `C:/Users/leon/.local/roomtone-tools/playback-lifetime-*.log`.
+- Not run: an hour of real audio and a heap snapshot from the frozen page. Cache/load fixes do not establish that the reported click freeze is reproduced or fully resolved.
+- Seen 1× (2026-10-31).
