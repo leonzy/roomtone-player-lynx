@@ -1,5 +1,9 @@
 # Lynx Client Development Lessons
 
+## QUEUE-004: Keep played tracks visible in the same queue
+
+On 2026-10-31 slicing order-mode rows at currentIndex made played tracks appear deleted, and a separate history toggle hid previous-song navigation. The full queue now remains scrollable; preceding entries in ordered playback are marked Played and stay selectable without deletion. All 137 related drawer/editing/navigation/30,000-row virtualization regressions pass. Shuffle does not infer played status from canonical indices, avoiding false labels for unplayed entries. Seen 1×.
+
 ## LYR-006: Online local lyrics must not depend on an optional persisted URL
 
 On 2026-10-31 the UI showed no lyrics for NAS song 52622 while its actual endpoint returned 803 characters. Persisted queues can retain older titles and an absent lyricUrl; loadForSong previously cleared state without making any request or surfacing a real failure. Online local songs now derive their endpoint by ID, shared by automatic loading, manual refresh and the default fetcher. Remote songs without a URL and device-cached offline songs do not gain network requests. Installing the subscription with an existing current song immediately loads/synchronizes its progress; late results cannot sync after unsubscribe. Three new failure regressions were red before and green after, with 87 related parser/cache/offline/follow/render tests passing. Seen 1×.

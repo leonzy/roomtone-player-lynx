@@ -122,11 +122,9 @@ test('the last song remains reachable and scrolling back restores the first', as
 
 test('opening at the tail clamps the initial offset to a complete viewport', async () => {
   state = { ...state, playlist: Array.from({ length: 30_000 }, (_, i) => song(i + 1)), currentIndex: 29_999 }
-  const { getByText, getByTestId, queryByText } = await renderDrawer()
+  const { getByText } = await renderDrawer()
   const scroller = getByText('Song 30000').closest('scroll-view')!
-  expect(Number(scroller.getAttribute('initial-scroll-offset'))).toBe(0)
-  expect(queryByText('Song 29992')).not.toBeInTheDocument()
-  await act(async () => { fireEvent.tap(getByTestId('queue-history'), {}) })
+  expect(Number(scroller.getAttribute('initial-scroll-offset'))).toBeGreaterThan(0)
   expect(getByText('Song 29992')).toBeInTheDocument()
 })
 
@@ -213,12 +211,15 @@ test('artist album and subdirectory are visible together', async () => {
 })
 
 
-test('auto advance removes the finished track from upcoming but leaves it available in history', async () => {
+test('auto advance keeps played tracks visible and selectable in the same queue', async () => {
   const { rerender, queryByText, getByText, getByTestId } = await renderDrawer()
   state = { ...state, currentIndex: 1 }
   await act(async () => { rerender(<PlaylistDrawer />) })
-  expect(queryByText('Song 1')).not.toBeInTheDocument()
-  expect(getByText('Song 2')).toBeInTheDocument()
-  await act(async () => { fireEvent.tap(getByTestId('queue-history'), {}) })
   expect(getByText('Song 1')).toBeInTheDocument()
+  expect(getByText('Song 2')).toBeInTheDocument()
+  expect(getByTestId('queue-played-0')).toBeInTheDocument()
+  expect(queryByText('Song 1')?.closest('.drawer__row')).toHaveClass('drawer__row--played')
+  await act(async () => { fireEvent.tap(getByText('Song 1').closest('.drawer__row-meta')!, {}) })
+  expect(playQueueIndex).toHaveBeenCalledWith(0)
+  expect(removeFromPlaylist).not.toHaveBeenCalled()
 })

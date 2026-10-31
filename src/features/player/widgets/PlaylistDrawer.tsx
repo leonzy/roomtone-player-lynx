@@ -35,8 +35,7 @@ export function PlaylistDrawer() {
   const queueError = useSyncExternalStore(subscribeQueueError, getQueueError)
   const [confirmClear, setConfirmClear] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [showPlayed, setShowPlayed] = useState(false)
-  const firstIndex = mode === 'order' && !showPlayed ? Math.max(0, currentIndex) : 0
+  const firstIndex = 0
   const remaining = Math.max(0, playlist.length - Math.max(0, currentIndex))
   const remainingDuration = useMemo(() => playlist.slice(Math.max(0, currentIndex)).reduce((sum, song) => sum + (song.duration ?? 0), 0), [playlist, currentIndex])
   const fontScale = useSyncExternalStore(subscribeFontScale, getFontScaleNumber)
@@ -76,11 +75,14 @@ export function PlaylistDrawer() {
         </view>
         <view className='drawer__toolbar'>
           <view className='drawer__modes'>{(['order', 'loop', 'single', 'random'] as const).map(value => <view key={value} className={`drawer__mode${mode === value ? ' drawer__mode--active' : ''}`} data-testid={'queue-mode-' + value} accessibility-element={true} accessibility-traits='button' accessibility-label={out(value === 'order' ? 'queueOrder' : value === 'loop' ? 'queueLoop' : value === 'single' ? 'queueSingle' : 'queueRandom')} bindtap={() => usePlayerStore.getState().setPlayMode(value)}><Icon name={value === 'order' ? 'order' : value === 'loop' ? 'repeat' : value === 'single' ? 'repeat-one' : 'shuffle'} size={21} color={mode === value ? activeAccentIconColor() : ICON_COLORS.content2} /></view>)}</view>
-          <view className='drawer__queue-actions'>{mode === 'order' && currentIndex > 0 && <view className='drawer__text-button' data-testid='queue-history' accessibility-element={true} accessibility-traits='button' accessibility-label={out(showPlayed ? 'queuePendingOnly' : 'queueShowPlayed')} bindtap={() => setShowPlayed(!showPlayed)}><Icon name='history' size={20} color={showPlayed ? activeAccentIconColor() : ICON_COLORS.content2} /></view>}<view className='drawer__text-button' data-testid='queue-edit' accessibility-element={true} accessibility-traits='button' accessibility-label={out(editing ? 'queueDone' : 'queueEdit')} bindtap={() => setEditing(!editing)}><Icon name={editing ? 'check' : 'sort'} size={20} color={editing ? activeAccentIconColor() : ICON_COLORS.content2} /></view><view className='drawer__text-button' data-testid='queue-clear' accessibility-element={true} accessibility-traits='button' accessibility-label={out(confirmClear ? 'queueConfirmClear' : 'queueClear')} bindtap={() => { if (!playlist.length) return; if (!confirmClear) { setConfirmClear(true); return }; usePlayerStore.getState().clearPlaylist(); setConfirmClear(false) }}>{confirmClear ? <text>{out('queueConfirmClear')}</text> : <Icon name='trash' size={20} color={ICON_COLORS.content2} />}</view></view>
+          <view className='drawer__queue-actions'>
+            <view className='drawer__text-button' data-testid='queue-edit' accessibility-element={true} accessibility-traits='button' accessibility-label={out(editing ? 'queueDone' : 'queueEdit')} bindtap={() => setEditing(!editing)}><Icon name={editing ? 'check' : 'sort'} size={20} color={editing ? activeAccentIconColor() : ICON_COLORS.content2} /></view>
+            <view className='drawer__text-button' data-testid='queue-clear' accessibility-element={true} accessibility-traits='button' accessibility-label={out(confirmClear ? 'queueConfirmClear' : 'queueClear')} bindtap={() => { if (!playlist.length) return; if (!confirmClear) { setConfirmClear(true); return }; usePlayerStore.getState().clearPlaylist(); setConfirmClear(false) }}>{confirmClear ? <text>{out('queueConfirmClear')}</text> : <Icon name='trash' size={20} color={ICON_COLORS.content2} />}</view>
+          </view>
         </view>
         {queueError && <text className='drawer__empty'>{queueError}</text>}
         {!playlist.length && <text className='drawer__empty'>{out('queueEmpty')}</text>}
-        <QueueRows key={fontScale + ':' + firstIndex} playlist={playlist} currentIndex={currentIndex} fontScale={fontScale} editing={editing} firstIndex={firstIndex} />
+        <QueueRows key={fontScale + ':' + firstIndex} playlist={playlist} currentIndex={currentIndex} fontScale={fontScale} editing={editing} firstIndex={firstIndex} ordered={mode !== 'random'} />
       </view>
     </view>
   )
@@ -92,12 +94,13 @@ export function PlaylistDrawer() {
  * JS child set bounded too. The scroller contains only a viewport plus overscan;
  * two spacers preserve the full queue's scroll range on native and Web.
  */
-function QueueRows({ playlist, currentIndex, fontScale, editing, firstIndex }: {
+function QueueRows({ playlist, currentIndex, fontScale, editing, firstIndex, ordered }: {
   playlist: readonly Song[]
   currentIndex: number
   fontScale: number
   editing: boolean
   firstIndex: number
+  ordered: boolean
 }) {
   const out = useOutputText()
   // 12px padding on each side of a >=44px control/two-line metadata block.
@@ -136,6 +139,7 @@ function QueueRows({ playlist, currentIndex, fontScale, editing, firstIndex }: {
         <view className='drawer__spacer' style={{ height: `${start * rowHeight}px` }} />
         {playlist.slice(firstIndex + start, firstIndex + end).map((song, offset) => {
           const index = firstIndex + start + offset
+          const played = ordered && index < currentIndex
           const directory = queueDirectory(song)
           const subtitle = [song.artist, song.album].filter(Boolean).join(' · ')
           return (
@@ -144,7 +148,7 @@ function QueueRows({ playlist, currentIndex, fontScale, editing, firstIndex }: {
               style={{ height: `${rowHeight}px` }}
               className={index === currentIndex
                 ? 'drawer__row drawer__row--active'
-                : 'drawer__row'}
+                : played ? 'drawer__row drawer__row--played' : 'drawer__row'}
             >
               <view className='drawer__cover-wrap'>{song.coverUrl ? <image className='drawer__cover' mode='aspectFill' src={buildCoverUrl(song.coverUrl, song.updatedAt)} /> : <view className='drawer__cover drawer__cover--empty'><text>♫</text></view>}</view>
               <view
@@ -160,6 +164,7 @@ function QueueRows({ playlist, currentIndex, fontScale, editing, firstIndex }: {
                   : null}
                 {directory && <view className='drawer__row-folder' accessibility-element={true} accessibility-label={directory}><Icon name='folder' size={12} color={ICON_COLORS.content2} /><text className='drawer__row-directory'>{directory}</text></view>}
               </view>
+              {played && <text className='drawer__row-played' data-testid={'queue-played-' + index}>{out('queuePlayed')}</text>}
               {!editing && <text className='drawer__row-duration'>{formatDuration(song.duration)}</text>}
               <view className='drawer__row-actions'>
                 {editing && index > 0 && <view className='drawer__row-remove' data-testid={'queue-up-' + index} accessibility-element={true} accessibility-traits='button' accessibility-label={out('moveUp')} bindtap={() => usePlayerStore.getState().reorderPlaylist(index, index - 1)}><text className='drawer__row-remove-glyph'>↑</text></view>}

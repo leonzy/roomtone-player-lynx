@@ -132,6 +132,9 @@
   background-color: var(--tint-fill);
 }
 
+.drawer__row-played { color: var(--secondary-label); font-size: var(--font-caption1); margin-left: 8px; flex-shrink: 0; }
+.drawer__row--played .drawer__row-title { color: var(--secondary-label); }
+
 .drawer__row-meta {
   min-width: 0;
   display: flex;

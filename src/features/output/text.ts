@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 const zh = {
+ queuePlayed: '已播放',
  playOptions: '播放选项', playNow: '现在播放', appendQueue: '加入队列', playSelected: '播放选中', addFromLibrary: '从曲库添加', queueAdded: '已加入队列', queueShowPlayed: '查看已播放曲目', queuePendingOnly: '只看待播曲目', queueEdit: '调整顺序', queueDone: '完成', queueOrder: '顺序播放', queueLoop: '列表循环', queueSingle: '单曲循环', queueRandom: '随机播放', queueClear: '清空队列', queueConfirmClear: '确认清空', queueEmpty: '队列为空，添加歌曲开始聆听', queueRemove: '从队列移除', moveDown: '下移',
  volumeLimit: '音量限制', volumeLimitHint: '为这台音箱设置合适的最大音量。保存后由服务器执行。', resetLimit: '重置为 100', deviceSettings: '设备设置', maximumVolume: '最大音量',
  sleepHint: '到时自动暂停这个区域的播放', durationLabel: '休眠时长', customDuration: '自定义分钟', audioGlobal: '播放处理', audioDevices: '音箱均衡器', transferHint: '将当前队列和播放进度交给另一个区域', zoneIdentity: '区域外观', memberSettings: '音频设备与同步', iconSpeaker: '音箱', iconBookshelf: '书架箱', iconSoundbar: '回音壁', iconHeadphone: '耳机', iconTv: '电视', iconPhone: '手机', iconLaptop: '电脑', iconMultiroom: '多房间',
@@ -36,6 +37,7 @@ const zh = {
   wednesday: '三', thursday: '四', friday: '五', saturday: '六', sunday: '日', active: '播放中',
 }
 const en: Record<keyof typeof zh, string> = {
+ queuePlayed: 'Played',
  playOptions: 'Playback options', playNow: 'Play now', appendQueue: 'Add to queue', playSelected: 'Play selected', addFromLibrary: 'Add from library', queueAdded: 'Added to queue', queueShowPlayed: 'Show played tracks', queuePendingOnly: 'Show upcoming only', queueEdit: 'Edit order', queueDone: 'Done', queueOrder: 'In order', queueLoop: 'Repeat all', queueSingle: 'Repeat one', queueRandom: 'Shuffle', queueClear: 'Clear queue', queueConfirmClear: 'Confirm clear', queueEmpty: 'Your queue is empty. Add music to get started.', queueRemove: 'Remove from queue', moveDown: 'Move down',
  volumeLimit: 'Volume limit', volumeLimitHint: 'Choose the maximum level for this speaker. The server enforces it after saving.', resetLimit: 'Reset to 100', deviceSettings: 'Device settings', maximumVolume: 'Maximum volume',
  sleepHint: 'Automatically pause this zone when the timer ends', durationLabel: 'Sleep after', customDuration: 'Custom minutes', audioGlobal: 'Playback processing', audioDevices: 'Speaker equalizers', transferHint: 'Move the current queue and position to another zone', zoneIdentity: 'Zone appearance', memberSettings: 'Audio devices and synchronization', iconSpeaker: 'Speaker', iconBookshelf: 'Bookshelf', iconSoundbar: 'Soundbar', iconHeadphone: 'Headphones', iconTv: 'TV', iconPhone: 'Phone', iconLaptop: 'Computer', iconMultiroom: 'Multi-room',
