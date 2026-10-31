@@ -9,6 +9,13 @@ import {
 } from '../domain/lyric-parser.js'
 
 describe('parseEnhancedLrc', () => {
+  test('also accepts square word timestamps with an explicit final end marker', () => {
+    const lines = parseEnhancedLrc('[00:01.00]Hello [00:01.50]World[00:02.00]')
+    expect(lines).toEqual([{ timeMs: 1000, text: 'Hello World', words: [
+      { text: 'Hello ', startMs: 1000, endMs: 1500 },
+      { text: 'World', startMs: 1500, endMs: 2000 },
+    ] }])
+  })
   test('parses word-level timestamps within a line', () => {
     const input = '[00:01.00]<00:01.00>Hello <00:01.50>World'
     const lines = parseEnhancedLrc(input)

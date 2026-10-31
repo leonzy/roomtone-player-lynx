@@ -86,6 +86,18 @@ beforeEach(() => {
 })
 
 describe('loadForSong', () => {
+  test('ordinary lyric payloads retain square word timing and text across cache loads', async () => {
+    const fetcher = vi.fn(async () => ({ lyric: '[00:33.86]测[00:34.06]试[00:34.26]歌[00:34.46]词[00:34.71]' }))
+    await useLyricStore.getState().loadForSong(song(), fetcher)
+    expect(useLyricStore.getState().lyrics).toHaveLength(1)
+    expect(useLyricStore.getState().lyrics[0].text).toBe('测试歌词')
+    expect(useLyricStore.getState().lyrics[0].words).toHaveLength(4)
+    useLyricStore.getState().syncPosition(34000)
+    expect(useLyricStore.getState().currentIndex).toBe(0)
+    await useLyricStore.getState().loadForSong(song(), fetcher)
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    expect(useLyricStore.getState().lyrics[0].text).toBe('测试歌词')
+  })
   test('preserves per-source failure details and clears them when switching songs', async () => {
     const detail = 'QQ音乐：业务错误码 2001；网易云：未找到匹配；LRCLIB：HTTP 503'
     await useLyricStore.getState().loadForSong(song(), async () => { throw Object.assign(new Error('歌词获取失败'), { detail }) })

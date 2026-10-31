@@ -3,6 +3,17 @@ import { describe, expect, test } from 'vitest'
 import { findCurrentLine, parseLrc, parsePlain, stringifyLyric } from '../domain/lyric-parser.js'
 
 describe('parseLrc', () => {
+  test('interleaved square timestamps are words, not hundreds of empty repeated lines', () => {
+    const lines = parseLrc('[00:33.86]测[00:34.06]试[00:34.26]歌[00:34.46]词[00:34.71]\r\n[00:36.00]下一行')
+    expect(lines).toHaveLength(2)
+    expect(lines[0]).toEqual({ timeMs: 33860, text: '测试歌词', words: [
+      { text: '测', startMs: 33860, endMs: 34060 },
+      { text: '试', startMs: 34060, endMs: 34260 },
+      { text: '歌', startMs: 34260, endMs: 34460 },
+      { text: '词', startMs: 34460, endMs: 34710 },
+    ] })
+    expect(stringifyLyric(lines)).toBe('[00:33.860]测试歌词\n[00:36.000]下一行\n')
+  })
   test('parses mm:ss.xx timestamps into ms, sorted', () => {
     const lines = parseLrc('[00:12.50]Hello\n[00:01.00]First\n[01:00.000]Minute')
     expect(lines).toEqual([

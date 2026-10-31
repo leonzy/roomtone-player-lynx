@@ -1,5 +1,9 @@
 # Lynx Client Development Lessons
 
+## LYR-005: Square timestamps can repeat verses or time individual words
+
+On 2026-10-31 a local lyric file for the NAS song “03 花房姑娘（崔健）” contained 393 timestamps. Taking text only after the last timestamp converted its terminal word-end markers into 393 empty lyric entries, rendered as music icons. Adjacent leading timestamps repeat a verse; timestamps interleaved with text time words, and a terminal bare tag ends the previous word. The original file now parses to 48 nonempty sentences and 345 timed fragments without file changes. All 74 related parser/store/cache/adjustment/render tests pass; three new functional regressions fail under the old implementation. Seen 1×.
+
 ## RESUME-001: Distinguish restored playback from replay after completion
 
 On 2026-10-31 preserving a saved position for an unloaded engine also reused the final position of a completed single-play track. Preserve unfinished progress, but reload from zero when currentTime reaches a known duration; the existing offline single-play regression caught this. After extracting the progress component, the material source check must locate its JSX call rather than its earlier function definition. All 126 related offline/resume/player/lyrics/material regressions pass; no actual playback was started. Seen 1×.

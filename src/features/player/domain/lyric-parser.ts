@@ -17,6 +17,26 @@ function toMs(min: string, sec: string, frac: string | undefined): number {
   return Number(min) * 60_000 + Number(sec) * 1_000 + ms
 }
 
+// Adjacent leading timestamps mean repeated verses: [01:00][02:00]text.
+// Text between timestamps instead means word timing: [01:00]a[01:01]b[01:02].
+// The final bare timestamp ends the previous word; it is not an empty line.
+function parseSquareWords(line: string, tags: RegExpMatchArray[]): LyricLine | undefined {
+  if (tags.length < 2 || !tags.slice(0, -1).some((tag, index) =>
+    line.slice((tag.index ?? 0) + tag[0].length, tags[index + 1].index).trim().length > 0,
+  )) return undefined
+  const words: LyricWord[] = []
+  for (let index = 0; index < tags.length; index++) {
+    const tag = tags[index]
+    const next = tags[index + 1]
+    const text = line.slice((tag.index ?? 0) + tag[0].length, next?.index)
+    if (text.length === 0) continue
+    const startMs = toMs(tag[1], tag[2], tag[3])
+    const endMs = next ? toMs(next[1], next[2], next[3]) : startMs + 1000
+    words.push({ text, startMs, endMs: Math.max(startMs, endMs) })
+  }
+  return { timeMs: toMs(tags[0][1], tags[0][2], tags[0][3]), text: words.map(word => word.text).join('').trim(), words }
+}
+
 export function parseLrc(content: string): LyricLine[] {
   const out: LyricLine[] = []
   for (const raw of content.split('\n')) {
@@ -26,6 +46,12 @@ export function parseLrc(content: string): LyricLine[] {
     TIME_TAG.lastIndex = 0
     const matches = [...line.matchAll(TIME_TAG)]
     if (matches.length === 0) continue
+
+    const wordLine = parseSquareWords(line, matches)
+    if (wordLine) {
+      out.push(wordLine)
+      continue
+    }
 
     const last = matches[matches.length - 1]
     const text = line.slice((last.index ?? 0) + last[0].length).trim()
@@ -100,6 +126,12 @@ export function parseEnhancedLrc(content: string): LyricLine[] {
     TIME_TAG.lastIndex = 0
     const lineMatches = [...line.matchAll(TIME_TAG)]
     if (lineMatches.length === 0) continue
+
+    const wordLine = parseSquareWords(line, lineMatches)
+    if (wordLine) {
+      out.push(wordLine)
+      continue
+    }
 
     const lastLineTag = lineMatches[lineMatches.length - 1]
     const lineTimeMs = toMs(lineMatches[0][1], lineMatches[0][2], lineMatches[0][3])
