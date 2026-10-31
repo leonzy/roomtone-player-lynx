@@ -219,6 +219,13 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
                 <text className='song-info-dialog__name' text-maxline='2'>
                   {data.title}
                 </text>
+                {data.type === 'local' ? (
+                    <view className='song-detail__save-btn' data-testid='song-info-scrape'
+                          accessibility-element={true} accessibility-label={t('manualScrape.action')}
+                          bindtap={() => { if (!scrapeBusy) void prepareScrape() }}>
+                          <text className='song-detail__save-btn-text'>{t(scrapeBusy === 'prepare' ? 'manualScrape.preparing' : 'manualScrape.action')}</text>
+                        </view>
+                ) : null}
               </view>
 
               {/*
@@ -228,7 +235,7 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
                * engines). See `dialog-viewport.ts`.
                */}
               <scroll-view
-                key={preview ? 'scrape-result' : 'song-info'}
+                key={`${preview ? 'scrape-result' : 'song-info'}-${scrapeError ? 'error' : 'ready'}`}
                 className='song-info-dialog__body'
                 scroll-y
                 style={{ maxHeight: dialogBodyMaxHeight() }}
@@ -336,11 +343,7 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
                     */}
                     {data.type === 'local' ? (
                       <view className='song-detail__tags-section'>
-                        <view className='song-detail__save-btn' data-testid='song-info-scrape'
-                          accessibility-element={true} accessibility-label={t('manualScrape.action')}
-                          bindtap={() => { if (!scrapeBusy) void prepareScrape() }}>
-                          <text className='song-detail__save-btn-text'>{t(scrapeBusy === 'prepare' ? 'manualScrape.preparing' : 'manualScrape.action')}</text>
-                        </view>
+    
                         <view
                           className='song-detail__save-btn song-info-scrape__secondary'
                           data-testid='song-info-write-tags'
