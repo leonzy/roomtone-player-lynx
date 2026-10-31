@@ -1743,3 +1743,9 @@ toast「再按一次返回退出应用」在首页真机截图确认（`/tmp/bac
 ## 如何恢复工作 / 交接
 
 完整交接（现状快照、闸门验证状态、剩余工作、常用命令）→ [`handoff.md`](handoff.md)；踩坑实录（按主题组织的根因案例）→ [`pitfalls.md`](pitfalls.md)；协作规则与铁律 → 根目录 [`../../AGENTS.md`](../../AGENTS.md)。
+
+## 2026-10-31 · 手动刮削低分预览 / Low-confidence scrape previews
+
+手动预览接收低分候选，明确显示匹配度与自动阈值，并保留分来源诊断；仍需用户点击保存，批量自动刮削不放宽阈值。API 5 项回归、类型检查及 Web 构建通过；未安装客户端 SDK、未播放或自动写入真实歌曲标签。
+
+Manual previews retain low-confidence candidates, show their score and automatic threshold, and retain per-source diagnostics. Saving remains an explicit user action; batch scraping keeps its threshold. Five API regressions, typechecking and the Web build pass. No client SDK installation, playback or automatic real-tag writes.

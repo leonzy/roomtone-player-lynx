@@ -245,6 +245,9 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
                   <view className='song-info-scrape__preview' data-testid='song-info-scrape-preview'>
                     <text className='song-info-scrape__title'>{t('manualScrape.confirm')}</text>
                     <text className='song-info-scrape__hint'>{t('manualScrape.confirmHint')}</text>
+                    {preview.below_threshold ? <text className='song-info-scrape__warning' data-testid='song-info-scrape-low-score'>
+                      {t('manualScrape.lowScore', { score: Math.round(preview.score * 100), threshold: Math.round((preview.score_threshold ?? 0.7) * 100) })}
+                    </text> : null}
                     {([
                       [t('songDetail.titleField'), preview.title],
                       [t('songDetail.artistField'), preview.artist],
@@ -261,6 +264,7 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
                     ))}
                     {preview.cover_url ? <image className='song-info-dialog__cover' mode='aspectFill' src={preview.cover_url} /> : null}
                     {preview.lyrics ? <text className='song-info-scrape__hint'>{t('manualScrape.lyricsFound')}</text> : null}
+                    {preview.diagnostics?.length ? <text className='song-info-scrape__hint' data-testid='song-info-scrape-diagnostics'>{preview.diagnostics.join('\n')}</text> : null}
                   </view>
                 ) : (
                   <view>

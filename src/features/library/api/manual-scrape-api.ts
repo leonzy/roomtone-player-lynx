@@ -9,6 +9,8 @@ const resultSchema = z.object({
   artist: z.string(), album: z.string(), source: z.string(), score: z.number().finite(),
   genre: z.string().optional(), year: z.coerce.string().optional(), track: z.coerce.string().optional(),
   lyrics: z.string().optional(), cover_url: z.string().optional(),
+  score_threshold: z.number().finite().optional(), below_threshold: z.boolean().optional(),
+  diagnostics: z.array(z.string()).optional(),
 })
 export type ScrapeResult = z.infer<typeof resultSchema>
 export class ScrapeUnavailableError extends Error {

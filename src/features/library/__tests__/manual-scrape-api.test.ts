@@ -4,13 +4,13 @@ import { ManualScrapeApi } from '../api/manual-scrape-api.js'
 import type { Transport } from '../../../core/network/http-client.js'
 
 const match = { songId: 42, title: 'Matched', artist: 'Artist', album: 'Album', source: 'netease', score: 0.94, year: '2020' }
-function harness(status = 'active', installed = true) {
+function harness(status = 'active', installed = true, preview: Record<string, unknown> = match) {
   const calls: { url: string; method: string; body?: unknown }[] = []
   const transport: Transport = async request => {
     calls.push(request)
     const data = request.url.endsWith('/jsplugins')
       ? { plugins: installed ? [{ entry_path: 'tag', status }] : [] }
-      : request.method === 'POST' ? { result: match } : { song: { id: 42, type: 'local', title: 'Matched' }, file_write: 'written' }
+      : request.method === 'POST' ? { result: preview } : { song: { id: 42, type: 'local', title: 'Matched' }, file_write: 'written' }
     return { status: 200, headers: {}, body: JSON.stringify(data) }
   }
   return { calls, api: new ManualScrapeApi(createPublicClient({ transport, getBaseUrl: () => 'http://test' })) }
@@ -22,6 +22,17 @@ test('prepare uses the preview-only plugin route and never writes tags', async (
   expect(h.calls.map(c => c.method)).toEqual(['GET', 'POST'])
   expect(h.calls[1].url).toBe('http://test/api/v1/jsplugin/tag/scrape/prepare/42')
   expect(h.calls.some(c => c.method === 'PUT')).toBe(false)
+})
+
+test('low-confidence previews keep warnings and source diagnostics without writing tags', async () => {
+  const preview = { ...match, score: 0.49, score_threshold: 0.7, below_threshold: true, diagnostics: ['QQ音乐：接口失败', '咪咕：候选最高得分 0.49'] }
+  const h = harness('active', true, preview)
+  expect(await h.api.prepare(42)).toMatchObject(preview)
+  expect(h.calls.some(c => c.method === 'PUT')).toBe(false)
+  await h.api.save(42, preview)
+  const payload = JSON.parse(String(h.calls.at(-1)?.body))
+  expect(payload).not.toHaveProperty('below_threshold')
+  expect(payload).not.toHaveProperty('diagnostics')
 })
 
 test.each([['inactive', true, 'disabled'], ['active', false, 'notInstalled']] as const)('reports unavailable plugin before scraping', async (status, installed, reason) => {

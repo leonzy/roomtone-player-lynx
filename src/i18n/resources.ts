@@ -848,6 +848,7 @@ export const en = {
   manualScrape: {
     action: 'Manual scrape', preparing: 'Scraping…', saving: 'Saving…', save: 'Save result',
     confirm: 'Save this match?', confirmHint: 'Review the result below. Saving updates the library and the audio file tags.',
+    lowScore: 'Low-confidence candidate: {{score}} / 100 (automatic threshold: {{threshold}}). Review carefully; you can still save it manually.',
     genre: 'Genre', year: 'Year', track: 'Track', source: 'Source / match', lyricsFound: 'Lyrics found', saved: 'Scrape result saved',
     notInstalled: 'The Tag Scraper plugin is not installed. Install it in Navigation & Plugins.',
     disabled: 'The Tag Scraper plugin is disabled. Enable it in Navigation & Plugins.',
@@ -2080,6 +2081,7 @@ export const zh: TranslationTree = {
   manualScrape: {
     action: '手动刮削', preparing: '正在刮削…', saving: '正在保存…', save: '保存结果',
     confirm: '是否保存刮削结果？', confirmHint: '请核对以下匹配结果。保存后更新歌曲库信息和音频文件标签。',
+    lowScore: '低匹配度候选：{{score}} / 100（自动采用阈值 {{threshold}}）。请仔细核对，仍可手动保存。',
     genre: '流派', year: '年份', track: '曲号', source: '来源 / 匹配度', lyricsFound: '已找到歌词', saved: '刮削结果已保存',
     notInstalled: '尚未安装标签刮削插件，请在“导航与插件”中安装。',
     disabled: '标签刮削插件尚未启用，请在“导航与插件”中启用。',
