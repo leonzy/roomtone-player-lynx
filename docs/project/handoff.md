@@ -421,3 +421,7 @@ English: Zone settings/grouping → Group delay calibration. The UI reads persis
 ## 2026-11-01 · 最新：自动 DLNA 同步补偿
 
 以本节替代本日先前的组内手动校准设计：仅 DLNA 设备设置校准值，组内自动补偿，单独播放为 0。编组无新增步骤。API 字段 dlna_sync_delay_ms，见 progress.md 同日期最终设计。English: final design replaces manual group calibration with per-DLNA stored lag and automatic group compensation; solo playback adds none. No extra grouping steps.
+
+## 2026-11-01 · 最新：手动刮削候选来源可切换
+
+歌曲信息 → 手动刮削现在支持切换来源和候选。插件返回 candidates/source_diagnostics/score_kind/fingerprint_conflict；旧插件的单结果仍可预览。空/失败来源不能误保存，保存使用所选候选。English: Manual scraping exposes source/candidate selection; old single-result plugins remain compatible. Empty/failed sources cannot save; selection controls the saved tags. See progress.md.

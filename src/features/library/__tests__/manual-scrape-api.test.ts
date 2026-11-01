@@ -24,6 +24,15 @@ test('prepare uses the preview-only plugin route and never writes tags', async (
   expect(h.calls.some(c => c.method === 'PUT')).toBe(false)
 })
 
+test('candidate sources, conflict warnings and errors survive parsing', async () => {
+  const candidate = { ...match, source: 'acoustid', score: 1, score_kind: 'fingerprint', fingerprint_conflict: true }
+  const h = harness('active', true, { ...match, candidates: [candidate], source_diagnostics: { qqmusic: { count: 0, score: 0, error: 'HTTP 503' } } })
+  const result = await h.api.prepare(42)
+  expect(result.candidates?.[0]).toMatchObject(candidate)
+  expect(result.source_diagnostics?.qqmusic?.error).toBe('HTTP 503')
+  await expect(harness('active', true, { ...match, candidates: [{ ...candidate, songId: 43 }] }).api.prepare(42)).rejects.toThrow('different song')
+})
+
 test('low-confidence previews keep warnings and source diagnostics without writing tags', async () => {
   const preview = { ...match, score: 0.49, score_threshold: 0.7, below_threshold: true, diagnostics: ['QQ音乐：接口失败', '咪咕：候选最高得分 0.49'] }
   const h = harness('active', true, preview)

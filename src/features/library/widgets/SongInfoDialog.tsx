@@ -26,6 +26,7 @@ import type { SongCacheStatus } from '../../player/data/song-cache.js'
 import { playbackSourceKindOf } from '../../player/store/index.js'
 import { getSongsApi } from '../api/index.js'
 import { getManualScrapeApi, ScrapeUnavailableError, type ScrapeResult } from '../api/manual-scrape-api.js'
+import { ScrapeCandidatePicker, scrapeSourceName, scrapeScorePercent } from './ScrapeCandidatePicker.js'
 import { ApiError } from '../../../core/network/http-client.js'
 import { applySongMetadata, publishSavedSong } from '../data/song-metadata.js'
 import { formatDuration } from '../data/format.js'
@@ -69,6 +70,7 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
   const [cacheInfo, setCacheInfo] = useState<SongCacheStatus | null>(null)
   const songId = song?.id ?? 0
   const [preview, setPreview] = useState<ScrapeResult | null>(null)
+  const [prepared, setPrepared] = useState<ScrapeResult | null>(null)
   const [scrapeError, setScrapeError] = useState('')
   const [scrapeBusy, setScrapeBusy] = useState<'prepare' | 'save' | null>(null)
   const scrapeScope = useRef(0)
@@ -76,7 +78,7 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
   useEffect(() => {
     scrapeScope.current++
     scrapeLock.current = false
-    setPreview(null); setScrapeError(''); setScrapeBusy(null)
+    setPreview(null); setPrepared(null); setScrapeError(''); setScrapeBusy(null)
     return () => { scrapeScope.current++ }
   }, [show, songId])
   const failureReason = (error: unknown) => error instanceof ScrapeUnavailableError
@@ -88,10 +90,10 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
     if (scrapeLock.current || !songId) return
     scrapeLock.current = true
     const scope = scrapeScope.current
-    setPreview(null); setScrapeError(''); setScrapeBusy('prepare')
+    setPreview(null); setPrepared(null); setScrapeError(''); setScrapeBusy('prepare')
     try {
       const result = await getManualScrapeApi().prepare(songId)
-      if (scope === scrapeScope.current) setPreview(result)
+      if (scope === scrapeScope.current) { setPreview(result); setPrepared(result) }
     } catch (error) {
       if (scope === scrapeScope.current) setScrapeError(failureReason(error))
     } finally {
@@ -107,7 +109,7 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
       const result = await getManualScrapeApi().save(songId, preview)
       await publishSavedSong(result.song)
       if (scope !== scrapeScope.current) return
-      setServerSong(result.song); setPreview(null)
+      setServerSong(result.song); setPreview(null); setPrepared(null)
       if (result.fileWrite === 'failed') setScrapeError(t('manualScrape.fileFailed'))
       else toast.success(t('manualScrape.saved'))
     } catch (error) {
@@ -234,16 +236,19 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
                * engines). See `dialog-viewport.ts`.
                */}
               <scroll-view
-                key={`${preview ? 'scrape-result' : 'song-info'}-${scrapeError ? 'error' : 'ready'}`}
+                key={`${prepared ? 'scrape-result' : 'song-info'}-${scrapeError ? 'error' : 'ready'}`}
                 className='song-info-dialog__body'
                 scroll-y
                 style={{ maxHeight: dialogBodyMaxHeight() }}
               >
                 {scrapeError ? <text className='song-info-scrape__error' data-testid='song-info-scrape-error'>{scrapeError}</text> : null}
-                {preview ? (
+                {prepared ? (
                   <view className='song-info-scrape__preview' data-testid='song-info-scrape-preview'>
                     <text className='song-info-scrape__title'>{t('manualScrape.confirm')}</text>
                     <text className='song-info-scrape__hint'>{t('manualScrape.confirmHint')}</text>
+                    {prepared.candidates?.length ? <ScrapeCandidatePicker result={prepared} selected={preview} disabled={scrapeBusy != null} onSelect={setPreview} /> : null}
+                    {preview ? <>
+                    {preview.fingerprint_conflict && <text className='song-info-scrape__warning' data-testid='scrape-fingerprint-conflict'>{t('manualScrape.fingerprintConflict')}</text>}
                     {preview.below_threshold ? <text className='song-info-scrape__warning' data-testid='song-info-scrape-low-score'>
                       {t('manualScrape.lowScore', { score: Math.round(preview.score * 100), threshold: Math.round((preview.score_threshold ?? 0.7) * 100) })}
                     </text> : null}
@@ -254,7 +259,7 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
                       [t('manualScrape.genre'), preview.genre],
                       [t('manualScrape.year'), preview.year],
                       [t('manualScrape.track'), preview.track],
-                      [t('manualScrape.source'), `${preview.source} · ${Math.round(preview.score * 100)}%`],
+                      [t('manualScrape.source'), `${scrapeSourceName(preview.source)} · ${t(preview.score_kind === 'fingerprint' || preview.source === 'acoustid' ? 'manualScrape.fingerprintScore' : 'manualScrape.textScore', { score: scrapeScorePercent(preview.score) })}`],
                     ]).filter(([, value]) => value).map(([label, value]) => (
                       <view className='song-detail__row' key={label}>
                         <text className='song-detail__row-label'>{label}</text>
@@ -263,7 +268,8 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
                     ))}
                     {preview.cover_url ? <image className='song-info-dialog__cover' mode='aspectFill' src={preview.cover_url} /> : null}
                     {preview.lyrics ? <text className='song-info-scrape__hint'>{t('manualScrape.lyricsFound')}</text> : null}
-                    {preview.diagnostics?.length ? <text className='song-info-scrape__hint' data-testid='song-info-scrape-diagnostics'>{preview.diagnostics.join('\n')}</text> : null}
+                    </> : null}
+                    {prepared.diagnostics?.length ? <text className='song-info-scrape__hint' data-testid='song-info-scrape-diagnostics'>{prepared.diagnostics.join('\n')}</text> : null}
                   </view>
                 ) : (
                   <view>
@@ -351,7 +357,7 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
                           className='song-detail__save-btn song-info-scrape__secondary'
                           data-testid='song-info-write-tags'
                           bindtap={() => {
-                            if (scrapeBusy || preview) return
+                            if (scrapeBusy || prepared) return
                             void getSongsApi().writeTags(data.id)
                               .then(() => toast.success(t('songDetail.tagsWritten')))
                               .catch(() => toast.error(t('songDetail.tagsFailed')))
@@ -370,18 +376,18 @@ export function SongInfoDialog({ show, song, onClose, onEdit }: SongInfoDialogPr
                  * defaults made the buttons unequal in height; see ConfirmDialog. */}
                 <view
                   className='confirm-dialog__btn confirm-dialog__btn--cancel'
-                  bindtap={() => { if (scrapeBusy === 'save') return; if (preview) { setPreview(null); setScrapeError('') } else onClose() }}
+                  bindtap={() => { if (scrapeBusy === 'save') return; if (prepared) { setPreview(null); setPrepared(null); setScrapeError('') } else onClose() }}
                   data-testid='song-info-close'
                 >
-                  <text className='confirm-dialog__btn-text'>{t(preview ? 'common.cancel' : 'common.close')}</text>
+                  <text className='confirm-dialog__btn-text'>{t(prepared ? 'common.cancel' : 'common.close')}</text>
                 </view>
                 <view
-                  className='confirm-dialog__btn confirm-dialog__btn--submit'
-                  bindtap={() => { if (scrapeBusy) return; if (preview) void saveScrape(); else onEdit(data) }}
+                  className={`confirm-dialog__btn confirm-dialog__btn--submit${prepared && !preview ? ' song-info-scrape__save-disabled' : ''}`}
+                  bindtap={() => { if (scrapeBusy) return; if (prepared) { if (preview) void saveScrape() } else onEdit(data) }}
                   data-testid='song-info-edit'
                 >
                   <text className='confirm-dialog__btn-text confirm-dialog__btn-text--submit'>
-                    {t(scrapeBusy === 'save' ? 'manualScrape.saving' : preview ? 'manualScrape.save' : 'songDetail.edit')}
+                    {t(scrapeBusy === 'save' ? 'manualScrape.saving' : prepared ? 'manualScrape.save' : 'songDetail.edit')}
                   </text>
                 </view>
               </view>

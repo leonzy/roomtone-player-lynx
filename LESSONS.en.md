@@ -255,3 +255,7 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 ### CAL-002: Device timing settings must not complicate grouping
 
 2026-11-01: The user confirmed solo playback needs no compensation. Final design stores relative lag on DLNA devices and lets the backend align groups to the slowest member. Grouping adds no configuration steps and AirPlay has no manual calibration entry. Tests cover local drafts, field-only saves, conflicts and persistence errors; millisecond input does not imply acoustic accuracy. Seen 1× (2026-11-01).
+
+### SCRAPE-001: Separate preview mode from the selected candidate
+
+2026-11-01: The manual UI hid conflicted fingerprints and offered no source choice. Track the response envelope separately from candidate selection; empty sources show reasons but cannot save or fall through to Edit. Tests cover conflicted 100% fingerprints, weak text matches, failed QQ lookup, selected-only saving and cross-song rejection. Prepare is read-only; saving remains explicit. Seen 1×.

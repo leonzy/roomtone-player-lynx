@@ -271,6 +271,25 @@ test('no card renders without a song (the mount point stays inert while closed)'
 
 const scrapeResult = { songId: 42, title: 'Matched title', artist: 'Matched artist', album: 'Matched album', source: 'netease', score: 0.96 }
 
+test('conflicting 100% fingerprint stays selectable and saves the chosen source only', async () => {
+  const fingerprint = { ...scrapeResult, title: 'Fingerprint song', source: 'acoustid', score: 1, score_kind: 'fingerprint', fingerprint_conflict: true }
+  const text = { ...scrapeResult, source: 'migu', score: 0.46, score_kind: 'text' }
+  prepareSpy.mockResolvedValue({ ...text, score_threshold: 0.7, below_threshold: true, candidates: [fingerprint, text], source_diagnostics: { acoustid: { count: 1, score: 1 }, qqmusic: { count: 0, score: 0, error: 'QQ business error 2001' }, migu: { count: 1, score: 0.46 } } })
+  saveScrapeSpy.mockResolvedValue({ song: makeSong({ title: fingerprint.title }), fileWrite: 'written' })
+  const ui = await renderDialog()
+  await act(async () => { fireEvent.tap(ui.getByTestId('song-info-scrape')); await Promise.resolve() })
+  await act(async () => { fireEvent.tap(ui.getByTestId('scrape-source-qqmusic')) })
+  expect(ui.getByTestId('scrape-source-empty')).toHaveTextContent('2001')
+  await act(async () => { fireEvent.tap(ui.getByTestId('song-info-edit')); await Promise.resolve() })
+  expect(saveScrapeSpy).not.toHaveBeenCalled()
+  await act(async () => { fireEvent.tap(ui.getByTestId('scrape-source-acoustid')) })
+  expect(ui.getByTestId('scrape-fingerprint-conflict')).toBeInTheDocument()
+  expect(ui.getByTestId('scrape-candidate-acoustid-0')).toHaveTextContent('100%')
+  expect(saveScrapeSpy).not.toHaveBeenCalled()
+  await act(async () => { fireEvent.tap(ui.getByTestId('song-info-edit')); await Promise.resolve() })
+  expect(saveScrapeSpy).toHaveBeenCalledWith(42, expect.objectContaining({ title: fingerprint.title, source: 'acoustid', score: 1 }))
+})
+
 test('scraping previews metadata and never saves until explicit confirmation', async () => {
   prepareSpy.mockResolvedValue(scrapeResult)
   saveScrapeSpy.mockResolvedValue({ song: makeSong({ title: 'Matched title' }), fileWrite: 'written' })

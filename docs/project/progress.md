@@ -1781,3 +1781,9 @@ English: Group/zone settings now open per-member delay calibration: integer mill
 替代本日先前的组内手动校准界面：编组只选成员；DLNA 设备设置/区域设置中的 DLNA 提供“DLNA 同步补偿”。设备保存相对 AirPlay 的额外延迟 0–2000ms，分组自动给较快成员补差，单独播放不加延迟。配置不随重新编组丢失，不再让用户逐个填写 AirPlay 延迟。旧成员校准入口与源码已撤掉。
 
 English: This supersedes the earlier manual group-calibration UI. Grouping only selects members. DLNA device/zone settings expose per-device extra lag (0–2000ms) relative to AirPlay. Groups automatically compensate faster members; solo outputs add none. Regrouping retains device configuration. Manual per-member calibration UI/code was removed. Types and 55 related tests plus the new save-failure test passed; native SDKs/acoustic listening remain Not run.
+
+## 2026-11-01 · 手动刮削按来源选择候选
+
+手动预览保留 AcoustID 冲突候选，并显示 QQ/咪咕等来源的候选与具体失败原因。来源无结果时不可保存，切换候选后只保存当前选择。明确标识指纹相似度与文字匹配度，不把 99.65% 四舍五入成标签“100% 正确”。准备/选择不写标签；保存失败保持选项，迟到响应不能串歌。
+
+English: Manual scraping now exposes candidates per source, including conflicted AcoustID labels with warnings and actionable source errors. Empty sources cannot save; only the selected candidate is written after confirmation. Fingerprint similarity and text match are distinct, with one decimal of precision where needed. Prepare/select are read-only; save failures retain choices and stale responses cannot cross song identity. Types and 36 targeted API/dialog/encoding/CSS tests passed; production browser verification follows deployment.

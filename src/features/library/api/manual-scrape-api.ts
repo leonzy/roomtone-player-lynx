@@ -4,13 +4,18 @@ import { getSharedApiBundle } from '../../../core/network/api-client.js'
 import { ApiError, type HttpClient } from '../../../core/network/http-client.js'
 import { parseSong } from '../../../models/song.js'
 
-const resultSchema = z.object({
+const candidateSchema = z.object({
   songId: z.number().int().positive(), title: z.string().trim().min(1),
   artist: z.string(), album: z.string(), source: z.string(), score: z.number().finite(),
   genre: z.string().optional(), year: z.coerce.string().optional(), track: z.coerce.string().optional(),
   lyrics: z.string().optional(), cover_url: z.string().optional(),
   score_threshold: z.number().finite().optional(), below_threshold: z.boolean().optional(),
   diagnostics: z.array(z.string()).optional(),
+  score_kind: z.enum(['fingerprint', 'text']).optional(), fingerprint_conflict: z.boolean().optional(),
+})
+const resultSchema = candidateSchema.extend({
+  candidates: z.array(candidateSchema).max(30).optional(),
+  source_diagnostics: z.record(z.string(), z.object({ count: z.number(), score: z.number(), error: z.string().optional() })).optional(),
 })
 export type ScrapeResult = z.infer<typeof resultSchema>
 export class ScrapeUnavailableError extends Error {
@@ -29,6 +34,7 @@ export class ManualScrapeApi {
       const response = await this.client.post<{ result?: unknown }>(`${apiPrefix}/jsplugin/tag/scrape/prepare/${id}`, {}, { receiveTimeoutMs: 120_000 })
       const result = resultSchema.parse(response.data?.result)
       if (result.songId !== id) throw new Error('Scrape result belongs to a different song')
+      if (result.candidates?.some(candidate => candidate.songId !== id)) throw new Error('Scrape candidate belongs to a different song')
       return result
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) throw new ScrapeUnavailableError('upgradeRequired')
