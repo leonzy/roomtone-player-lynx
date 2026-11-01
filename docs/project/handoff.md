@@ -417,3 +417,7 @@ pnpm run test:release
 新增校准界面见 progress.md 同日期条目。入口：区域设置／区域编组 → 组内延迟校准；保存读取已有成员 delay_ms，不内置设备型号的延迟常量。支持整数输入、滑块、微调和归零。后端同步支持拉流成员计划起播与保留补偿的反馈校正，AirPlay 仍走实际 PCM 延迟。原生平台和新的声学校准听感 Not run。
 
 English: Zone settings/grouping → Group delay calibration. The UI reads persisted member delay_ms, with numeric/slider/step/reset edits and explicit Save. Pull outputs now schedule their saved calibration and feedback preserves it; AirPlay retains PCM compensation. Native platforms and acoustic recalibration remain Not run.
+
+## 2026-11-01 · 最新：自动 DLNA 同步补偿
+
+以本节替代本日先前的组内手动校准设计：仅 DLNA 设备设置校准值，组内自动补偿，单独播放为 0。编组无新增步骤。API 字段 dlna_sync_delay_ms，见 progress.md 同日期最终设计。English: final design replaces manual group calibration with per-DLNA stored lag and automatic group compensation; solo playback adds none. No extra grouping steps.

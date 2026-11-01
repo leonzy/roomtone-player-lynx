@@ -1775,3 +1775,9 @@ Worker environments defaulted to never-expiring query caches. Idle queries and c
 区域设置与编组新增独立校准入口；逐成员显示已保存毫秒数，支持 −2000..2000 的整数输入、10ms 滑块、±10/±50ms 微调与单台归零。修改先留在草稿，保存只 PATCH 改过的成员，保留最新音量偏移；成员变化或其它客户端冲突会拒绝，接口失败留在面板提示，不误报成功。
 
 English: Group/zone settings now open per-member delay calibration: integer milliseconds (−2000..2000), 10ms slider, ±10/±50ms controls and per-speaker reset. Drafts stay local until Save, which updates changed members only and preserves current volume offsets. Membership/conflicting calibration changes reject before writes; server errors remain visible. AirPlay applies live; DLNA/Web on the next playback start. No native SDK installation or audible playback is part of verification.
+
+## 2026-11-01 · 最终设计：DLNA 设备延迟与自动补偿
+
+替代本日先前的组内手动校准界面：编组只选成员；DLNA 设备设置/区域设置中的 DLNA 提供“DLNA 同步补偿”。设备保存相对 AirPlay 的额外延迟 0–2000ms，分组自动给较快成员补差，单独播放不加延迟。配置不随重新编组丢失，不再让用户逐个填写 AirPlay 延迟。旧成员校准入口与源码已撤掉。
+
+English: This supersedes the earlier manual group-calibration UI. Grouping only selects members. DLNA device/zone settings expose per-device extra lag (0–2000ms) relative to AirPlay. Groups automatically compensate faster members; solo outputs add none. Regrouping retains device configuration. Manual per-member calibration UI/code was removed. Types and 55 related tests plus the new save-failure test passed; native SDKs/acoustic listening remain Not run.

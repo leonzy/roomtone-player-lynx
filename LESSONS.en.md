@@ -251,3 +251,7 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 - Scope: member delay editing, 2026-11-01. The old blur-save reused a rendered volume_offset; backend persistence errors were ignored.
 - Rule: separate drafts from saved values, re-read members before saving, preserve current volume offsets, reject conflicting delay/member changes, and keep failures visible without reporting success. Tests cover invalid input, concurrent edits and server failures; they do not prove native or acoustic behavior.
 - Seen 1× (2026-11-01).
+
+### CAL-002: Device timing settings must not complicate grouping
+
+2026-11-01: The user confirmed solo playback needs no compensation. Final design stores relative lag on DLNA devices and lets the backend align groups to the slowest member. Grouping adds no configuration steps and AirPlay has no manual calibration entry. Tests cover local drafts, field-only saves, conflicts and persistence errors; millisecond input does not imply acoustic accuracy. Seen 1× (2026-11-01).

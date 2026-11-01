@@ -276,3 +276,7 @@ English: The reported slowdown affects Web local playback while progress still a
 - Seen 1×（2026-11-01）。
 
 English: Calibration previously saved on blur with a stale volume_offset; backend persistence errors were ignored. Keep drafts separate, re-read before saving, preserve the latest offset, reject conflicting calibration/membership edits, and show failures without closing or claiming success. Tests cover these paths, not native SDKs or acoustic performance. Seen 1× (2026-11-01).
+
+### CAL-002：同步配置归属设备，编组保持简单
+
+2026-11-01：用户确认单独播放不需延迟，最终设计将设置改为 DLNA 设备的相对出声延迟，由后端按最慢成员自动补偿。编组不增加配置步骤，AirPlay 无手动校准入口。回归覆盖草稿不落库、只写本字段、冲突和保存失败；UI 毫秒数不等于声学精度。Seen 1×（2026-11-01）。
