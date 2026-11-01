@@ -1,11 +1,11 @@
 import type { OutputDevice, OutputGroup } from './api.js'
 
-// Local clients disappear from the picker when their page disconnects. Keep
+// Offline outputs disappear from the playback picker. Keep
 // persisted devices in management so names, settings and queues survive return.
 export function selectableZones(groups: OutputGroup[], players: OutputDevice[]) {
   return groups.filter(group => group.members.some(member => {
     const player = players.find(p => p.ID === member.player_id)
-    return player && (player.Kind !== 'local' || player.Online)
+    return player?.Online
   }))
 }
 

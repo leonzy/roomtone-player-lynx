@@ -2,10 +2,10 @@ import { expect, test } from 'vitest'
 import type { OutputDevice, OutputGroup } from '../api.js'
 import { groupChanges, groupChoices, toggleGroupChoice, selectableZones } from '../grouping.js'
 
-test('closing a browser removes its zone from playback choices without hiding network speakers', () => {
+test('disconnected browsers and network bridges disappear from playback choices', () => {
   const players = [ { ...player('old', false), Kind: 'local' }, { ...player('current'), Kind: 'local' }, player('speaker', false) ]
   const groups = [group('old-browser', ['old']), group('current-browser', ['current']), group('network', ['speaker'])]
-  expect(selectableZones(groups, players).map(g => g.id)).toEqual(['current-browser', 'network'])
+  expect(selectableZones(groups, players).map(g => g.id)).toEqual(['current-browser'])
   expect(groups).toHaveLength(3)
 })
 
