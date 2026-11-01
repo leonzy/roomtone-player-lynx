@@ -163,3 +163,5 @@
 .output-calibration-steps { display: flex; flex-direction: row; gap: 6px; justify-content: space-between; }
 .output-calibration-steps .output-button { background-color: var(--quaternary-system-fill); border-radius: 9px; padding: 8px; }
 .output-calibration-saved { color: var(--system-green); font-size: 13px; }
+.output-detail--calibration { width: 480px; height: 84vh; max-height: 680px; }
+.output-detail--calibration .output-panel-body { padding: 18px 20px 22px; }
