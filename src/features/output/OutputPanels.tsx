@@ -16,6 +16,7 @@ import { getQueryClient } from '../../lib/query/index.js'
 import { outputApi, outputId, volumeInt, type OutputGroup, type OutputDevice, type EqProfile } from './api.js'
 import { focusZone, focusedGroup, openOutputPanel, outputAction, outputKey, readOutputs, refreshOutputs, startOutputRuntime, useZoneState } from './runtime.js'
 import { useOutputText } from './text.js'
+import { DelayCalibration } from './DelayCalibration.js'
 import { groupChoices, groupChanges, toggleGroupChoice, selectableZones } from './grouping.js'
 import '../../shared/ui/PopoverMenu.css'
 import './output.css'
@@ -98,8 +99,8 @@ export function OutputRoot({ enabled }: { enabled: boolean }) {
   if (!enabled || !panel) return null
   const group = data?.groups.find(g => g.id === focus)
   const compact = ['zones', 'volume', 'signal'].includes(panel)
-  const title = panel.startsWith('limit:') ? out('volumeLimit') : panel.startsWith('device:') ? (data.players.find(p => p.ID === panel.slice(7))?.Name ?? out('devices')) : panel === 'group' ? out('groupEdit') : (['zones', 'volume', 'signal', 'transfer', 'sleep', 'dsp', 'settings', 'outputs', 'metrics', 'party', 'alarms', 'allowlist', 'advanced'].includes(panel) ? out(panel as 'zones') : panel)
-  const backPanel = panel.startsWith('limit:') ? 'settings' : panel.startsWith('device:') || ['add', 'advanced', 'alarms', 'party'].includes(panel) ? 'outputs' : ['metrics', 'allowlist'].includes(panel) ? 'advanced' : null
+  const title = panel === 'calibration' ? out('calibration') : panel.startsWith('limit:') ? out('volumeLimit') : panel.startsWith('device:') ? (data.players.find(p => p.ID === panel.slice(7))?.Name ?? out('devices')) : panel === 'group' ? out('groupEdit') : (['zones', 'volume', 'signal', 'transfer', 'sleep', 'dsp', 'settings', 'outputs', 'metrics', 'party', 'alarms', 'allowlist', 'advanced'].includes(panel) ? out(panel as 'zones') : panel)
+  const backPanel = panel === 'calibration' ? 'settings' : panel.startsWith('limit:') ? 'settings' : panel.startsWith('device:') || ['add', 'advanced', 'alarms', 'party'].includes(panel) ? 'outputs' : ['metrics', 'allowlist'].includes(panel) ? 'advanced' : null
   const manager = ['outputs', 'advanced'].includes(panel) || panel.startsWith('device:')
   const detailClasses: Record<string, string> = { sleep: ' output-panel--detail output-detail--sleep', dsp: ' output-panel--detail output-detail--dsp', transfer: ' output-panel--detail output-detail--transfer', settings: ' output-panel--detail output-detail--settings', limit: ' output-panel--detail output-detail--limit' }
   const position = compact && anchor ? placePanel(anchor.anchor, anchor.viewport, pickMenuPlacement(anchor)) : DOCKED_POSITION
@@ -161,6 +162,7 @@ function PanelBody({ panel, group, players, groups }: { panel: string; group?: O
     {groups.length === 1 && <text>{out('noTargets')}</text>}
   </>
   if (panel === 'group') return <GroupEditor group={group} players={players} groups={groups} />
+  if (panel === 'calibration') return <DelayCalibration key={group.id} group={group} players={players} />
   if (panel === 'settings') return <ZoneSettings group={group} players={players} />
   if (panel === 'sleep') return <Sleep group={group} />
   return null
@@ -240,7 +242,7 @@ function GroupEditor({ group, players, groups }: { group: OutputGroup; players: 
       <view className='output-group-anchor'><Icon name={anchor?.Kind === 'local' ? 'computer' : 'speaker'} size={32} color={ICON_COLORS.content2} /><view className='output-group-anchor-copy'><text className='output-group-anchor-caption'>{out('currentZone')}</text><text className='output-group-anchor-name'>{anchor?.Name ?? group.name}</text></view><Button testId='output-group-ungroup' disabled={busy || group.members.length < 2} onTap={() => save([group.master_id])}>{out('ungroup')}</Button></view>
       <view className='output-group-track'><Icon name={group.status.state === 'playing' ? 'pause' : 'play'} size={18} color={ICON_COLORS.content2} /><view className='output-group-track-copy'><text className='output-group-track-title' text-maxline='1'>{title}</text>{song?.id === group.status.song_id && song.artist && <text className='output-group-track-artist' text-maxline='1'>{song.artist}</text>}</view></view>
     </view>
-    <view className='output-group-section'><text className='output-label'>{out('addToGroup')}</text><text className='output-group-instruction'>{out('groupHint')}</text></view>
+    <view className='output-group-section'>{group.members.length > 1 && <Button disabled={busy} icon='settings' testId='output-group-calibration' onTap={() => openOutputPanel('calibration')}>{out('calibration')}</Button>}<text className='output-label'>{out('addToGroup')}</text><text className='output-group-instruction'>{out('groupHint')}</text></view>
     <scroll-view key={group.id} className='output-group-choices' scroll-y>
       {choices.map(choice => {
         const checked = choice.playerIds.every(id => selected.includes(id)), disabled = busy || choice.unavailable || choice.incompatible
@@ -259,9 +261,8 @@ function GroupEditor({ group, players, groups }: { group: OutputGroup; players: 
 function ZoneSettings({ group, players }: { group: OutputGroup; players: OutputDevice[] }) {
   const out = useOutputText(), [name, setName] = useState(group.name), [icon, setIcon] = useState(group.icon || 'speaker')
   return <><text className='output-section-label'>{out('zoneIdentity')}</text><view className='output-settings-card'><Field label={out('name')} value={name} onChange={setName} /><Choices label={out('icon')} value={icon} values={['speaker', 'bookshelf', 'soundbar', 'headphone', 'tv', 'phone', 'laptop', 'multiroom']} onChange={setIcon} />
-    <Button disabled={!name.trim() || name.trim().length > 40} onTap={() => void outputAction(() => outputApi.updateGroup(group.id, { name: name.trim(), icon }))}>{out('save')}</Button></view><text className='output-section-label'>{out('memberSettings')}</text>
+    <Button disabled={!name.trim() || name.trim().length > 40} onTap={() => void outputAction(() => outputApi.updateGroup(group.id, { name: name.trim(), icon }))}>{out('save')}</Button></view><OutputNavigation title={out('calibration')} detail={out('calibrationEntry')} icon='settings' onTap={() => openOutputPanel('calibration')} testId='output-calibration' /><text className='output-section-label'>{out('memberSettings')}</text>
     {group.members.map((m, i) => <view key={m.player_id} className='output-card'><view className='output-speaker-card'><Icon name='speaker' size={30} color={ICON_COLORS.content2} /><view className='output-device-copy'><text className='output-device-name'>{players.find(p => p.ID === m.player_id)?.Name ?? m.player_id}</text><text className='output-device-detail'>{players.find(p => p.ID === m.player_id)?.Address}</text></view><view className='output-speaker-actions'><Button testId={'output-limit-' + m.player_id} onTap={() => openOutputPanel('limit:' + m.player_id)} icon='volume'>{out('volumeLimit')}</Button><Button onTap={() => openOutputPanel('device:' + m.player_id)} icon='settings'>{out('deviceSettings')}</Button></view></view>
-      <NumberField commitOnly label={out('delay')} value={m.delay_ms} onChange={v => void outputAction(() => outputApi.member(group.id, m.player_id, 'PATCH', { delay_ms: Math.max(-2000, Math.min(2000, v)), volume_offset: m.volume_offset }))} />
       <NumberField commitOnly label={out('offset')} value={m.volume_offset} onChange={v => void outputAction(() => outputApi.member(group.id, m.player_id, 'PATCH', { delay_ms: m.delay_ms, volume_offset: Math.max(-100, Math.min(100, v)) }))} />
       <view className='output-wrap'><Button disabled={m.player_id === group.master_id} onTap={() => void outputAction(() => outputApi.request(`/groups/${outputId(group.id)}/master`, 'POST', { player_id: m.player_id }))}>{out('master')}</Button>
         <Button disabled={i === 0} onTap={() => void outputAction(() => { const ids = group.members.map(m => m.player_id); [ids[i - 1], ids[i]] = [ids[i]!, ids[i - 1]!]; return outputApi.request(`/groups/${outputId(group.id)}/members/order`, 'PUT', { player_ids: ids }) })}>{out('moveUp')}</Button></view>

@@ -267,3 +267,12 @@ English: On reload, the first manual play discarded a restored 42-second positio
 - 边界：这是已验证的不必要渲染开销，不是长时间极慢点击的完整根因证明。实际浏览器持续播放及故障现场性能采样仍 Not run。
 
 English: The reported slowdown affects Web local playback while progress still advances. A subscribing render fixture found 20 whole-control renders for 20 progress ticks; static store fixtures hid this cost. Progress/time leaves now subscribe only to displayed integer percentages/seconds. The same test advances to 0:05 with zero extra control renders; 145 related tests pass. This verifies removed work, not the complete cause of the long-running slowdown; real-browser soak/profiling remains Not run.
+
+### CAL-001：校准保存不能覆盖另一个参数或假报成功
+
+- 范围：组成员 delay_ms 编辑，2026-11-01。
+- 证据：旧面板失焦即保存并携带渲染时的 volume_offset，缺少统一保存/冲突检查；后端 SaveMember 错误被丢弃。新增回归覆盖新音量偏移、并发延迟修改、成员变更、无效输入及服务端失败。
+- 规则：草稿与服务端值分离；保存前重读成员，只写变化值，保留最新音量偏移；错误不关闭面板，不显示成功。原生 SDK/声学效果不由组件测试证明。
+- Seen 1×（2026-11-01）。
+
+English: Calibration previously saved on blur with a stale volume_offset; backend persistence errors were ignored. Keep drafts separate, re-read before saving, preserve the latest offset, reject conflicting calibration/membership edits, and show failures without closing or claiming success. Tests cover these paths, not native SDKs or acoustic performance. Seen 1× (2026-11-01).

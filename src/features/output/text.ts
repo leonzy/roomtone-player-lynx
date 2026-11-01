@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 const zh = {
+ calibration: '组内延迟校准', calibrationEntry: '逐台调整出声时间，保存组内补偿', calibrationHint: '先选出声最慢的音箱作参考，再给较快的音箱增加延迟。这里只调整时间，不调整音量。', calibrationGuide: '正值：晚出声 · 负值：提前 · 1000 ms = 1 秒', calibrationApply: 'AirPlay 保存后应用；DLNA / Web 在下一次播放、继续或切歌时应用。DLNA 内部缓冲仍可能变化，毫秒数不代表实际同步精度。', calibrationReset: '归零', calibrationLater: '晚出声', calibrationEarlier: '提前', calibrationZero: '无额外补偿', calibrationInvalid: '请输入 −2000 至 2000 的整数', calibrationChanged: '组成员或校准值已变化，请重新打开后调整', calibrationSaved: '已保存，重新打开时会保留这些值。',
  queuePlayed: '已播放',
  playOptions: '播放选项', playNow: '现在播放', appendQueue: '加入队列', playSelected: '播放选中', addFromLibrary: '从曲库添加', queueAdded: '已加入队列', queueShowPlayed: '查看已播放曲目', queuePendingOnly: '只看待播曲目', queueEdit: '调整顺序', queueDone: '完成', queueOrder: '顺序播放', queueLoop: '列表循环', queueSingle: '单曲循环', queueRandom: '随机播放', queueClear: '清空队列', queueConfirmClear: '确认清空', queueEmpty: '队列为空，添加歌曲开始聆听', queueRemove: '从队列移除', moveDown: '下移',
  volumeLimit: '音量限制', volumeLimitHint: '为这台音箱设置合适的最大音量。保存后由服务器执行。', resetLimit: '重置为 100', deviceSettings: '设备设置', maximumVolume: '最大音量',
@@ -37,6 +38,7 @@ const zh = {
   wednesday: '三', thursday: '四', friday: '五', saturday: '六', sunday: '日', active: '播放中',
 }
 const en: Record<keyof typeof zh, string> = {
+ calibration: 'Group delay calibration', calibrationEntry: 'Adjust and save timing for each speaker', calibrationHint: 'Use the slowest speaker as your reference. Add delay to faster speakers. Volume is unchanged.', calibrationGuide: 'Positive: later · Negative: earlier · 1000 ms = 1 second', calibrationApply: 'AirPlay applies on save; DLNA / Web applies on the next play, resume or track. DLNA buffering can vary; millisecond values do not imply millisecond accuracy.', calibrationReset: 'Reset', calibrationLater: 'Later', calibrationEarlier: 'Earlier', calibrationZero: 'No extra delay', calibrationInvalid: 'Enter an integer from −2000 to 2000', calibrationChanged: 'Members or calibration changed. Reopen before editing.', calibrationSaved: 'Saved. These values will remain when you reopen.',
  queuePlayed: 'Played',
  playOptions: 'Playback options', playNow: 'Play now', appendQueue: 'Add to queue', playSelected: 'Play selected', addFromLibrary: 'Add from library', queueAdded: 'Added to queue', queueShowPlayed: 'Show played tracks', queuePendingOnly: 'Show upcoming only', queueEdit: 'Edit order', queueDone: 'Done', queueOrder: 'In order', queueLoop: 'Repeat all', queueSingle: 'Repeat one', queueRandom: 'Shuffle', queueClear: 'Clear queue', queueConfirmClear: 'Confirm clear', queueEmpty: 'Your queue is empty. Add music to get started.', queueRemove: 'Remove from queue', moveDown: 'Move down',
  volumeLimit: 'Volume limit', volumeLimitHint: 'Choose the maximum level for this speaker. The server enforces it after saving.', resetLimit: 'Reset to 100', deviceSettings: 'Device settings', maximumVolume: 'Maximum volume',

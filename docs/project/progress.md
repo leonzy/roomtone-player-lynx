@@ -1769,3 +1769,9 @@ Manual previews retain low-confidence candidates, show their score and automatic
 修复 Worker 无 window 时查询缓存默认永久保留的问题：闲置查询和已完成 mutation 五分钟回收；区域视图使用禁用自动请求的 QueryObserver 保持可见数据，避免回收导致区域列表短暂消失。远程队列只保留当前快照，本机进度事件不重复编码未变队列。修复前回归复现 100 次队列更新留下 101 份缓存、一小时 14,400 次进度更新扫描队列 14,401 次；修复后快照为 1、扫描最多 2 次。相关测试、类型、构建结果见交付记录；未主动发起音频播放，一小时为模拟事件，实际长时间点击卡死仍需观察。
 
 Worker environments defaulted to never-expiring query caches. Idle queries and completed mutations now expire after five minutes; disabled QueryObservers retain currently displayed outputs without extra requests. Only the current remote queue snapshot remains, and local progress ticks do not re-encode unchanged queues. Before: 100 queue changes retained 101 snapshots, and 14,400 progress ticks scanned the queue 14,401 times. After: one snapshot and at most two scans. Tests, types and builds are recorded in delivery. No audio playback was initiated; the hour is simulated, and the user's long-running click freeze still needs observation.
+
+## 2026-11-01 · 组内延迟校准
+
+区域设置与编组新增独立校准入口；逐成员显示已保存毫秒数，支持 −2000..2000 的整数输入、10ms 滑块、±10/±50ms 微调与单台归零。修改先留在草稿，保存只 PATCH 改过的成员，保留最新音量偏移；成员变化或其它客户端冲突会拒绝，接口失败留在面板提示，不误报成功。
+
+English: Group/zone settings now open per-member delay calibration: integer milliseconds (−2000..2000), 10ms slider, ±10/±50ms controls and per-speaker reset. Drafts stay local until Save, which updates changed members only and preserves current volume offsets. Membership/conflicting calibration changes reject before writes; server errors remain visible. AirPlay applies live; DLNA/Web on the next playback start. No native SDK installation or audible playback is part of verification.

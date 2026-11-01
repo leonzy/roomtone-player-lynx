@@ -411,3 +411,9 @@ pnpm run test:release
 ### GitHub 发现：根清单空哈希（2026-10-08）
 
 根目录 plugin.json 的 entryHash、zipHash 可省略或留空；非空值继续校验格式。发现页不要求构建产物哈希回写到源码根清单，实际安装包仍由服务器校验。
+
+## 2026-11-01 · 组内延迟校准
+
+新增校准界面见 progress.md 同日期条目。入口：区域设置／区域编组 → 组内延迟校准；保存读取已有成员 delay_ms，不内置设备型号的延迟常量。支持整数输入、滑块、微调和归零。后端同步支持拉流成员计划起播与保留补偿的反馈校正，AirPlay 仍走实际 PCM 延迟。原生平台和新的声学校准听感 Not run。
+
+English: Zone settings/grouping → Group delay calibration. The UI reads persisted member delay_ms, with numeric/slider/step/reset edits and explicit Save. Pull outputs now schedule their saved calibration and feedback preserves it; AirPlay retains PCM compensation. Native platforms and acoustic recalibration remain Not run.
