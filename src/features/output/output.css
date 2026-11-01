@@ -165,3 +165,5 @@
 .output-calibration-saved { color: var(--system-green); font-size: 13px; }
 .output-detail--calibration { width: 480px; height: 84vh; max-height: 680px; }
 .output-detail--calibration .output-panel-body { padding: 18px 20px 22px; }
+.output-detail--calibration .output-calibration { gap: 12px; }
+.output-detail--calibration .output-calibration-card { gap: 10px; }
