@@ -245,3 +245,9 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 - Done right: inactive caches expire while displayed data remains; one current snapshot and at most two maps under the same workload. Related checks cover stale projection, source loading, queue/zone controls and persistence. Logs: `C:/Users/leon/.local/roomtone-tools/playback-lifetime-*.log`.
 - Not run: an hour of real audio and a heap snapshot from the frozen page. Cache/load fixes do not establish that the reported click freeze is reproduced or fully resolved.
 - Seen 1× (2026-10-31).
+
+### CAL-001: Calibration persistence must report failures and retain other settings
+
+- Scope: member delay editing, 2026-11-01. The old blur-save reused a rendered volume_offset; backend persistence errors were ignored.
+- Rule: separate drafts from saved values, re-read members before saving, preserve current volume offsets, reject conflicting delay/member changes, and keep failures visible without reporting success. Tests cover invalid input, concurrent edits and server failures; they do not prove native or acoustic behavior.
+- Seen 1× (2026-11-01).
