@@ -84,3 +84,15 @@ describe('getTranscodeFormat', () => {
     expect(getTranscodeFormat('not-a-container', 'ios')).toBeNull()
   })
 })
+
+
+describe("DTS audio", () => {
+ test("requests decoded audio for browser and mobile, retains native decoding", () => {
+  for (const fmt of ["dts", "dtshd"]) {
+   expect(getTranscodeFormat(fmt, "web")).toBe("mp3")
+   expect(getTranscodeFormat(fmt, "android")).toBe("mp3")
+   expect(getTranscodeFormat(fmt, "ios")).toBe("mp3")
+   expect(getTranscodeFormat(fmt, "native")).toBe(null)
+  }
+ })
+})

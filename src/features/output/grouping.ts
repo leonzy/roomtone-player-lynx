@@ -51,3 +51,14 @@ export function groupChanges(source: OutputGroup, selected: string[]) {
     remove: source.members.map(m => m.player_id).filter(id => id !== source.master_id && !next.has(id)),
   }
 }
+
+// Grouping never assigns channels automatically. Only an explicitly changed
+// role is sent; leaving the optional section untouched creates no PATCH calls.
+export function groupChannelChanges(source: OutputGroup, selected: string[], draft: Record<string, string>) {
+  if (selected.length < 2) return []
+  return selected.flatMap(id => {
+    const mode = draft[id] || 'stereo'
+    const original = source.members.length < 2 ? 'stereo' : source.members.find(m => m.player_id === id)?.channel_mode || 'stereo'
+    return mode === original ? [] : [{ id, mode }]
+  })
+}

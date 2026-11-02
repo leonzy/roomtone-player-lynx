@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import type { OutputDevice, OutputGroup } from '../api.js'
-import { groupChanges, groupChoices, toggleGroupChoice, selectableZones } from '../grouping.js'
+import { groupChanges, groupChannelChanges, groupChoices, toggleGroupChoice, selectableZones } from '../grouping.js'
 
 test('disconnected browsers and network bridges disappear from playback choices', () => {
   const players = [ { ...player('old', false), Kind: 'local' }, { ...player('current'), Kind: 'local' }, player('speaker', false) ]
@@ -48,4 +48,19 @@ test('unavailable or incompatible zones cannot be added; an offline existing mem
   expect(toggleGroupChoice(['A'], choices[2]!, 'A')).toEqual(['A'])
   expect(choices[3]!.names).toEqual(['Room F'])
   expect(choices[3]!.unavailable).toBe(true)
+})
+
+test('grouping is stereo by default and never assigns a stereo pair automatically', () => {
+  const source = group('source', ['A'])
+  expect(groupChannelChanges(source, ['A', 'B'], {})).toEqual([])
+  expect(groupChannelChanges(source, ['A', 'B'], { A: 'stereo', B: 'stereo' })).toEqual([])
+  expect(groupChannelChanges(source, ['A', 'B'], { A: 'left', B: 'right' })).toEqual([{ id: 'A', mode: 'left' }, { id: 'B', mode: 'right' }])
+})
+test('untouched existing channel assignments are preserved and solo grouping sends no role', () => {
+  const source = group('source', ['A', 'B'])
+  source.members[0]!.channel_mode = 'left'
+  source.members[1]!.channel_mode = 'right'
+  expect(groupChannelChanges(source, ['A', 'B', 'C'], { A: 'left', B: 'right' })).toEqual([])
+  expect(groupChannelChanges(source, ['A'], { A: 'left' })).toEqual([])
+  expect(groupChannelChanges(source, ['A', 'B'], { A: 'stereo', B: 'right' })).toEqual([{ id: 'A', mode: 'stereo' }])
 })

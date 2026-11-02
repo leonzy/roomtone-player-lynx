@@ -49,6 +49,9 @@ export function normalizeFormat(fmt: string): string | null {
     case 'aif':
     case 'aiff':
       return 'aiff'
+    case 'dts':
+    case 'dtshd':
+      return fmt
     case 'mka':
       return 'mka'
     case 'mpg':

@@ -1787,3 +1787,8 @@ English: This supersedes the earlier manual group-calibration UI. Grouping only 
 手动预览保留 AcoustID 冲突候选，并显示 QQ/咪咕等来源的候选与具体失败原因。来源无结果时不可保存，切换候选后只保存当前选择。明确标识指纹相似度与文字匹配度，不把 99.65% 四舍五入成标签“100% 正确”。准备/选择不写标签；保存失败保持选项，迟到响应不能串歌。
 
 English: Manual scraping now exposes candidates per source, including conflicted AcoustID labels with warnings and actionable source errors. Empty sources cannot save; only the selected candidate is written after confirmation. Fingerprint similarity and text match are distinct, with one decimal of precision where needed. Prepare/select are read-only; save failures retain choices and stale responses cannot cross song identity. Types and 36 targeted API/dialog/encoding/CSS tests passed; production browser verification follows deployment.
+## 2026-11-02 · DTS、可选声道分配与独立衰减
+
+新增 DTS/DTS-HD 的浏览器及移动端解码请求，编组中可选左右、单声道及 FL/FR/C/LFE/BL/BR/BC/SL/SR 离散声道；普通编组默认立体声，不自动分配声道。区域音频控制支持独立 0..24 dB 衰减，保留 EQ 预设与旧客户端兼容；文件信息路径自动折行。输出与格式 50 项、歌曲编辑 18 项及类型检查通过，本机 Web 实际验证声道保存并由 API/SQLite 确认；真实多音箱环绕实听及原生 SDK 构建 Not run。本批目标远程为 leonzy/roomtone-player-lynx，父仓库为 leonzy/roomtone；用户已要求提交、推送及部署 leonFN。
+
+English: DTS/DTS-HD now request decoded streams on Web/mobile. Group members can optionally select stereo L/R, mono, or discrete FL/FR/C/LFE/BL/BR/BC/SL/SR; normal groups retain stereo by default. Audio controls expose independent 0..24 dB attenuation without losing EQ presets or legacy-client compatibility. File paths wrap. Output/format tests (50), song editing tests (18), typechecks and actual Web save/API/SQLite verification pass. Physical surround listening and native SDK builds are Not run. This batch targets the leonzy forks; commit, push and leonFN deployment are user-authorized.

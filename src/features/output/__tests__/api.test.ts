@@ -41,3 +41,14 @@ test('missing queue songs are reported instead of moving the playing index', asy
   vi.spyOn(api, 'request').mockResolvedValue({ songs: [{ id: 1, title: 'one' }] })
   await expect(api.songs([1, 2, 1])).rejects.toThrow('Queue contains unavailable songs')
 })
+
+test('manual attenuation survives device parsing and an EQ save response', async () => {
+  const api = new OutputApi()
+  const request = vi.spyOn(api, 'request').mockImplementation(async path => path === '/players' ? [{ ID: 'study', Name: '书房', Kind: 'raop', EQ: { enabled: false, bands: Array(10).fill(0), attenuation_db: 6, preamp: -6 } }] : [] as never)
+  const profile = (await api.outputs()).players[0]!.EQ
+  expect(profile.attenuation_db).toBe(6)
+  request.mockResolvedValue({ ...profile, enabled: true })
+  const saved = await api.setEq('study', { ...profile, enabled: true })
+  expect(saved.attenuation_db).toBe(6)
+  expect(request).toHaveBeenLastCalledWith('/players/study/eq', 'PUT', expect.objectContaining({ attenuation_db: 6 }))
+})

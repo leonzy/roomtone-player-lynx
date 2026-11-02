@@ -3,12 +3,12 @@ import { getSharedClient } from '../../core/network/api-client.js'
 import { apiPrefix } from '../../core/config/app-config.js'
 import { parseSong, type Song } from '../../models/song.js'
 
-const eq = z.object({ enabled: z.boolean().default(false), preset: z.string().default(''), bands: z.array(z.number()).nullish().transform(value => value ?? Array(10).fill(0)), preamp: z.number().default(0) })
+const eq = z.object({ enabled: z.boolean().default(false), preset: z.string().default(''), bands: z.array(z.number()).nullish().transform(value => value ?? Array(10).fill(0)), preamp: z.number().default(0), attenuation_db: z.number().optional() })
 const caps = z.object({ supports_volume: z.boolean().default(false), supports_seek: z.boolean().default(false), sync_tier: z.string().default('none'), airplay2: z.boolean().default(false), needs_password: z.boolean().default(false) }).passthrough()
 const device = z.object({ ID: z.string(), Name: z.string(), Kind: z.string(), Address: z.string().default(''), Model: z.string().default(''), Online: z.boolean().default(false), Volume: z.number().default(0), Muted: z.boolean().default(false), Caps: caps.prefault({}), EQ: eq.prefault({}), volume_mode: z.string().default('device'), max_volume: z.number().default(100), dlna_sync_delay_ms: z.number().default(0), standby: z.boolean().default(false), Takeover: z.string().default('pause') })
 const queue = z.object({ items: z.array(z.number()).nullish().transform(value => value ?? []), current: z.number().default(-1), repeat: z.string().default('off'), shuffle: z.boolean().default(false) })
 const status = z.object({ song_id: z.number().default(0), position: z.number().default(0), state: z.string().default('idle'), error: z.string().optional(), queue: queue.prefault({}), underruns: z.number().default(0) }).passthrough()
-const member = z.object({ player_id: z.string(), delay_ms: z.number().default(0), volume_offset: z.number().default(0), position: z.number().default(0) })
+const member = z.object({ player_id: z.string(), delay_ms: z.number().default(0), volume_offset: z.number().default(0), position: z.number().default(0), channel_mode: z.enum(['stereo', 'left', 'right', 'mono', 'front_left', 'front_right', 'center', 'lfe', 'back_left', 'back_right', 'back_center', 'side_left', 'side_right']).catch('stereo').optional() })
 const group = z.object({ id: z.string(), name: z.string(), icon: z.string().default(''), master_id: z.string(), members: z.array(member), status: status.prefault({}), sync_tier: z.string().default('none'), party_id: z.string().optional(), signal_path: z.object({ kind: z.string(), stages: z.array(z.object({ name: z.string(), detail: z.string() })) }).optional() })
 export type OutputDevice = z.infer<typeof device>
 export type OutputGroup = z.infer<typeof group>

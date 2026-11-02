@@ -17,7 +17,7 @@ import { outputApi, outputId, volumeInt, type OutputGroup, type OutputDevice, ty
 import { focusZone, focusedGroup, openOutputPanel, outputAction, outputKey, readOutputs, refreshOutputs, startOutputRuntime, useZoneState } from './runtime.js'
 import { useOutputText } from './text.js'
 import { DLNACalibration } from './DLNACalibration.js'
-import { groupChoices, groupChanges, toggleGroupChoice, selectableZones } from './grouping.js'
+import { groupChoices, groupChanges, groupChannelChanges, toggleGroupChoice, selectableZones } from './grouping.js'
 import '../../shared/ui/PopoverMenu.css'
 import './output.css'
 
@@ -40,7 +40,7 @@ function NumberField({ label, value, onChange, commitOnly = false }: { label: st
 }
 function Choices({ label, value, values, onChange }: { label: string; value: string; values: readonly string[]; onChange(v: string): void }) {
   const out = useOutputText()
-  const labels: Record<string, string> = { speaker: out('iconSpeaker'), bookshelf: out('iconBookshelf'), soundbar: out('iconSoundbar'), headphone: out('iconHeadphone'), tv: out('iconTv'), phone: out('iconPhone'), laptop: out('iconLaptop'), multiroom: out('iconMultiroom'), off: out('off'), track: out('track'), album: out('album'), pause: out('pause'), follow: out('follow'), device: out('device'), dsp: out('software'), fixed: out('fixed'), raop: 'AirPlay', dlna: 'DLNA', raat: 'RAAT' }
+  const labels: Record<string, string> = { front_left: out('frontLeft'), front_right: out('frontRight'), center: out('centerChannel'), lfe: out('lfeChannel'), back_left: out('backLeft'), back_right: out('backRight'), back_center: out('backCenter'), side_left: out('sideLeft'), side_right: out('sideRight'), stereo: out('stereo'), left: out('left'), right: out('right'), mono: out('mono'), speaker: out('iconSpeaker'), bookshelf: out('iconBookshelf'), soundbar: out('iconSoundbar'), headphone: out('iconHeadphone'), tv: out('iconTv'), phone: out('iconPhone'), laptop: out('iconLaptop'), multiroom: out('iconMultiroom'), off: out('off'), track: out('track'), album: out('album'), pause: out('pause'), follow: out('follow'), device: out('device'), dsp: out('software'), fixed: out('fixed'), raop: 'AirPlay', dlna: 'DLNA', raat: 'RAAT' }
   return <view className='output-field'><text className='output-label'>{label}</text><view className='output-wrap'>{values.map(v => <Button key={v} selected={v === value} onTap={() => onChange(v)}>{labels[v] ?? v}</Button>)}</view></view>
 }
 function useOutputs() {
@@ -221,11 +221,13 @@ function DeviceVolume({ device: p }: { device: OutputDevice }) {
 }
 function GroupEditor({ group, players, groups }: { group: OutputGroup; players: OutputDevice[]; groups: OutputGroup[] }) {
   const out = useOutputText(), [selected, setSelected] = useState(group.members.map(m => m.player_id))
+  const [channels, setChannels] = useState<Record<string, string>>(() => Object.fromEntries(group.members.map(m => [m.player_id, group.members.length < 2 ? 'stereo' : m.channel_mode || 'stereo'])))
+  const [channelsOpen, setChannelsOpen] = useState(group.members.length > 1 && group.members.some(m => m.channel_mode && m.channel_mode !== 'stereo'))
   const busy = useZoneState(s => s.busy), error = useZoneState(s => s.error)
   const song = usePlayerStore(s => s.currentSong)
   const anchor = players.find(p => p.ID === group.master_id)
   const choices = groupChoices(group, groups, players)
-  const changes = groupChanges(group, selected), changed = changes.add.length + changes.remove.length > 0
+  const changes = groupChanges(group, selected), changed = changes.add.length + changes.remove.length + groupChannelChanges(group, selected, channels).length > 0
   const save = (ids: string[]) => void outputAction(async () => {
     const current = (await outputApi.outputs()).groups.find(g => g.id === group.id)
     if (!current || current.master_id !== group.master_id) throw new Error(out('groupChanged'))
@@ -233,6 +235,9 @@ function GroupEditor({ group, players, groups }: { group: OutputGroup; players: 
     try {
       for (const id of plan.add) await outputApi.member(group.id, id, 'POST')
       for (const id of plan.remove) await outputApi.member(group.id, id, 'DELETE')
+      for (const { id, mode } of groupChannelChanges(group, ids, channels)) {
+        if (mode !== (current.members.length < 2 ? 'stereo' : current.members.find(m => m.player_id === id)?.channel_mode || 'stereo')) await outputApi.member(group.id, id, 'PATCH', { channel_mode: mode })
+      }
     } finally { await refreshOutputs().catch(() => {}) }
     openOutputPanel(null)
   })
@@ -253,6 +258,15 @@ function GroupEditor({ group, players, groups }: { group: OutputGroup; players: 
         </view>
       })}
       {!choices.length && <text className='output-group-instruction'>{out('groupNoOthers')}</text>}
+      {selected.length > 1 && <view className='output-settings-card'>
+        <Button testId='output-group-channels-toggle' onTap={() => setChannelsOpen(!channelsOpen)}>{out('channelOptional')}</Button>
+        {channelsOpen && <><text className='output-hint'>{out('channelHelp')}</text>{selected.map(id => {
+          const p = players.find(p => p.ID === id)
+          return <view key={id} data-testid={`output-group-channel-${id}`}><text className='output-device-name'>{p?.Name ?? id}</text>{p?.Kind === 'raop' || p?.Kind === 'raat'
+            ? <Choices label={out('channelMode')} value={channels[id] || 'stereo'} values={['stereo', 'left', 'right', 'mono', 'front_left', 'front_right', 'center', 'lfe', 'back_left', 'back_right', 'back_center', 'side_left', 'side_right']} onChange={mode => setChannels(current => ({ ...current, [id]: mode }))} />
+            : <text className='output-hint'>{out('channelUnsupported')}</text>}</view>
+        })}</>}
+      </view>}
       {error && <text className='output-error'>{error}</text>}
     </scroll-view>
     <view className='output-group-footer'><text className='output-group-selection'>{selected.length > 1 ? `${selected.length - 1} ${out('groupSelected')}` : out('groupEmptySelection')}</text><view className='output-group-actions'><view className='output-group-save'><Button disabled={busy || !changed} testId='output-group-save' onTap={() => save(selected)}>{out(busy ? 'groupSaving' : 'save')}</Button></view><view className='output-group-cancel'><Button disabled={busy} testId='output-group-cancel' onTap={() => openOutputPanel(null)}>{out('cancel')}</Button></view></view></view>
@@ -264,6 +278,7 @@ function ZoneSettings({ group, players }: { group: OutputGroup; players: OutputD
     <Button disabled={!name.trim() || name.trim().length > 40} onTap={() => void outputAction(() => outputApi.updateGroup(group.id, { name: name.trim(), icon }))}>{out('save')}</Button></view><text className='output-section-label'>{out('memberSettings')}</text>
     {group.members.map((m, i) => <view key={m.player_id} className='output-card'><view className='output-speaker-card'><Icon name='speaker' size={30} color={ICON_COLORS.content2} /><view className='output-device-copy'><text className='output-device-name'>{players.find(p => p.ID === m.player_id)?.Name ?? m.player_id}</text><text className='output-device-detail'>{players.find(p => p.ID === m.player_id)?.Address}</text></view><view className='output-speaker-actions'><Button testId={'output-limit-' + m.player_id} onTap={() => openOutputPanel('limit:' + m.player_id)} icon='volume'>{out('volumeLimit')}</Button><Button onTap={() => openOutputPanel('device:' + m.player_id)} icon='settings'>{out('deviceSettings')}</Button></view></view>
       {players.find(p => p.ID === m.player_id)?.Kind === 'dlna' && <OutputNavigation title={out('calibration')} detail={String(players.find(p => p.ID === m.player_id)?.dlna_sync_delay_ms ?? 0) + ' ms'} icon='settings' onTap={() => openOutputPanel('calibration:' + m.player_id)} testId={'output-calibration-' + m.player_id} />}
+      {group.members.length > 1 && ['raop', 'raat'].includes(players.find(p => p.ID === m.player_id)?.Kind ?? '') && <Choices label={out('channelMode')} value={m.channel_mode || 'stereo'} values={['stereo', 'left', 'right', 'mono', 'front_left', 'front_right', 'center', 'lfe', 'back_left', 'back_right', 'back_center', 'side_left', 'side_right']} onChange={channel_mode => void outputAction(() => outputApi.member(group.id, m.player_id, 'PATCH', { channel_mode }))} />}
       <NumberField commitOnly label={out('offset')} value={m.volume_offset} onChange={v => void outputAction(() => outputApi.member(group.id, m.player_id, 'PATCH', { delay_ms: m.delay_ms, volume_offset: Math.max(-100, Math.min(100, v)) }))} />
       <view className='output-wrap'><Button disabled={m.player_id === group.master_id} onTap={() => void outputAction(() => outputApi.request(`/groups/${outputId(group.id)}/master`, 'POST', { player_id: m.player_id }))}>{out('master')}</Button>
         <Button disabled={i === 0} onTap={() => void outputAction(() => { const ids = group.members.map(m => m.player_id); [ids[i - 1], ids[i]] = [ids[i]!, ids[i - 1]!]; return outputApi.request(`/groups/${outputId(group.id)}/members/order`, 'PUT', { player_ids: ids }) })}>{out('moveUp')}</Button></view>
@@ -318,14 +333,19 @@ function Sleep({ group }: { group: OutputGroup }) {
 function Eq({ device }: { device: OutputDevice }) {
   const out = useOutputText(), [profile, setProfile] = useState<EqProfile>(device.EQ)
   const { data: presets } = useQuery({ queryKey: [...outputKey(), 'eq-presets', device.ID], queryFn: () => outputApi.request<{ id: string; name: string; bands: number[]; preamp: number }[]>(`/players/${outputId(device.ID)}/eq/presets`) })
-  return <view className='output-card output-eq-card'><text className='output-title'>{device.Name}</text><text className='output-hint'>{out('equalizer')}</text><Toggle label={out('enabled')} checked={profile.enabled} onChange={enabled => setProfile({ ...profile, enabled })} />
-    <view className='output-wrap'>{presets?.map(p => <Button key={p.name} onTap={() => setProfile({ enabled: true, preset: p.id, bands: p.bands, preamp: p.preamp })}>{p.name}</Button>)}</view>
-    <NumberField label={out('preamp')} value={profile.preamp} onChange={v => setProfile({ ...profile, preamp: Math.max(-24, Math.min(24, v)) })} />
+  return <view className='output-card output-eq-card'><text className='output-title'>{device.Name}</text>
+    {device.Kind !== 'local' && device.Kind !== 'dlna' && <view data-testid='output-attenuation'>
+      <NumberField label={out('attenuation')} value={-(profile.attenuation_db ?? 0)} onChange={v => setProfile({ ...profile, attenuation_db: Math.min(24, Math.abs(v)) })} />
+      <view className='output-wrap'>{[0, 6, 12].map(db => <Button key={db} selected={(profile.attenuation_db ?? 0) === db} onTap={() => setProfile({ ...profile, attenuation_db: db })}>{db === 0 ? '0 dB' : `−${db} dB`}</Button>)}</view>
+      <text className='output-hint'>{out('attenuationHelp')}</text>
+    </view>}
+    <text className='output-hint'>{out('equalizer')}</text><Toggle label={out('enabled')} checked={profile.enabled} onChange={enabled => setProfile({ ...profile, enabled })} />
+    <view className='output-wrap'>{presets?.map(p => <Button key={p.name} onTap={() => setProfile({ ...profile, enabled: true, preset: p.id, bands: p.bands, preamp: p.preamp })}>{p.name}</Button>)}</view>
     <view className='output-eq-bands'>{[31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000].map((hz, i) => {
       const gain = profile.bands[i] ?? 0
       return <view className='output-eq-band' key={hz}><text className='output-eq-frequency'>{hz >= 1000 ? hz / 1000 + 'k' : hz} Hz</text><SliderRoot className='output-slider' value={(gain + 12) / 24} step={1 / 48} onValueChange={v => { const bands = Array.from({ length: 10 }, (_, j) => j === i ? Math.round((v * 24 - 12) * 2) / 2 : profile.bands[j] ?? 0); setProfile({ ...profile, bands, preset: '' }) }}><SliderTrack className='output-slider-track'><SliderIndicator className='output-slider-fill' /><SliderThumb className='output-slider-thumb-wrap'><view className='output-slider-thumb' /></SliderThumb></SliderTrack></SliderRoot><text className='output-eq-gain'>{gain > 0 ? '+' : ''}{gain.toFixed(1)} dB</text></view>
     })}</view>
-    <Button onTap={() => void outputAction(async () => { const saved = await outputApi.setEq(device.ID, profile); setProfile(saved) })}>{out('save')}</Button></view>
+    <view className='output-detail-actions'><Button onTap={() => setProfile({ ...profile, bands: Array(10).fill(0), preset: 'flat' })}>{out('resetBands')}</Button><Button onTap={() => void outputAction(async () => { const saved = await outputApi.setEq(device.ID, profile); setProfile(saved) })}>{out('save')}</Button></view></view>
 }
 function Dsp({ group, players }: { group?: OutputGroup; players: OutputDevice[] }) {
   const out = useOutputText()

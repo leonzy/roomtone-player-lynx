@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-11-02 · 当前交付：DTS 与可选声道分配
+
+当前远程是 `leonzy/roomtone-player-lynx`（main），不是下方历史记录中的上游。DTS 解码请求、组内可选环绕声道、独立前级衰减及路径折行已完成；用户已要求本批提交、推送和部署 leonFN。默认仍为立体声，不安装客户端 SDK，不向实际音箱发起测试播放。验证范围见 [进展记录](progress.md)；实际提交与部署版本以最终交付记录为准。
+
+English: The current main/origin targets leonzy/roomtone-player-lynx, superseding historical upstream notes below. DTS decode requests, optional group surround channels, independent attenuation and wrapped paths are complete. This batch is authorized for commit/push and leonFN deployment. Stereo remains the default; no native SDK installation or physical speaker playback is part of this delivery. Validation scope is in progress.md; final delivery records identify the commits and deployed build.
+
 ## 2026-10-28 · Roomtone 区域与音箱移植
 
 本机正在使用带输出面板的 Lynx 嵌入版；区域控制、编组、转换、设备设置、EQ/休眠/闹钟/派对与 Web 播放所有权隔离已接入。用户要求不播放，听感与原生平台真机 Not run。源码及验证范围见 [移植记录](roomtone-output-parity.md)。未提交、推送或发布；origin 仍指向上游，不能把 fork 功能直接推给上游。

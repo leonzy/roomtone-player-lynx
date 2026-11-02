@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 const zh = {
+ frontLeft: '前左 FL', frontRight: '前右 FR', centerChannel: '中置 C', lfeChannel: '低音 LFE', backLeft: '后左 BL', backRight: '后右 BR', backCenter: '后中 BC', sideLeft: '侧左 SL', sideRight: '侧右 SR', channelOptional: '声道分配（可选）', channelMode: '播放声道', stereo: '立体声', left: '左声道', right: '右声道', mono: '单声道', channelHelp: '默认均为立体声。可手动设 A 为左声道、B 为右声道；选中的声道会送到该音箱的全部扬声器。环绕选项读取原始离散声道，源文件没有该声道时静音；单独播放恢复立体声，保存后生效。', channelUnsupported: '该输出暂不支持声道分配，保持立体声。',
  calibration: 'DLNA 同步补偿', calibrationChanged: '设备延迟已被其它客户端修改，请重新打开后调整', calibrationSaved: '已保存', dlnaCalibrationHint: '设置这台 DLNA 音箱比 AirPlay 晚出声的时间。编组时自动补偿其它成员，单独播放不加延迟。', dlnaCalibrationExample: '例如填 1000ms：与它编组的 AirPlay 音箱自动等待约 1 秒。多台 DLNA 按最慢的一台对齐。', dlnaCalibrationApply: '默认 0，不自动猜测。多台 DLNA 的新配置在下次播放完整应用；设备内部缓冲仍可能变化。', dlnaDelayLabel: '比 AirPlay 晚出声', dlnaDelayInvalid: '请输入 0 至 2000 的整数', dlnaDelayUnit: '1000 ms = 1 秒',
  queuePlayed: '已播放',
  playOptions: '播放选项', playNow: '现在播放', appendQueue: '加入队列', playSelected: '播放选中', addFromLibrary: '从曲库添加', queueAdded: '已加入队列', queueShowPlayed: '查看已播放曲目', queuePendingOnly: '只看待播曲目', queueEdit: '调整顺序', queueDone: '完成', queueOrder: '顺序播放', queueLoop: '列表循环', queueSingle: '单曲循环', queueRandom: '随机播放', queueClear: '清空队列', queueConfirmClear: '确认清空', queueEmpty: '队列为空，添加歌曲开始聆听', queueRemove: '从队列移除', moveDown: '下移',
@@ -23,6 +24,7 @@ const zh = {
   volumeMode: '音量控制', device: '设备音量', software: '软件音量', fixed: '固定音量', maxVolume: '音量限制',
   takeover: '被其它应用接管时', pause: '暂停', stop: '停止', ignore: '忽略', delay: '延迟补偿（毫秒）',
   offset: '音量偏移', master: '设为主控', moveUp: '上移', enabled: '启用', preamp: '前置增益',
+  attenuation: '前级衰减（−24～0 dB）', attenuationHelp: '独立降低这台音箱的音量，不改变音色。−6 dB 将振幅降至约一半；关闭均衡器或切换预设后仍保留。', resetBands: '频段复位',
   equalizer: '参数均衡器', preset: '预设', flat: '直通', crossfade: '交叉淡化', seconds: '秒',
   crossfadeHelp: '交叉淡化与无缝播放互斥，修改从下一曲生效。', replaygain: '音量电平调整',
   off: '关闭', track: '曲目', album: '专辑', preampDb: '增益（dB）', preventClipping: '防止削波',
@@ -38,6 +40,7 @@ const zh = {
   wednesday: '三', thursday: '四', friday: '五', saturday: '六', sunday: '日', active: '播放中',
 }
 const en: Record<keyof typeof zh, string> = {
+ frontLeft:'Front left FL',frontRight:'Front right FR',centerChannel:'Center C',lfeChannel:'Subwoofer LFE',backLeft:'Back left BL',backRight:'Back right BR',backCenter:'Back center BC',sideLeft:'Side left SL',sideRight:'Side right SR',channelOptional:'Channel assignment (optional)',channelMode:'Playback channel',stereo:'Stereo',left:'Left',right:'Right',mono:'Mono',channelHelp:'Stereo is the default. Optionally assign A to left and B to right; the selected channel feeds all drivers of that speaker. Solo playback stays stereo. Apply with Save.',channelUnsupported:'Channel assignment is not available for this output; it remains stereo.',
  calibration: 'DLNA sync compensation', calibrationChanged: 'Another client changed the delay. Reopen before editing.', calibrationSaved: 'Saved', dlnaCalibrationHint: 'Set how much later this DLNA speaker sounds than AirPlay. Groups compensate other members automatically; solo playback adds no delay.', dlnaCalibrationExample: 'For 1000ms, grouped AirPlay speakers wait about 1 second. Multiple DLNA speakers align to the slowest.', dlnaCalibrationApply: 'Defaults to 0; no automatic guessing. New multi-DLNA settings apply fully on the next play. Internal buffering can vary.', dlnaDelayLabel: 'Audible delay relative to AirPlay', dlnaDelayInvalid: 'Enter an integer from 0 to 2000', dlnaDelayUnit: '1000 ms = 1 second',
  queuePlayed: 'Played',
  playOptions: 'Playback options', playNow: 'Play now', appendQueue: 'Add to queue', playSelected: 'Play selected', addFromLibrary: 'Add from library', queueAdded: 'Added to queue', queueShowPlayed: 'Show played tracks', queuePendingOnly: 'Show upcoming only', queueEdit: 'Edit order', queueDone: 'Done', queueOrder: 'In order', queueLoop: 'Repeat all', queueSingle: 'Repeat one', queueRandom: 'Shuffle', queueClear: 'Clear queue', queueConfirmClear: 'Confirm clear', queueEmpty: 'Your queue is empty. Add music to get started.', queueRemove: 'Remove from queue', moveDown: 'Move down',
@@ -60,6 +63,7 @@ const en: Record<keyof typeof zh, string> = {
   volumeMode:'Volume control',device:'Device volume',software:'Software volume',fixed:'Fixed volume',maxVolume:'Volume limit',
   takeover:'When taken over by another app',pause:'Pause',stop:'Stop',ignore:'Ignore',delay:'Delay compensation (ms)',offset:'Volume offset',
   master:'Make master',moveUp:'Move up',enabled:'Enabled',preamp:'Preamp',equalizer:'Equalizer',preset:'Preset',flat:'Direct',
+  attenuation:'Preamp attenuation (−24 to 0 dB)',attenuationHelp:'Lowers only this speaker without changing its tonal balance. −6 dB roughly halves amplitude. Remains active with EQ off and across presets.',resetBands:'Reset bands',
   crossfade:'Crossfade',seconds:'Seconds',crossfadeHelp:'Crossfade disables gapless transitions. Changes apply to the next track.',
   replaygain:'Volume leveling',off:'Off',track:'Track',album:'Album',preampDb:'Gain (dB)',preventClipping:'Prevent clipping',
   sleepSet:'Set sleep timer',sleepCancel:'Cancel timer',minutes:'Minutes',remaining:'Remaining',metrics:'Playback diagnostics',
