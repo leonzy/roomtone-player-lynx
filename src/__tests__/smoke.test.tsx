@@ -170,7 +170,8 @@ vi.mock('../shared/ui/SongRowOverlays.js', () => ({
 // The player's overflow menu (and the song rows inside the history panel)
 // dispatch through the overlays store — the zustand hook is the same crash
 // class, so it is mocked to a static state no component will act on.
-vi.mock('../shared/ui/song-row-overlays.js', () => ({
+vi.mock('../shared/ui/song-row-overlays.js', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../shared/ui/song-row-overlays.js')>(),
   useSongRowOverlays: (selector: (s: Record<string, unknown>) => unknown) =>
     selector({
       menuSong: null,

@@ -190,7 +190,7 @@ test('every tappable element declaring a height meets the 44px tap target', () =
 test('keeps the painted glyph small where a 44px box would swallow the artwork', () => {
   const { all: tappable } = tappableClasses()
   const css = Object.fromEntries(
-    filesOf(SRC, '.css').map((f) => [path.relative(SRC, f), readFileSync(f, 'utf8')]),
+    filesOf(SRC, '.css').map((f) => [path.relative(SRC, f).split(path.sep).join('/'), readFileSync(f, 'utf8')]),
   )
   const rule = (file: string, cls: string) => {
     const m = css[file]!.match(new RegExp(String.raw`^\.${cls}\s*\{([^{}]*)\}`, 'm'))

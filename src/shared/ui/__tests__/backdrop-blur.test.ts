@@ -134,7 +134,7 @@ const rendererOf = (cls: string) => TSX.filter((rel) => CLASS_TOKENS.get(rel)!.h
 
 /** The specifier a file must import the component by. Computed, never listed. */
 function importPath(tsx: string): string {
-  const spec = relative(tsx.replace(/\/[^/]+$/, ''), 'shared/ui/BackdropBlur.js')
+  const spec = relative(tsx.replace(/\/[^/]+$/, ''), 'shared/ui/BackdropBlur.js').replaceAll('\\', '/')
   return spec.startsWith('..') ? spec : `./${spec}`
 }
 
@@ -238,7 +238,9 @@ const PANEL_SITES: PanelSite[] = [
     modifier: 'ui-backdrop-blur--pill',
     panel: 'mini-player',
     css: 'features/player/widgets/MiniPlayer.css',
-    firstChild: "className='mini-player__progress'",
+    // Progress subscribes in its own leaf; its DOM class is declared earlier
+    // in the file and does not identify its placement inside the capsule.
+    firstChild: '<MiniPlayerProgress />',
   },
   {
     // The anchored form. Its docked form is modal and takes the scrim mode instead,
