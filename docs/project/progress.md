@@ -1,5 +1,11 @@
 # 进展与交接（PROGRESS）
 
+## 2026-11-04 · 播放全部替换队列竞态
+
+基线 `934f54a1`，两个新回归在旧代码下分别复现分页覆盖及跨集合串页；leonFN 现场日志也出现 PUT/播放/再次 PUT 后解码被终止。远程替换与补齐串行，后台页等待初始化成功、检查代际并用 POST 追加，保留服务端游标；重新播放先停止再替换。歌单详情的播放全部/现在播放共用带错误提示的入口。相关 62 项、类型检查通过；共享 Web/Lynx 构建通过，最终嵌入构建随后执行。Windows 全套 3810 通过、9 失败：8 项是未改动文件的换行/路径断言，另一个玻璃静态扫描超时，单独重跑 13 项通过。Linux CI 待检查；真实音箱播放 Not run。本机服务保持关闭。
+
+English: Baseline 934f54a1 fails the new delayed-replacement and stale-page regressions. Production logs show PUT/play/PUT interrupting decode. Queue writes are serialized; background pages await successful initialization, check generation, and POST without resetting the server cursor. Fresh playback stops first. Playlist play-all/play-now surface errors. Related tests (62) and types pass; shared Web/Lynx build passes, final embedded build follows. Windows full suite: 3810 pass, 9 fail (8 unchanged CRLF/path assertions; one glass scan timeout passes all 13 tests in isolation). Linux CI pending; physical speaker playback Not run. Local service remains stopped.
+
 ## 2026-10-31 · 刷新后续播位置
 
 补充：用户确认 Web 本机播放时进度正常但点击极慢，AirPlay 不受影响。已移除 MiniPlayer 随 250ms 进度更新重渲染整个控制区的开销，渲染回归由 20 次降至 0，进度和原布局保留。合计 145 项相关测试通过。长时交互退化尚未完成实际浏览器复现，不声称彻底修复。

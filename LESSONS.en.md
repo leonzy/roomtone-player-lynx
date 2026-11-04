@@ -1,5 +1,9 @@
 # Lynx Client Development Lessons
 
+## QUEUE-005: Background pages must not replace remote queues from display snapshots
+
+On 2026-11-04, baseline `934f54a1` reproduced two races: background fill PUT an old facade queue while the initial replacement was pending, and a late page from an older collection polluted its replacement. Serialize replacement and append, await successful initialization, check the collection generation before and after fetching, and POST pages to preserve the server cursor. Never append after initialization fails. Explicit fresh playback stops before replacing and playing, including when the first song is unchanged. Correct examples are `writeQueue` and pagination in `runtime.ts`; regressions cover delayed replacement, stale pages, failure, and stop/replace/play ordering using in-memory outputs without speaker playback. Seen 1×.
+
 ## SYNC-001: Project track events immediately and coalesce snapshot refreshes
 
 On 2026-10-31 the dining speaker had advanced to Wind Chimes, with matching server song ID, queue cursor and progress, while the reported bar retained Promise. Two regressions against the isolated previous implementation fail: overlapping refreshes discard completed snapshots, and state events only start HTTP requests, leaving title, progress and lyrics stale during slow responses. Keep one in-flight refresh plus one pending follow-up per session, project known-queue state events immediately and reject responses started before a newer event. Resolve ambiguous duplicate-song indices through full snapshots. All 166 related tests pass, preserving local audio and metadata updates. The original faulty page was unavailable; real-device UI auto-advance validation remains Not run, and these reproduced races are not proven to be the sole cause. Seen 1×.

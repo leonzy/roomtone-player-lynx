@@ -132,11 +132,25 @@ async function remoteTransport(action: string, extra: Record<string, unknown> = 
   if (!group) return
   await outputApi.transport(group.id, action, extra); await refreshOutputs()
 }
-async function remoteQueue(songs: Song[], index: number, play: boolean) {
-  const g = remoteGroup(); if (!g) return
-  await outputApi.replaceQueue(g.id, songs.map(s => s.id), index)
-  if (play && songs.length) await outputApi.transport(g.id, 'play')
-  await refreshOutputs()
+let queueGeneration = 0
+let queueWrites: Promise<unknown> = Promise.resolve()
+function writeQueue(action: () => Promise<void>): Promise<void> {
+  const pending = queueWrites.catch(() => {}).then(action)
+  queueWrites = pending
+  void pending.catch(() => {})
+  return pending
+}
+function remoteQueue(songs: Song[], index: number, play: boolean, id = remoteGroup()?.id) {
+  if (!id) return Promise.resolve()
+  ++queueGeneration
+  return writeQueue(async () => {
+    // Replacing a collection is a fresh start, even when its first song is
+    // already playing. PUT alone deliberately preserves that song's progress.
+    if (play) await outputApi.transport(id, 'stop')
+    await outputApi.replaceQueue(id, songs.map(s => s.id), index)
+    if (play && songs.length) await outputApi.transport(id, 'play')
+    await refreshOutputs()
+  })
 }
 /** Capture the destination before asynchronous page fetching or a focus change. */
 export function createQueueAppender(position: 'end' | 'next') {
@@ -167,9 +181,7 @@ export function createCollectionAction(action: 'shuffle' | 'next' | 'end') {
       await engine.getState().playAll(songs)
     } else {
       await outputApi.transport(id, '', { repeat: 'off', shuffle: true })
-      await outputApi.replaceQueue(id, songs.map(song => song.id), Math.floor(Math.random() * songs.length))
-      await outputApi.transport(id, 'play')
-      await refreshOutputs()
+      await remoteQueue(songs, Math.floor(Math.random() * songs.length), true, id)
     }
   }
 }
@@ -189,6 +201,7 @@ function localUserAction<T>(action: () => T): T {
 }
 /** The display store routes user actions; engine callbacks retain the local store. */
 export function createZonePlayer(engine: UseBoundStore<StoreApi<PlayerState>>): UseBoundStore<StoreApi<PlayerState>> {
+  ++queueGeneration
   local = engine
   const facade = create<PlayerState>(() => engine.getState())
   display = { ...facade, setState: facade.setState }
@@ -197,7 +210,7 @@ export function createZonePlayer(engine: UseBoundStore<StoreApi<PlayerState>>): 
     Object.assign(routedActions, { [name]: (...args: unknown[]) => {
       if (!remoteGroup()) return (engine.getState()[name] as (...a: unknown[]) => unknown)(...args)
       const s = facade.getState(), songs = [...s.playlist]; let index = s.currentIndex
-      if (name === 'clearPlaylist') { const id = remoteGroup()!.id; void outputAction(async () => { await outputApi.transport(id, 'stop'); await outputApi.replaceQueue(id, [], -1) }); return }
+      if (name === 'clearPlaylist') { const id = remoteGroup()!.id; ++queueGeneration; void outputAction(() => writeQueue(async () => { await outputApi.transport(id, 'stop'); await outputApi.replaceQueue(id, [], -1) })); return }
       if (name === 'addToPlaylist' || name === 'insertNextInQueue') { const append = createQueueAppender(name === 'addToPlaylist' ? 'end' : 'next'); void outputAction(() => append(args[0] as Song[])); return }
       if (name === 'insertToPlaylist') { const at = args[0] as number; songs.splice(at, 0, args[1] as Song); if (at <= index) index++ }
       if (name === 'reorderPlaylist') {
@@ -258,12 +271,22 @@ export function createZonePlayer(engine: UseBoundStore<StoreApi<PlayerState>>): 
     loadRemainingSongsForCurrentPlaylist: (params: Parameters<PlayerState['loadRemainingSongsForCurrentPlaylist']>[0]) => {
       if (!remoteGroup()) return engine.getState().loadRemainingSongsForCurrentPlaylist(params)
       const id = remoteGroup()!.id
+      const generation = queueGeneration, ready = queueWrites
+      const current = () => generation === queueGeneration && remoteGroup()?.id === id
       void (async () => {
+        await ready
         let offset = params.loadedCount
-        while (offset < params.total && remoteGroup()?.id === id) {
+        while (offset < params.total && current()) {
           const page = await params.fetch(offset, 200)
-          if (remoteGroup()?.id !== id || !page.length) return
-          await remoteQueue([...facade.getState().playlist, ...page], facade.getState().currentIndex, false); offset += page.length
+          if (!current() || !page.length) return
+          await writeQueue(async () => {
+            if (!current()) return
+            // Append on the server, never rebuild from a potentially stale
+            // display snapshot or reset an index that advanced during fetch.
+            await outputApi.request(`/groups/${outputId(id)}/queue`, 'POST', { song_ids: page.map(song => song.id), position: 'end' })
+            await refreshOutputs()
+          })
+          offset += page.length
         }
       })().catch(e => useZoneState.setState({ error: String(e) }))
     },

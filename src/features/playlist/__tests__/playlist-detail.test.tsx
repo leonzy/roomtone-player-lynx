@@ -10,6 +10,7 @@ import type { Playlist } from '../../../models/playlist.js'
 import type { Song } from '../../../models/song.js'
 import { PlaylistApi } from '../api/index.js'
 import { usePlayerStore } from '../../player/store/index.js'
+import { toast } from '../../../shared/ui/toast-store.js'
 
 const { detailHook, songsHook, deleteMutationHook, updateMutationHook, removeSongMutationHook, moveSongMutationHook, visibilityMutationHook, pinnedMutationHook, sortMutationHook } = vi.hoisted(() => ({
   detailHook: vi.fn(),
@@ -261,6 +262,26 @@ async function renderPage() {
   })
   return getQueriesForElement(elementTree.root!)
 }
+
+test('play all and play now both start the displayed playlist and report playback failures', async () => {
+  const songs = [makeSong(1), makeSong(2)]
+  songsHook.mockReturnValue(songsResult([{ songs, total: 2 }]))
+  const play = vi.spyOn(usePlayerStore.getState(), 'playAll').mockResolvedValue()
+  const error = vi.spyOn(toast, 'error').mockImplementation(() => {})
+  try {
+    const { getByTestId } = await renderPage()
+    await act(async () => { fireEvent.tap(getByTestId('playlist-toolbar-play-all')); await Promise.resolve() })
+    expect(play).toHaveBeenCalledExactlyOnceWith(songs, { type: 'playlist', key: '7' })
+    play.mockRejectedValueOnce(new Error('speaker unavailable'))
+    // The menu mock exposes the selected action; exercise the same callback
+    // used by its actual anchored popover.
+    const trigger = getByTestId('collection-play-options').parentElement!
+    await act(async () => { fireEvent.tap(trigger); await Promise.resolve() })
+    await act(async () => { fireEvent.tap(getByTestId('popover-item-play')); await Promise.resolve() })
+    expect(play).toHaveBeenCalledTimes(2)
+    expect(error).toHaveBeenCalledWith('speaker unavailable')
+  } finally { play.mockRestore(); error.mockRestore() }
+})
 
 test('overlapping list-end and seek pagination signals reuse the active page request', async () => {
   const fetchNextPage = vi.fn()

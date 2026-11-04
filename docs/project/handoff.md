@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-11-04 · 当前修复：播放全部
+
+远程分页不再通过旧显示快照整体回写队列；首次替换、起播和后台追加串行，旧页失效，失败不继续追加，歌单入口显示错误。验证与平台边界见 progress.md 对应批次。继续只运行 leonFN 服务，不启动本机后端、不安装客户端 SDK。
+
+English: Remote collection paging no longer replaces queues from stale display snapshots. Initialization/play/append are serialized, stale pages expire, failed initialization blocks appends, and playlist actions show errors. See progress.md for validation boundaries. Keep only leonFN running; do not start the local backend or install native SDKs.
+
 ## 2026-11-02 · 当前交付：DTS 与可选声道分配
 
 当前远程是 `leonzy/roomtone-player-lynx`（main），不是下方历史记录中的上游。DTS 解码请求、组内可选环绕声道、独立前级衰减及路径折行已完成；用户已要求本批提交、推送和部署 leonFN。默认仍为立体声，不安装客户端 SDK，不向实际音箱发起测试播放。验证范围见 [进展记录](progress.md)；实际提交与部署版本以最终交付记录为准。

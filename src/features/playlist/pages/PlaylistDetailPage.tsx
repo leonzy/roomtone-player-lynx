@@ -315,10 +315,15 @@ export function PlaylistDetailPage() {
     finally { setQueueBusy(false) }
   }
 
-  const playAll = () => {
-    if (songs.length === 0) return
-    void usePlayerStore.getState().playAll(songs, playlistCtx)
-    fillRemainingQueue()
+  const playAll = async () => {
+    if (songs.length === 0 || queueBusy) return
+    setQueueBusy(true)
+    try {
+      const playing = usePlayerStore.getState().playAll(songs, playlistCtx)
+      fillRemainingQueue()
+      await playing
+    } catch (error) { toast.error(String(error instanceof Error ? error.message : error)) }
+    finally { setQueueBusy(false) }
   }
 
   const header = (

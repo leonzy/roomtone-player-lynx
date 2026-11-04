@@ -320,7 +320,8 @@ test('shuffle configures remote mode before loading and starting its collection'
   await focusZone('remote')
   await createCollectionAction('shuffle')([song(8), song(9)])
   expect(outputApi.transport).toHaveBeenNthCalledWith(1, 'remote', '', { repeat: 'off', shuffle: true })
-  expect(outputApi.transport).toHaveBeenNthCalledWith(2, 'remote', 'play')
+  expect(outputApi.transport).toHaveBeenNthCalledWith(2, 'remote', 'stop')
+  expect(outputApi.transport).toHaveBeenNthCalledWith(3, 'remote', 'play')
   expect(vi.mocked(outputApi.transport).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(outputApi.replaceQueue).mock.invocationCallOrder[0]!)
 })
 
@@ -330,7 +331,80 @@ test('remote play all replaces the selected zone queue, not appends to it', asyn
   await player.getState().playAll([song(8), song(9)])
   expect(outputApi.replaceQueue).toHaveBeenLastCalledWith('remote', [8, 9], 0)
   expect(outputApi.transport).toHaveBeenLastCalledWith('remote', 'play')
+  expect(outputApi.transport).toHaveBeenNthCalledWith(1, 'remote', 'stop')
+  expect(vi.mocked(outputApi.transport).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(outputApi.replaceQueue).mock.invocationCallOrder[0]!)
   expect(engine.getState().playAll).not.toHaveBeenCalled()
+})
+
+test('paginated play all never overwrites the new queue with the old displayed queue', async () => {
+  await focusZone('remote')
+  let release!: () => void
+  const blocked = new Promise<void>(resolve => { release = resolve })
+  vi.mocked(outputApi.replaceQueue).mockImplementationOnce(async (id, ids, index) => {
+    await blocked
+    const g = outputs.groups.find(g => g.id === id)!
+    g.status = state(ids, index)
+    return g.status
+  })
+  const append = vi.spyOn(outputApi, 'request').mockImplementation(async (_path, _method, body) => {
+    outputs.groups[1]!.status.queue.items.push(...(body as { song_ids: number[] }).song_ids)
+    return {} as never
+  })
+  const playing = player.getState().playAll([song(8), song(9)])
+  player.getState().loadRemainingSongsForCurrentPlaylist({ loadedCount: 2, total: 4, fetch: async () => [song(10), song(11)] })
+  for (let i = 0; i < 30; i++) await Promise.resolve()
+  release()
+  await playing
+  await vi.waitFor(() => expect(outputs.groups[1]!.status.queue.items).toEqual([8, 9, 10, 11]))
+  expect(outputApi.replaceQueue).toHaveBeenCalledTimes(1)
+  expect(append).toHaveBeenCalledWith('/groups/remote/queue', 'POST', { song_ids: [10, 11], position: 'end' })
+})
+
+test('a previous collection page is discarded after another play all', async () => {
+  await focusZone('remote')
+  await player.getState().playAll([song(8)])
+  let release!: (songs: ReturnType<typeof song>[]) => void
+  const page = new Promise<ReturnType<typeof song>[]>(resolve => { release = resolve })
+  player.getState().loadRemainingSongsForCurrentPlaylist({ loadedCount: 1, total: 2, fetch: () => page })
+  for (let i = 0; i < 30; i++) await Promise.resolve()
+  await player.getState().playAll([song(20)])
+  const append = vi.spyOn(outputApi, 'request').mockResolvedValue({})
+  release([song(9)])
+  for (let i = 0; i < 60; i++) await Promise.resolve()
+  expect(outputs.groups[1]!.status.queue.items).toEqual([20])
+  expect(append).not.toHaveBeenCalled()
+})
+
+test('failed queue replacement does not append collection pages to the previous queue', async () => {
+  await focusZone('remote')
+  vi.mocked(outputApi.replaceQueue).mockRejectedValueOnce(new Error('replace failed'))
+  const append = vi.spyOn(outputApi, 'request').mockResolvedValue({})
+  const fetch = vi.fn(async () => [song(9)])
+  const playing = player.getState().playAll([song(8)])
+  player.getState().loadRemainingSongsForCurrentPlaylist({ loadedCount: 1, total: 2, fetch })
+  await expect(playing).rejects.toThrow('replace failed')
+  for (let i = 0; i < 30; i++) await Promise.resolve()
+  expect(fetch).not.toHaveBeenCalled()
+  expect(append).not.toHaveBeenCalled()
+  expect(outputs.groups[1]!.status.queue.items).toEqual([3, 4])
+})
+
+test('background fill preserves the server cursor when playback advances during fetching', async () => {
+  await focusZone('remote')
+  await player.getState().playAll([song(8), song(9)])
+  let release!: (songs: ReturnType<typeof song>[]) => void
+  const page = new Promise<ReturnType<typeof song>[]>(resolve => { release = resolve })
+  player.getState().loadRemainingSongsForCurrentPlaylist({ loadedCount: 2, total: 3, fetch: () => page })
+  for (let i = 0; i < 30; i++) await Promise.resolve()
+  outputs.groups[1]!.status.queue.current = 1
+  const append = vi.spyOn(outputApi, 'request').mockImplementation(async (_path, _method, body) => {
+    outputs.groups[1]!.status.queue.items.push(...(body as { song_ids: number[] }).song_ids)
+    return {} as never
+  })
+  release([song(10)])
+  await vi.waitFor(() => expect(append).toHaveBeenCalledTimes(1))
+  expect(outputs.groups[1]!.status.queue).toMatchObject({ current: 1, items: [8, 9, 10] })
+  expect(outputApi.replaceQueue).toHaveBeenCalledTimes(1)
 })
 
  test('hot join loads the new group instead of a deleted solo group', async () => {
