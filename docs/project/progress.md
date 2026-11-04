@@ -1,5 +1,11 @@
 # 进展与交接（PROGRESS）
 
+## 2026-11-04 · 播放全部一次整体替换（取代上述操作的后台补齐）
+
+用户明确要求一次完整替换。歌单详情、曲库列表、集合菜单和插件 playPlaylistById 均先以至多 200 首的请求准备完整列表，然后只调用一次 playAll；准备期间不修改队列，失败/空页导致列表不完整时不替换，按钮显示加载状态。普通点选单曲的分页补齐不属于此次播放全部入口。新完整替换回归在隔离旧实现下失败，新实现的相关 83 项及类型检查通过。最终构建、CI 和部署版本以交付证据为准；不启动本机服务，不向音箱发起测试播放。
+
+English: This supersedes background fill for play-all. Playlist detail, flat library, collection menus and plugin playPlaylistById prepare the entire source in bounded requests, then call playAll exactly once. Preparation does not mutate playback; failed/incomplete sources do not replace the queue, and buttons show loading. Ordinary single-track selection retains its separate pagination behavior. The complete-replacement regression fails against the isolated previous helper; 83 related tests and typecheck pass. Final build/CI/deployment are tracked in delivery evidence. No local backend or physical speaker playback.
+
 ## 2026-11-04 · 播放全部替换队列竞态
 
 基线 `934f54a1`，两个新回归在旧代码下分别复现分页覆盖及跨集合串页；leonFN 现场日志也出现 PUT/播放/再次 PUT 后解码被终止。远程替换与补齐串行，后台页等待初始化成功、检查代际并用 POST 追加，保留服务端游标；重新播放先停止再替换。歌单详情的播放全部/现在播放共用带错误提示的入口。相关 62 项、类型检查通过；共享 Web/Lynx 构建通过，最终嵌入构建随后执行。Windows 全套 3810 通过、9 失败：8 项是未改动文件的换行/路径断言，另一个玻璃静态扫描超时，单独重跑 13 项通过。Linux CI 待检查；真实音箱播放 Not run。本机服务保持关闭。

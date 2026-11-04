@@ -3,7 +3,7 @@ import { createStore } from 'zustand/vanilla'
 import { createQueueAppender, prepareCollectionShuffle } from '../../output/runtime.js'
 import type { PlaybackContext } from '../domain/playback-context.js'
 import { collectQueueSongs } from './collection-queue.js'
-import { playAllWithBackgroundFill, type PlayAllPage } from './play-all.js'
+import { replaceCollectionQueue, type PlayAllPage } from './play-all.js'
 
 type FetchPage = (offset: number, limit: number) => Promise<PlayAllPage>
 type Request = { anchor?: AnchorMeasurement; fetch: FetchPage; context?: PlaybackContext; resolve(value: boolean): void; reject(error: unknown): void; append: ReturnType<typeof createQueueAppender>; next: ReturnType<typeof createQueueAppender> }
@@ -32,7 +32,7 @@ export async function selectCollectionPlayback(action: string) {
   try {
     if (action === 'play' || action === 'shuffle') {
       if (action === 'shuffle') await prepareCollectionShuffle()
-      request.resolve(await playAllWithBackgroundFill(request.fetch, request.context))
+      request.resolve(await replaceCollectionQueue(request.fetch, request.context))
     } else {
       const first = await request.fetch(0, 200)
       const songs = await collectQueueSongs(first.songs, first.total, async (offset, limit) => (await request.fetch(offset, limit)).songs)

@@ -87,7 +87,7 @@ test('playlist id starts the first page, fills remaining songs and returns total
   await vi.advanceTimersByTimeAsync(0)
   expect(ids()).toEqual([1, 2, 3])
   expect(usePlayerStore.getState().sourcePlaylistId).toBe(8)
-  expect(h.playlist.mock.calls[1]).toEqual([8, { sort: 'title', order: 'desc' }, { offset: 2, limit: 100 }])
+  expect(h.playlist.mock.calls[1]).toEqual([8, { sort: 'title', order: 'desc' }, { offset: 2, limit: 1 }])
   h.playlist.mockResolvedValueOnce({ songs: [], total: 0 })
   expect(await call('playPlaylistById', { playlistId: 9 })).toEqual({ ok: true, data: 0 })
   h.playlist.mockRejectedValueOnce(new Error('offline'))

@@ -30,6 +30,7 @@ export interface PlaylistToolbarProps {
   onToggleSelect: () => void
   /** Disables play-all / select when there is nothing to act on. */
   hasSongs: boolean
+  busy?: boolean
 }
 
 /**
@@ -54,6 +55,7 @@ export function PlaylistToolbar({
   selectMode,
   onToggleSelect,
   hasSongs,
+  busy = false,
 }: PlaylistToolbarProps) {
   const { t } = useTranslation()
   const out = useOutputText()
@@ -71,7 +73,7 @@ export function PlaylistToolbar({
         data-testid='playlist-toolbar-play-all'
       >
         <Icon name='play' size={14} color={ICON_COLORS.content} />
-        <text className='playlist-toolbar__btn-text'>{selectMode ? out('playSelected') : t('playlist.playAll')}</text>
+        <text className='playlist-toolbar__btn-text'>{busy ? t('common.loading') : selectMode ? out('playSelected') : t('playlist.playAll')}</text>
       </view>
 
       {onQueueAction && <CollectionPlayMenu className='playlist-toolbar__btn' enabled={hasSongs} onPlay={onPlayAll} onAction={onQueueAction} />}

@@ -1,6 +1,7 @@
 import { createCollectionAction } from '../../output/runtime.js'
 import { useOutputText } from '../../output/text.js'
 import { collectQueueSongs } from '../../player/data/collection-queue.js'
+import { replaceCollectionQueue } from '../../player/data/play-all.js'
 import type { CollectionAction } from '../../player/widgets/CollectionPlayMenu.js'
 import { toast } from '../../../shared/ui/toast-store.js'
 import { useEffect, useMemo, useState } from '@lynx-js/react'
@@ -148,10 +149,13 @@ export function FlatSongsView({
     finally { setQueueBusy(false) }
   }
 
-  const playAll = () => {
-    if (songs.length === 0) return
-    void usePlayerStore.getState().playAll(songs)
-    fillRemainingQueue()
+  const playAll = async () => {
+    if (songs.length === 0 || queueBusy) return
+    setQueueBusy(true)
+    try {
+      await replaceCollectionQueue((offset, limit) => getSongsApi().getSongs(filters, { limit, offset }), undefined, { songs, total })
+    } catch (error) { toast.error(String(error instanceof Error ? error.message : error)) }
+    finally { setQueueBusy(false) }
   }
 
   const enterSelectMode = () => {
@@ -227,6 +231,7 @@ export function FlatSongsView({
       </view>
 
       <LibraryToolbar
+        busy={queueBusy}
         sortId={sortId}
         sortOrder={sortOrder}
         onSortChange={onSortChange}

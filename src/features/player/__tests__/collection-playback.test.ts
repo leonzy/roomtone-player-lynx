@@ -3,7 +3,7 @@ import { parseSong } from '../../../models/song.js'
 
 const actions = vi.hoisted(() => ({ append: vi.fn(async () => {}), next: vi.fn(async () => {}), shuffle: vi.fn(async () => {}), play: vi.fn(async () => true) }))
 vi.mock('../../output/runtime.js', () => ({ createQueueAppender: (position: string) => position === 'next' ? actions.next : actions.append, prepareCollectionShuffle: actions.shuffle }))
-vi.mock('../data/play-all.js', () => ({ playAllWithBackgroundFill: actions.play }))
+vi.mock('../data/play-all.js', () => ({ replaceCollectionQueue: actions.play }))
 const { chooseCollectionPlayback, selectCollectionPlayback, cancelCollectionPlayback, collectionPlayback } = await import('../data/collection-playback.js')
 const songs = [1, 2, 3].map(id => parseSong({ id, title: String(id) }))
 afterEach(() => { cancelCollectionPlayback(); vi.clearAllMocks() })
@@ -26,7 +26,7 @@ test('queue and next read unloaded pages and never start playback', async () => 
   }
   expect(actions.play).not.toHaveBeenCalled()
 })
-test('shuffle awaits mode setup and keeps the fast background-fill play path', async () => {
+test('shuffle awaits mode setup and replaces the complete collection', async () => {
   const fetch = vi.fn(async () => ({ songs, total: 3 }))
   const pending = chooseCollectionPlayback(fetch, { type: 'playlist', key: '7' })
   await selectCollectionPlayback('shuffle')

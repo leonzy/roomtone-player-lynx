@@ -2,6 +2,8 @@
 
 ## QUEUE-005: Background pages must not replace remote queues from display snapshots
 
+Product correction for the same incident: play-all prepares the complete collection before one replacement, without post-start fill. See replaceCollectionQueue and its complete-replacement regression. Ordinary track selection keeps its separate loader. This does not increment Seen.
+
 On 2026-11-04, baseline `934f54a1` reproduced two races: background fill PUT an old facade queue while the initial replacement was pending, and a late page from an older collection polluted its replacement. Serialize replacement and append, await successful initialization, check the collection generation before and after fetching, and POST pages to preserve the server cursor. Never append after initialization fails. Explicit fresh playback stops before replacing and playing, including when the first song is unchanged. Correct examples are `writeQueue` and pagination in `runtime.ts`; regressions cover delayed replacement, stale pages, failure, and stop/replace/play ordering using in-memory outputs without speaker playback. Seen 1×.
 
 ## SYNC-001: Project track events immediately and coalesce snapshot refreshes

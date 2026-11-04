@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-11-04 · 最新语义：播放全部一次整体替换
+
+以本条为准：播放全部/现在播放先准备完整集合，再整体替换并起播，不在播放后用后台分页追加补齐。覆盖歌单、曲库、集合菜单与插件歌单播放。错误不清空旧队列，准备状态可见。下方早先后台补齐的记录仅描述历史版本。
+
+English: Play-all/play-now prepare the complete source before one replacement/start; no post-start background append. Playlist/library/collection menus and plugin playlist playback follow this rule. Preparation failure preserves the old queue and loading is visible. Earlier background-fill entries below are historical.
+
 ## 2026-11-04 · 当前修复：播放全部
 
 远程分页不再通过旧显示快照整体回写队列；首次替换、起播和后台追加串行，旧页失效，失败不继续追加，歌单入口显示错误。验证与平台边界见 progress.md 对应批次。继续只运行 leonFN 服务，不启动本机后端、不安装客户端 SDK。

@@ -5,6 +5,7 @@ import { usePlayerStore } from '../../player/store/index.js'
 import type { PlayerState } from '../../player/store/player-store.js'
 import { getPlaylistApi } from '../../playlist/api/index.js'
 import { refreshFavoritesFromPlugin } from '../../library/data/favorites.js'
+import { collectQueueSongs } from '../../player/data/collection-queue.js'
 
 export interface HostCallRequest {
   ns?: string
@@ -128,15 +129,10 @@ async function dispatchPlayer(
         const filters = { sort: playlist.sortBy ?? 'position', order: playlist.sortOrder ?? 'asc' }
         const first = await api.getPlaylistSongs(playlistId, filters, { offset: 0, limit: 10 })
         if (first.songs.length === 0) return 0
-        // Start immediately; the existing loader cancels fills after a queue replacement/clear.
-        const playing = store.playAll(first.songs, playlistContext(playlistId))
-        usePlayerStore.getState().loadRemainingSongsForCurrentPlaylist({
-          loadedCount: first.songs.length,
-          total: first.total,
-          fetch: async (offset, limit) => (await api.getPlaylistSongs(playlistId, filters, { offset, limit })).songs,
-        })
-        await playing
-        return first.total
+        const songs = await collectQueueSongs(first.songs, first.total, async (offset, limit) => (await api.getPlaylistSongs(playlistId, filters, { offset, limit })).songs)
+        if (songs.length < first.total) return -1
+        await store.playAll(songs, playlistContext(playlistId))
+        return songs.length
       } catch {
         return -1
       }

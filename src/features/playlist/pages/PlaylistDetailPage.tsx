@@ -1,6 +1,7 @@
 import { createCollectionAction } from '../../output/runtime.js'
 import { useOutputText } from '../../output/text.js'
 import { collectQueueSongs } from '../../player/data/collection-queue.js'
+import { replaceCollectionQueue } from '../../player/data/play-all.js'
 import type { CollectionAction } from '../../player/widgets/CollectionPlayMenu.js'
 import { useCallback, useEffect, useMemo, useRef, useState } from '@lynx-js/react'
 import { useNavigate, useParams } from '@tanstack/react-router'
@@ -319,9 +320,10 @@ export function PlaylistDetailPage() {
     if (songs.length === 0 || queueBusy) return
     setQueueBusy(true)
     try {
-      const playing = usePlayerStore.getState().playAll(songs, playlistCtx)
-      fillRemainingQueue()
-      await playing
+      await replaceCollectionQueue(
+        (offset, limit) => getPlaylistApi().getPlaylistSongs(id, { sort: currentSort, order: currentOrder, keyword }, { limit, offset }),
+        playlistCtx, { songs, total },
+      )
     } catch (error) { toast.error(String(error instanceof Error ? error.message : error)) }
     finally { setQueueBusy(false) }
   }
@@ -521,6 +523,7 @@ export function PlaylistDetailPage() {
       {!sortMode && songs.length > 0
         ? (
           <PlaylistToolbar
+            busy={queueBusy}
             currentSort={currentSort}
             currentOrder={currentOrder}
             sortOptions={sortOptions}
