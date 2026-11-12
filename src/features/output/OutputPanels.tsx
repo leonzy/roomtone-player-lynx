@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from '@lynx-js/react'
+import { useEffect, useRef, useState, type ReactNode } from '@lynx-js/react'
 import { useQuery } from '@tanstack/react-query'
 import { Input } from '@lynx-js/lynx-ui-input'
 import { SliderRoot, SliderTrack, SliderIndicator, SliderThumb } from '@lynx-js/lynx-ui-slider'
@@ -318,16 +318,24 @@ function AddDevice() {
     {kind === 'raop' && <><Field label='Device ID (MAC)' value={deviceId} onChange={setDeviceId} /><Field label='RSA Public Key' value={publicKey} onChange={setPublicKey} /></>}
     <Button disabled={!address.trim() || (kind === 'raop' && !deviceId.trim())} onTap={() => void outputAction(async () => { await outputApi.request('/players', 'POST', { name: name.trim(), address: address.trim(), kind, device_id: deviceId.trim(), public_key: publicKey.trim() }); openOutputPanel('outputs') })}>{out('save')}</Button></>
 }
-function Sleep({ group }: { group: OutputGroup }) {
-  const out = useOutputText(), [minutes, setMinutes] = useState(30)
+export function Sleep({ group }: { group: OutputGroup }) {
+  const out = useOutputText(), [minutes, setMinutes] = useState(30), [songCountText, setSongCountText] = useState('1'), [mode, setMode] = useState<'duration' | 'songs'>('duration')
+  const songs = Number(songCountText)
   const { data } = useQuery({ queryKey: [...outputKey(), 'sleep', group.id], queryFn: () => outputApi.sleep(group.id), refetchInterval: 1000 })
+  const initialized = useRef<string | null>(null)
+  useEffect(() => {
+    if (!data || initialized.current === group.id) return
+    initialized.current = group.id
+    if (data.active && data.mode === 'songs') { setMode('songs'); setSongCountText(String(Math.max(1, data.remaining_songs ?? 1))) }
+  }, [data, group.id])
   return <view className='output-sleep'>
     <view className='output-detail-hero'><view className='output-hero-symbol'><Icon name='timer' size={28} color={ICON_COLORS.primary} /></view><text className='output-hero-title'>{zoneLabel(group)}</text><text className='output-hint'>{out('sleepHint')}</text></view>
-    <text className='output-section-label'>{out('durationLabel')}</text>
+    <view className='output-duration-options'><Button testId='sleep-mode-duration' selected={mode === 'duration'} onTap={() => setMode('duration')}>{out('sleepByTime')}</Button><Button testId='sleep-mode-songs' selected={mode === 'songs'} onTap={() => setMode('songs')}>{out('sleepBySongs')}</Button></view>
+    {mode === 'duration' ? <><text className='output-section-label'>{out('durationLabel')}</text>
     <view className='output-duration-options'>{[15, 30, 45, 60, 120].map(value => <Button key={value} selected={minutes === value} onTap={() => setMinutes(value)}>{value < 60 ? value + ' ' + out('minutes') : value / 60 + ' h'}</Button>)}</view>
-    <NumberField label={out('customDuration')} value={minutes} onChange={setMinutes} />
-    <text className='output-hint'>{data?.active ? out('remaining') + ' ' + Math.ceil(data.remaining_seconds / 60) + ' ' + out('minutes') : out('sleepEmpty')}</text>
-    <view className='output-detail-actions'><view className='output-primary-action'><Button disabled={minutes < 1 || minutes > 1440} onTap={() => void outputAction(async () => { await outputApi.sleep(group.id, minutes); openOutputPanel(null) })}>{out('sleepSet')}</Button></view>{data?.active && <Button onTap={() => void outputAction(async () => { await outputApi.sleep(group.id, 0); openOutputPanel(null) })}>{out('sleepCancel')}</Button>}</view>
+    <NumberField label={out('customDuration')} value={minutes} onChange={setMinutes} /></> : <><text className='output-section-label'>{out('sleepSongCount')}</text><view className='output-duration-options'>{[1, 2, 3, 5, 10].map(value => <Button key={value} testId={`sleep-songs-${value}`} selected={songs === value} onTap={() => setSongCountText(String(value))}>{value + ' ' + out('songUnit')}</Button>)}</view><Field label={out('sleepCustomSongs')} value={songCountText} onChange={setSongCountText} type='number' /><text className='output-hint'>{out('sleepSongsHint')}</text></>}
+    <text className='output-hint'>{data?.active ? out('remaining') + ' ' + (data.mode === 'songs' ? (data.remaining_songs ?? 0) + ' ' + out('songUnit') : Math.ceil(data.remaining_seconds / 60) + ' ' + out('minutes')) : out('sleepEmpty')}</text>
+    <view className='output-detail-actions'><view className='output-primary-action'><Button testId='sleep-save' disabled={mode === 'duration' ? !Number.isInteger(minutes) || minutes < 1 || minutes > 720 : !/^[0-9]+$/.test(songCountText.trim()) || !Number.isInteger(songs) || songs < 1 || songs > 1000} onTap={() => void outputAction(async () => { if (mode === 'songs') await outputApi.sleepAfterSongs(group.id, songs); else await outputApi.sleep(group.id, minutes); openOutputPanel(null) })}>{out('sleepSet')}</Button></view>{data?.active && <Button onTap={() => void outputAction(async () => { await outputApi.sleep(group.id, 0); openOutputPanel(null) })}>{out('sleepCancel')}</Button>}</view>
   </view>
 }
 function Eq({ device }: { device: OutputDevice }) {

@@ -51,7 +51,8 @@ export class OutputApi {
   groupVolume(id: string, volume: number, muted = false) { return this.request(`/groups/${outputId(id)}/volume`, 'POST', { volume: volumeInt(volume), muted }) }
   async setEq(id: string, profile: EqProfile) { return eq.parse(await this.request(`/players/${outputId(id)}/eq`, 'PUT', profile)) }
   member(id: string, playerId: string, method: string, patch?: unknown) { return this.request(`/groups/${outputId(id)}/members${method === 'POST' ? '' : '/' + outputId(playerId)}`, method, method === 'POST' ? { player_id: playerId } : patch) }
-  sleep(id: string, minutes?: number) { return this.request<{ remaining_seconds: number; active: boolean }>(`/groups/${outputId(id)}/sleep`, minutes == null ? 'GET' : 'POST', minutes == null ? undefined : { minutes }) }
+  sleep(id: string, minutes?: number) { return this.request<{ remaining_seconds: number; remaining_songs?: number; mode?: 'duration' | 'songs'; active: boolean }>(`/groups/${outputId(id)}/sleep`, minutes == null ? 'GET' : 'POST', minutes == null ? undefined : { minutes }) }
+  sleepAfterSongs(id: string, songs: number) { return this.request(`/groups/${outputId(id)}/sleep`, 'POST', { songs }) }
 }
 
 export const outputApi = new OutputApi()

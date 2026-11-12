@@ -40,7 +40,8 @@ beforeEach(async () => {
     playSong: vi.fn(async () => {}), playPlaylist: vi.fn(async () => {}), playAll: vi.fn(async () => {}),
     playNext: vi.fn(async () => {}), playPrev: vi.fn(async () => {}), togglePlay: vi.fn(async () => {}),
     seek: vi.fn(async () => {}), setVolume: vi.fn(async v => { set({ volume: Math.round(v) }) }),
-    toggleMute: vi.fn(async () => {}), setPlayMode: vi.fn(), cancelPendingPlayback: vi.fn(),
+    toggleMute: vi.fn(async () => {}),
+ setSleepTimerAfterSongs: vi.fn((count:number)=>set({sleepTimer:{mode:'afterSongs',remainingSongs:count}})), cancelSleepTimer:vi.fn(()=>set({sleepTimer:undefined})), setPlayMode: vi.fn(), cancelPendingPlayback: vi.fn(),
     loadZoneQueue: vi.fn(async ({ songs, index, positionMs }) => { set({ playlist: songs, currentIndex: index, currentSong: songs[index], currentTime: positionMs, isPlaying: false }) }),
   } as unknown as PlayerState))
   player = createZonePlayer(engine)
@@ -419,3 +420,15 @@ test('background fill preserves the server cursor when playback advances during 
   expect(outputApi.getQueue).toHaveBeenLastCalledWith('remote')
   expect(engine.getState().loadZoneQueue).toHaveBeenCalledWith({ songs: [song(3), song(4)], index: 0, positionMs: 45000 })
  })
+
+test('local song sleep commands reach native counting and heartbeat preserves generation',async()=>{
+ vi.spyOn(getSharedClient(),'post').mockResolvedValue({data:{ticket:'t'}} as never)
+ cleanup=await startOutputRuntime();await Promise.resolve();await Promise.resolve();socket.callbacks!.open()
+ socket.callbacks!.message({cmd:'sleep_after_songs',songs:3,sleep_generation:123})
+ await Promise.resolve()
+ expect(engine.getState().sleepTimer).toEqual({mode:'afterSongs',remainingSongs:3})
+ await vi.advanceTimersByTimeAsync(500)
+ expect(socket.send.mock.calls.some(([message])=>message.type==='report'&&message.sleep_generation===123&&message.sleep_remaining===3)).toBe(true)
+ socket.callbacks!.message({cmd:'sleep_after_songs',songs:0,sleep_generation:124})
+ expect(engine.getState().sleepTimer).toBeUndefined()
+})

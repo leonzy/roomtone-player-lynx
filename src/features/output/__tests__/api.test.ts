@@ -52,3 +52,9 @@ test('manual attenuation survives device parsing and an EQ save response', async
   expect(saved.attenuation_db).toBe(6)
   expect(request).toHaveBeenLastCalledWith('/players/study/eq', 'PUT', expect.objectContaining({ attenuation_db: 6 }))
 })
+
+test('song-count sleep uses the same endpoint with an explicit songs payload',async()=>{
+ const api=new OutputApi();const req=vi.spyOn(api,'request').mockResolvedValue({active:true,mode:'songs',remaining_songs:3})
+ await api.sleepAfterSongs('zone:x',3)
+ expect(req).toHaveBeenCalledWith('/groups/zone:x/sleep','POST',{songs:3})
+})

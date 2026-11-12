@@ -238,7 +238,7 @@ export function createZonePlayer(engine: UseBoundStore<StoreApi<PlayerState>>): 
     setSpeed: async (rate: number) => { if (!remoteGroup()) await engine.getState().setSpeed(rate) },
     setAudioTrack: async (index: number | null) => { if (!remoteGroup()) await engine.getState().setAudioTrack(index) },
     enterVideoSource: async () => remoteGroup() ? 'skipped' : engine.getState().enterVideoSource(),
-    setSleepTimerAfterSongs: (count: number) => { if (remoteGroup()) openOutputPanel('sleep'); else engine.getState().setSleepTimerAfterSongs(count) },
+    setSleepTimerAfterSongs: (count: number) => { const group = focusedGroup() ?? localGroup(); if (group) void outputAction(() => outputApi.sleepAfterSongs(group.id, count)); else engine.getState().setSleepTimerAfterSongs(count) },
     seek: (ms: number) => remoteGroup() ? remoteTransport('seek', { position: ms / 1000 }) : engine.getState().seek(ms),
     seekBy: (ms: number) => facade.getState().seek(Math.max(0, facade.getState().currentTime + ms)),
     setVolume: async (v: number) => {
@@ -261,11 +261,11 @@ export function createZonePlayer(engine: UseBoundStore<StoreApi<PlayerState>>): 
       await outputAction(() => outputApi.request(`/groups/${outputId(id)}/queue/reorder`, 'PUT', { remove_index: index }))
     },
     setSleepTimerByDuration: (ms: number) => {
-      if (!remoteGroup()) return engine.getState().setSleepTimerByDuration(ms)
+      if (!remoteGroup()) { const group = localGroup(); if (group) void outputAction(() => outputApi.sleep(group.id, 0)); return engine.getState().setSleepTimerByDuration(ms) }
       void outputAction(() => outputApi.sleep(remoteGroup()!.id, Math.ceil(ms / 60_000)))
     },
     cancelSleepTimer: () => {
-      if (!remoteGroup()) return engine.getState().cancelSleepTimer()
+      if (!remoteGroup()) { const group = localGroup(); if (group) void outputAction(() => outputApi.sleep(group.id, 0)); return engine.getState().cancelSleepTimer() }
       void outputAction(() => outputApi.sleep(remoteGroup()!.id, 0))
     },
     loadRemainingSongsForCurrentPlaylist: (params: Parameters<PlayerState['loadRemainingSongsForCurrentPlaylist']>[0]) => {
@@ -322,6 +322,9 @@ function scheduleLocalQueue() {
 let commandGeneration = 0
 let explicitStopped = false
 let serverOffsetMs = 0
+let serverSleepGeneration = 0
+let lastSleepCommandGeneration = 0
+let sleepCommandSession: string | undefined
 let pendingLoad: Promise<void> = Promise.resolve()
 async function handleCommand(message: Record<string, unknown>) {
   if (!local) return
@@ -348,6 +351,17 @@ async function handleCommand(message: Record<string, unknown>) {
     void refreshOutputs().catch(e => useZoneState.setState({ error: String(e) })); return
   }
   if (!localGroup()) return
+  if (command === 'sleep_after_songs') {
+    const generation = Number(message.sleep_generation ?? 0)
+    if (generation > 0 && generation < lastSleepCommandGeneration) return
+    lastSleepCommandGeneration = Math.max(lastSleepCommandGeneration, generation)
+    const owned = serverSleepGeneration > 0
+    serverSleepGeneration = Number(message.sleep_generation ?? 0)
+    const count = Number(message.songs ?? 0)
+    if (count > 0) local.getState().setSleepTimerAfterSongs(count)
+    else { serverSleepGeneration = 0; if (owned && local.getState().sleepTimer?.mode === 'afterSongs') local.getState().cancelSleepTimer() }
+    return
+  }
   if (command === 'stop' || command === 'pause') {
     explicitStopped = command === 'stop'
     commandGeneration++; local.getState().cancelPendingPlayback()
@@ -393,6 +407,9 @@ export async function startOutputRuntime(): Promise<() => void> {
   const generation = ++runtimeGeneration
   let stopped = false, timer: ReturnType<typeof setTimeout> | null = null
   const session = useAppSessionStore.getState().baseUrl
+  if (sleepCommandSession !== session) {
+    serverSleepGeneration = 0; lastSleepCommandGeneration = 0; sleepCommandSession = session
+  }
   const storage = getSongloftStorage().prefs
   let id = await storage.get('roomtone.local-device-id')
   if (!id) { id = `lynx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`; await storage.set('roomtone.local-device-id', id) }
@@ -440,7 +457,7 @@ export async function startOutputRuntime(): Promise<() => void> {
     if (!active()) return
     const state = local?.getState()
     if (state?.isPlaying) explicitStopped = false
-    if (state && !suppressQueue) connection?.send({ type: 'report', id, song_id: explicitStopped ? 0 : state.currentSong?.id ?? 0, position_ms: explicitStopped ? 0 : state.currentTime, volume: Math.round(state.volume), buffering: state.isBuffering, state: state.isPlaying ? 'playing' : explicitStopped ? 'idle' : state.currentSong ? 'paused' : 'idle', rtt_ms: 0 })
+    if (state && !suppressQueue) connection?.send({ type: 'report', id, song_id: explicitStopped ? 0 : state.currentSong?.id ?? 0, position_ms: explicitStopped ? 0 : state.currentTime, volume: Math.round(state.volume), buffering: state.isBuffering, ...(serverSleepGeneration ? { sleep_generation: serverSleepGeneration, sleep_remaining: state.sleepTimer?.mode === 'afterSongs' ? state.sleepTimer.remainingSongs ?? 0 : 0 } : {}), state: state.isPlaying ? 'playing' : explicitStopped ? 'idle' : state.currentSong ? 'paused' : 'idle', rtt_ms: 0 })
     heartbeat = setTimeout(beat, 500)
   }
   beat()
