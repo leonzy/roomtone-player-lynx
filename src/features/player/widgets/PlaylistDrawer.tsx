@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Icon, ICON_COLORS, activeAccentIconColor } from '../../../shared/ui/Icon.js'
 import { buildCoverUrl } from '../../../core/network/url-helper.js'
 import { queueDirectory } from '../domain/queue-metadata.js'
+import { queueProgress } from '../domain/queue-progress.js'
 import { formatDuration } from '../../library/data/format.js'
 import { useZoneState } from '../../output/runtime.js'
 import { useOutputText } from '../../output/text.js'
@@ -30,14 +31,14 @@ export function PlaylistDrawer() {
   const show = usePlayerStore((s) => s.showPlaylistDrawer)
   const playlist = usePlayerStore((s) => s.playlist)
   const currentIndex = usePlayerStore((s) => s.currentIndex)
+  const playedIndices = usePlayerStore((s) => s.playedQueueIndices)
   const mode = usePlayerStore((s) => s.playMode) ?? 'order'
   const out = useOutputText()
   const queueError = useSyncExternalStore(subscribeQueueError, getQueueError)
   const [confirmClear, setConfirmClear] = useState(false)
   const [editing, setEditing] = useState(false)
   const firstIndex = 0
-  const remaining = Math.max(0, playlist.length - Math.max(0, currentIndex))
-  const remainingDuration = useMemo(() => playlist.slice(Math.max(0, currentIndex)).reduce((sum, song) => sum + (song.duration ?? 0), 0), [playlist, currentIndex])
+  const progress = useMemo(() => queueProgress(playlist, currentIndex, playedIndices), [playlist, currentIndex, playedIndices])
   const fontScale = useSyncExternalStore(subscribeFontScale, getFontScaleNumber)
 
   useBackHandler(show, () => {
@@ -66,10 +67,10 @@ export function PlaylistDrawer() {
         <view className='drawer__header'>
           <text className='drawer__title'>{out('queue')}</text>
           <text className='drawer__count'>
-            {out('remaining')} {t(
+            {out('queueTotal')} {t(
               playlist.length === 1 ? 'common.songCountOne' : 'common.songCountOther',
-              { count: remaining },
-            )} · {formatDuration(remainingDuration)}
+              { count: playlist.length },
+            )} · {out('remaining')} {t(progress.remaining === 1 ? 'common.songCountOne' : 'common.songCountOther', { count: progress.remaining })} · {formatDuration(progress.duration)}
           </text>
           <view className='drawer__text-button' data-testid='queue-close' accessibility-element={true} accessibility-traits='button' accessibility-label={out('close')} bindtap={close}><Icon name='x' size={20} color={ICON_COLORS.content2} /></view>
         </view>
@@ -82,7 +83,7 @@ export function PlaylistDrawer() {
         </view>
         {queueError && <text className='drawer__empty'>{queueError}</text>}
         {!playlist.length && <text className='drawer__empty'>{out('queueEmpty')}</text>}
-        <QueueRows key={fontScale + ':' + firstIndex} playlist={playlist} currentIndex={currentIndex} fontScale={fontScale} editing={editing} firstIndex={firstIndex} ordered={mode !== 'random'} />
+        <QueueRows key={fontScale + ':' + firstIndex} playlist={playlist} currentIndex={currentIndex} fontScale={fontScale} editing={editing} firstIndex={firstIndex} played={progress.played} />
       </view>
     </view>
   )
@@ -94,13 +95,13 @@ export function PlaylistDrawer() {
  * JS child set bounded too. The scroller contains only a viewport plus overscan;
  * two spacers preserve the full queue's scroll range on native and Web.
  */
-function QueueRows({ playlist, currentIndex, fontScale, editing, firstIndex, ordered }: {
+function QueueRows({ playlist, currentIndex, fontScale, editing, firstIndex, played }: {
   playlist: readonly Song[]
   currentIndex: number
   fontScale: number
   editing: boolean
   firstIndex: number
-  ordered: boolean
+  played: ReadonlySet<number>
 }) {
   const out = useOutputText()
   // 12px padding on each side of a >=44px control/two-line metadata block.
@@ -139,7 +140,7 @@ function QueueRows({ playlist, currentIndex, fontScale, editing, firstIndex, ord
         <view className='drawer__spacer' style={{ height: `${start * rowHeight}px` }} />
         {playlist.slice(firstIndex + start, firstIndex + end).map((song, offset) => {
           const index = firstIndex + start + offset
-          const played = ordered && index < currentIndex
+          const wasPlayed = played.has(index)
           const directory = queueDirectory(song)
           const subtitle = [song.artist, song.album].filter(Boolean).join(' · ')
           return (
@@ -148,7 +149,7 @@ function QueueRows({ playlist, currentIndex, fontScale, editing, firstIndex, ord
               style={{ height: `${rowHeight}px` }}
               className={index === currentIndex
                 ? 'drawer__row drawer__row--active'
-                : played ? 'drawer__row drawer__row--played' : 'drawer__row'}
+                : wasPlayed ? 'drawer__row drawer__row--played' : 'drawer__row'}
             >
               <view className='drawer__cover-wrap'>{song.coverUrl ? <image className='drawer__cover' mode='aspectFill' src={buildCoverUrl(song.coverUrl, song.updatedAt)} /> : <view className='drawer__cover drawer__cover--empty'><text>♫</text></view>}</view>
               <view
@@ -164,7 +165,7 @@ function QueueRows({ playlist, currentIndex, fontScale, editing, firstIndex, ord
                   : null}
                 {directory && <view className='drawer__row-folder' accessibility-element={true} accessibility-label={directory}><Icon name='folder' size={12} color={ICON_COLORS.content2} /><text className='drawer__row-directory'>{directory}</text></view>}
               </view>
-              {played && <text className='drawer__row-played' data-testid={'queue-played-' + index}>{out('queuePlayed')}</text>}
+              {wasPlayed && <text className='drawer__row-played' data-testid={'queue-played-' + index}>{out('queuePlayed')}</text>}
               {!editing && <text className='drawer__row-duration'>{formatDuration(song.duration)}</text>}
               <view className='drawer__row-actions'>
                 {editing && index > 0 && <view className='drawer__row-remove' data-testid={'queue-up-' + index} accessibility-element={true} accessibility-traits='button' accessibility-label={out('moveUp')} bindtap={() => usePlayerStore.getState().reorderPlaylist(index, index - 1)}><text className='drawer__row-remove-glyph'>↑</text></view>}

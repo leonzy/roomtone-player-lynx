@@ -1,5 +1,11 @@
 # Lynx 客户端开发经验
 
+## QUEUE-006：随机队列的剩余数量不能用列表位置推算
+
+2026-11-12：生产 Web 队列实际有 431 首、游标为 326，旧标题仅显示“剩余 105 首”，使用户误以为没有加载全部。总数与剩余数必须同时显示；剩余与已播放标记使用成功起播的队列条目记录，包含当前条目，不以歌曲 ID 去重、不将失败或预加载算作播放。记录随删除/重排映射，切换模式保留，替换队列重置；刷新及区域转移需要传递真实记录。反向恢复按索引推算的实现时，随机计数和标题测试失败。
+
+English: On 2026-11-12 the live Web queue held 431 items at index 326, while its remaining-only header showed 105. Always display total alongside remaining. Count successfully started queue occurrences, including the current one; song IDs, indices before the cursor, failures and preloads are not playback evidence. Remap history for edits, retain it across modes, reset on replacement, and carry it through reload/zone transfer. Restoring index-based counting makes the random-count and header regressions fail.
+
 ## QUEUE-005：分页补齐不能用显示快照回写整个远程队列
 
 后续产品要求：播放全部必须准备完整集合后一次替换，不采用起播后分页补齐。对应 `replaceCollectionQueue` 及完整替换回归；普通单曲点选仍使用独立的分页逻辑。此为同一事件的语义纠正，不增加 Seen。

@@ -66,7 +66,7 @@ import { useAppSessionStore } from '../../../store/app-session.js'
  * to the pure functions in `../domain/*` so it is unit-tested without a render.
  */
 export interface PlayerState extends PlayerData {
-  loadZoneQueue: (args: { songs: Song[]; index: number; positionMs: number }) => Promise<void>
+  loadZoneQueue: (args: { songs: Song[]; index: number; positionMs: number; playedIndices?: number[] }) => Promise<void>
   cancelPendingPlayback: () => void
   // ── playback ──
   playSong: (song: Song, queue?: Song[]) => Promise<void>
@@ -219,6 +219,7 @@ function syncNavigation(): void {
     hasPriorityNext: _navigation.hasPriority,
     hasHistoryPrevious: _navigation.hasPrevious(s.currentIndex),
     nextQueueIndex: _navigation.peekNext(s.currentIndex, s.playlist.length),
+    playedQueueIndices: _navigation.playedIndices,
   })
   _prefetchedForIndex = null
 }
@@ -254,6 +255,7 @@ function persistVolume(volume: number): void {
 }
 
 const INITIAL: PlayerData = {
+  playedQueueIndices: [],
   currentSong: undefined,
   playlist: [],
   currentIndex: -1,
@@ -931,10 +933,11 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
     },
 
     cancelPendingPlayback: () => { invalidateSourceLoad(); cancelRetry(); _queueLoader.invalidate(); _awaitingPlayback = null },
-    loadZoneQueue: async ({ songs, index, positionMs }) => {
+    loadZoneQueue: async ({ songs, index, positionMs, playedIndices }) => {
       if (!songs[index]) return
       _queueLoader.invalidate()
       _navigation.reset(get().playMode)
+      _navigation.restorePlayed(playedIndices ?? [])
       set({ playlist: [...songs], currentIndex: index, currentSong: songs[index], playbackContext: undefined, sourcePlaylistId: undefined })
       await playAtIndex(index, { positionMs, serverOwned: true })
     },
@@ -1234,6 +1237,7 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
         hasPriorityNext: false,
         hasHistoryPrevious: false,
         nextQueueIndex: null,
+        playedQueueIndices: [],
         audioTrack: null,
         audioTrackPending: undefined,
         isAudioTrackSwitching: false,
@@ -1624,7 +1628,7 @@ const SAVE_POSITION_STEP_MS = 10_000
  * a new bucket immediately.
  */
 useLocalPlayerStore.subscribe((state, prev) => {
-  const queueChanged = state.playlist !== prev.playlist || state.currentIndex !== prev.currentIndex
+  const queueChanged = state.playlist !== prev.playlist || state.currentIndex !== prev.currentIndex || state.playedQueueIndices !== prev.playedQueueIndices
   const bucket = Math.floor(state.currentTime / SAVE_POSITION_STEP_MS)
   const prevBucket = Math.floor(prev.currentTime / SAVE_POSITION_STEP_MS)
   if (!queueChanged && bucket === prevBucket) return
@@ -1641,6 +1645,7 @@ useLocalPlayerStore.subscribe((state, prev) => {
       currentIndex: s.currentIndex,
       positionMs: s.currentTime,
       context: s.playbackContext,
+      playedIndices: s.playedQueueIndices,
     })
   }, SAVE_DEBOUNCE_MS)
 })
@@ -1825,6 +1830,7 @@ export async function restorePlaybackState(): Promise<void> {
     sourcePlaylistId: saved.sourcePlaylistId,
   })
   _navigation.reset(useLocalPlayerStore.getState().playMode)
+  _navigation.restorePlayed(saved.playedIndices ?? [])
   syncNavigation()
   if (autoResume) {
     // Use the shared `toAudioItem`/`durationMsOf` rather than re-inlining the
@@ -1870,7 +1876,7 @@ export async function forgetCachedPlayback(identity: CacheIdentity | { namespace
     syncNavigation()
   }
   const next = useLocalPlayerStore.getState()
-  await savePlaybackState({ playlist: next.playlist, currentIndex: next.currentIndex, positionMs: next.currentTime, context: next.playbackContext })
+  await savePlaybackState({ playlist: next.playlist, currentIndex: next.currentIndex, positionMs: next.currentTime, context: next.playbackContext, playedIndices: next.playedQueueIndices })
 }
 
 export const usePlayerStore = createZonePlayer(useLocalPlayerStore)

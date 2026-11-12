@@ -13,6 +13,8 @@ import type { SleepTimerStatus } from '../domain/sleep-timer.js'
 export interface PlayerData {
   currentSong?: Song
   playlist: Song[]
+  /** Successfully started queue occurrences; independent of shuffle order. */
+  playedQueueIndices?: number[]
   currentIndex: number
   isPlaying: boolean
   /** 0..100 (matches the Flutter volume scale). */

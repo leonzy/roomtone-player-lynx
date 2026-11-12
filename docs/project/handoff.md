@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-11-12 · 队列计数
+
+标题固定显示总数与剩余，剩余含当前条目，来自成功起播的 occurrence 记录。不得退回 total-currentIndex 或按歌曲 ID 去重。旧历史未知时从零记录，完整实现与验证见 progress.md 同日条目。
+
+English: Always show total plus remaining including current, using successful queue-occurrence history. Do not restore total-minus-index or song-ID deduplication. Unknown legacy history starts empty; see the matching progress entry.
+
 ## 2026-11-04 · 最新语义：播放全部一次整体替换
 
 以本条为准：播放全部/现在播放先准备完整集合，再整体替换并起播，不在播放后用后台分页追加补齐。覆盖歌单、曲库、集合菜单与插件歌单播放。错误不清空旧队列，准备状态可见。下方早先后台补齐的记录仅描述历史版本。

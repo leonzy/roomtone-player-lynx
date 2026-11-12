@@ -7,11 +7,14 @@ export class QueueNavigation {
   private pendingCursor: number | null = null
   private priority: number[] = []
   private played = new Set<number>()
+  private visited = new Set<number>()
   private selected: number | null = null
   private mode: PlayMode = 'order'
 
   get hasPriority(): boolean { return this.priority.length > 0 }
   get lastPlayedIndex(): number { return this.history[this.cursor] ?? -1 }
+  get playedIndices(): number[] { return [...this.visited] }
+  restorePlayed(indices: readonly number[]): void { this.visited = new Set(indices) }
   private get effectiveCursor(): number { return this.pendingCursor ?? this.cursor }
 
   prioritize(index: number): void {
@@ -25,6 +28,7 @@ export class QueueNavigation {
     this.cursor = -1
     this.pendingCursor = null
     this.played.clear()
+    if (!keepPriority) this.visited.clear()
     this.selected = null
     if (!keepPriority) this.priority = []
   }
@@ -47,12 +51,14 @@ export class QueueNavigation {
       .flatMap(index => indices.has(index) ? [indices.get(index)!] : [])
     this.priority = mapped(this.priority)
     this.played = new Set(mapped(this.played))
+    this.visited = new Set(mapped(this.visited))
     this.selected = null
   }
 
   markPlayed(index: number): void {
     if (index < 0) return
     this.played.add(index)
+    this.visited.add(index)
     this.priority = this.priority.filter(value => value !== index)
     const pending = this.pendingCursor
     this.pendingCursor = null

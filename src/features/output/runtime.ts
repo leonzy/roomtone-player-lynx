@@ -118,6 +118,7 @@ function publishDisplay() {
   const s = g.status, song = remoteSongs[s.queue.current]
   const devices = readOutputs().players.filter(p => g.members.some(m => m.player_id === p.ID))
   display.setState({ ...state, ...routedActions, playlist: remoteSongs,
+    playedQueueIndices: s.queue.started_indices,
     currentIndex: s.queue.current, currentSong: song, currentTime: s.position * 1000,
     duration: (song?.duration ?? 0) * 1000, isPlaying: s.state === 'playing',
     isBuffering: ['loading', 'buffering'].includes(s.state), errorMessage: s.error,
@@ -303,21 +304,22 @@ let runtimeGeneration = 0
 let suppressQueue = 0
 let queueTimer: ReturnType<typeof setTimeout> | null = null
 let lastLocalQueue = ''
-let observedLocalQueue: { playlist: Song[]; index: number; group: string } | null = null
+let observedLocalQueue: { playlist: Song[]; index: number; group: string; played?: number[] } | null = null
 function scheduleLocalQueue() {
   if (suppressQueue || !local || !connection || !useZoneState.getState().connected) return
   const group = localGroup(); if (!group) return
   const s = local.getState()
   // Progress arrives four times a second. Immutable queues need encoding only
   // when their identity, index or group changes, not on every audio tick.
-  if (observedLocalQueue?.playlist === s.playlist && observedLocalQueue.index === s.currentIndex && observedLocalQueue.group === group.id) return
-  observedLocalQueue = { playlist: s.playlist, index: s.currentIndex, group: group.id }
-  const key = `${group.id}:${s.playlist.map(s => s.id)}:${s.currentIndex}`
+  if (observedLocalQueue?.playlist === s.playlist && observedLocalQueue.index === s.currentIndex && observedLocalQueue.group === group.id && observedLocalQueue.played === s.playedQueueIndices) return
+  observedLocalQueue = { playlist: s.playlist, index: s.currentIndex, group: group.id, played: s.playedQueueIndices }
+  const key = `${group.id}:${s.playlist.map(s => s.id)}:${s.currentIndex}:${s.playedQueueIndices ?? []}`
   if (lastLocalQueue === key) return
   lastLocalQueue = key
   if (queueTimer) clearTimeout(queueTimer)
   const id = group.id, ids = s.playlist.map(s => s.id), index = s.currentIndex
-  queueTimer = setTimeout(() => { queueTimer = null; void outputApi.replaceQueue(id, ids, index).catch(e => useZoneState.setState({ error: String(e) })) }, 200)
+  const started = s.playedQueueIndices ?? []
+  queueTimer = setTimeout(() => { queueTimer = null; void outputApi.replaceQueue(id, ids, index, started).catch(e => useZoneState.setState({ error: String(e) })) }, 200)
 }
 let commandGeneration = 0
 let explicitStopped = false
@@ -385,8 +387,8 @@ async function handleCommand(message: Record<string, unknown>) {
         const status = await outputApi.getQueue(g.id)
         const songs = await outputApi.songs(status.queue.items)
         if (generation !== commandGeneration || songs[status.queue.current]?.id !== message.song_id) return
-        await local!.getState().loadZoneQueue({ songs, index: status.queue.current, positionMs: Number(message.position_ms ?? 0) })
-        lastLocalQueue = `${g.id}:${songs.map(s => s.id)}:${status.queue.current}`
+        await local!.getState().loadZoneQueue({ songs, index: status.queue.current, positionMs: Number(message.position_ms ?? 0), playedIndices: status.queue.started_indices })
+        lastLocalQueue = `${g.id}:${songs.map(s => s.id)}:${status.queue.current}:${status.queue.started_indices}`
       } finally { suppressQueue-- }
     })()
     await pendingLoad; return

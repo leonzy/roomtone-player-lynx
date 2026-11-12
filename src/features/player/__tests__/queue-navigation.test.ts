@@ -56,6 +56,24 @@ test('every song menu offers play next using the existing translated label', () 
   }
 })
 
+test('local successful random starts record occurrences independently of cursor and play mode', async () => {
+  const queue = Array.from({ length: 50 }, (_, index) => song(index + 1))
+  await state().playPlaylist(queue, 45)
+  await flush()
+  expect(state().playedQueueIndices).toEqual([45])
+  state().setPlayMode('random')
+  await state().playQueueIndex(2)
+  await flush()
+  expect(state().playedQueueIndices).toEqual([45, 2])
+  await state().playQueueIndex(45)
+  await flush()
+  state().setPlayMode('order')
+  expect(state().playedQueueIndices).toEqual([45, 2])
+  await state().playPlaylist(queue, 10)
+  await flush()
+  expect(state().playedQueueIndices).toEqual([10])
+})
+
 test('moves an existing song after current without reloading, seeking or replacing context', async () => {
   await state().playPlaylist([song(1), song(2), song(3)], 1, { type: 'playlist', key: '7' })
   await state().seek(12000)

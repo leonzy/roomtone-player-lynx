@@ -31,6 +31,7 @@ function defaultState() {
     showPlaylistDrawer: true,
     playlist: [song(1), song(2), song(3)],
     currentIndex: 0,
+    playedQueueIndices: [] as number[],
   }
 }
 
@@ -78,11 +79,17 @@ test('renders small queues in full', async () => {
   expect(getByText('Song 3')).toBeInTheDocument()
 })
 
+test('header always reports total and counts remaining from actual plays in random mode', async () => {
+  state = { ...state, playlist: Array.from({ length: 50 }, (_, i) => song(i + 1)), currentIndex: 45, playedQueueIndices: [2, 10, 45] }
+  const view = await renderDrawer()
+  expect(view.container.querySelector('.drawer__count')).toHaveTextContent('Total 50 songs · Remaining 48 songs')
+})
+
 test('30,000 songs mount only a window around the current song (songloft-org/songloft#525)', async () => {
   state = {
     showPlaylistDrawer: true,
     playlist: Array.from({ length: 30_000 }, (_, i) => song(i + 1)),
-    currentIndex: 15_000,
+    currentIndex: 15_000, playedQueueIndices: [],
   }
   const { getByText, queryByText } = await renderDrawer()
   expect(getByText('Song 15001')).toBeInTheDocument()
@@ -140,7 +147,7 @@ test('queue replacement and empty queues do not leave stale rows', async () => {
 })
 
 test('the current song row wears the active wash, siblings do not', async () => {
-  state = { showPlaylistDrawer: true, playlist: [song(1), song(2), song(3)], currentIndex: 1 }
+  state = { showPlaylistDrawer: true, playlist: [song(1), song(2), song(3)], currentIndex: 1, playedQueueIndices: [0, 1] }
   const { getByText } = await renderDrawer()
   const active = getByText('Song 2').parentElement!.parentElement!.parentElement!
   expect(active.className).toContain('drawer__row--active')
@@ -213,7 +220,7 @@ test('artist album and subdirectory are visible together', async () => {
 
 test('auto advance keeps played tracks visible and selectable in the same queue', async () => {
   const { rerender, queryByText, getByText, getByTestId } = await renderDrawer()
-  state = { ...state, currentIndex: 1 }
+  state = { ...state, currentIndex: 1, playedQueueIndices: [0, 1] }
   await act(async () => { rerender(<PlaylistDrawer />) })
   expect(getByText('Song 1')).toBeInTheDocument()
   expect(getByText('Song 2')).toBeInTheDocument()

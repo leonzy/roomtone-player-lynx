@@ -14,6 +14,7 @@ const PREF_OFFLINE_PLAYBACK_QUEUE = 'device_cache_playback_queue_v1'
 const PREF_PLAYBACK_INDEX = 'playback_index'
 const PREF_PLAYBACK_POSITION = 'playback_position'
 const PREF_PLAYBACK_CONTEXT = 'playback_context'
+const PREF_PLAYBACK_PLAYED = 'playback_played_indices'
 /**
  * Superseded by {@link PREF_PLAYBACK_CONTEXT}, which stores the full
  * `(type, key)` pair instead of a playlist ID alone. Still read so an upgrade
@@ -30,13 +31,14 @@ export function clearSavedPlaybackState(storage: SongloftStorage = getSongloftSt
     savedQueue = null
     // PrimJS on native does not provide Promise.allSettled.
     await Promise.all([PREF_PLAYBACK_QUEUE, PREF_OFFLINE_PLAYBACK_QUEUE, PREF_PLAYBACK_INDEX, PREF_PLAYBACK_POSITION,
-      PREF_PLAYBACK_CONTEXT, PREF_PLAYBACK_SOURCE_PLAYLIST].map(key => storage.prefs.remove(key).catch(() => {})))
+      PREF_PLAYBACK_CONTEXT, PREF_PLAYBACK_SOURCE_PLAYLIST, PREF_PLAYBACK_PLAYED].map(key => storage.prefs.remove(key).catch(() => {})))
   })
   return writes
 }
 
 export interface SavedPlaybackState {
   playlist: Song[]
+  playedIndices?: number[]
   currentIndex: number
   positionMs: number
   context?: PlaybackContext
@@ -65,13 +67,14 @@ function parseSavedContext(json: string | null | undefined): PlaybackContext | u
 export async function loadPlaybackState(): Promise<SavedPlaybackState | null> {
   try {
     const storage = getSongloftStorage()
-    const [queueJson, indexStr, posStr, contextJson, playlistIdStr, offlineJson] = await Promise.all([
+    const [queueJson, indexStr, posStr, contextJson, playlistIdStr, offlineJson, playedJson] = await Promise.all([
       storage.prefs.get(PREF_PLAYBACK_QUEUE),
       storage.prefs.get(PREF_PLAYBACK_INDEX),
       storage.prefs.get(PREF_PLAYBACK_POSITION),
       storage.prefs.get(PREF_PLAYBACK_CONTEXT),
       storage.prefs.get(PREF_PLAYBACK_SOURCE_PLAYLIST),
       storage.prefs.get(PREF_OFFLINE_PLAYBACK_QUEUE),
+      storage.prefs.get(PREF_PLAYBACK_PLAYED),
     ])
 
     if (!queueJson && !offlineJson) return null
@@ -103,7 +106,13 @@ export async function loadPlaybackState(): Promise<SavedPlaybackState | null> {
     const context = offline ? undefined : parseSavedContext(contextJson)
       ?? playlistContext(playlistIdStr ? parseInt(playlistIdStr, 10) || 0 : 0)
 
-    return { playlist, currentIndex, positionMs, context, sourcePlaylistId: playlistIdOf(context) }
+    let playedIndices: number[] = []
+    try {
+      const parsed: unknown = JSON.parse(playedJson ?? '[]')
+      // A filtered/corrupt queue cannot safely reuse old occurrence indices.
+      if (Array.isArray(parsed) && raw.length === playlist.length) playedIndices = parsed.filter((i): i is number => Number.isInteger(i) && i >= 0 && i < playlist.length)
+    } catch { /* A bad progress key must not discard the queue. */ }
+    return { playlist, currentIndex, positionMs, context, playedIndices, sourcePlaylistId: playlistIdOf(context) }
   } catch {
     return null
   }
@@ -116,6 +125,7 @@ export async function loadPlaybackState(): Promise<SavedPlaybackState | null> {
  */
 export interface SavePlaybackStateParams {
   playlist: Song[]
+  playedIndices?: number[]
   currentIndex: number
   positionMs: number
   context?: PlaybackContext
@@ -156,6 +166,7 @@ async function writePlaybackState(params: SavePlaybackStateParams): Promise<void
         storage.prefs.remove(PREF_PLAYBACK_POSITION),
         storage.prefs.remove(PREF_PLAYBACK_CONTEXT),
         storage.prefs.remove(PREF_PLAYBACK_SOURCE_PLAYLIST),
+        storage.prefs.remove(PREF_PLAYBACK_PLAYED),
       ])
       return
     }
@@ -174,6 +185,7 @@ async function writePlaybackState(params: SavePlaybackStateParams): Promise<void
     await Promise.all([
       storage.prefs.set(PREF_PLAYBACK_INDEX, String(currentIndex)),
       storage.prefs.set(PREF_PLAYBACK_POSITION, String(Math.round(positionMs))),
+      storage.prefs.set(PREF_PLAYBACK_PLAYED, JSON.stringify(params.playedIndices ?? [])),
       !offline && context != null
         ? storage.prefs.set(PREF_PLAYBACK_CONTEXT, JSON.stringify(context))
         : storage.prefs.remove(PREF_PLAYBACK_CONTEXT),

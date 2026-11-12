@@ -12,7 +12,7 @@ import { createQueueAppender, createCollectionAction, createZonePlayer, focusZon
 const socket = vi.hoisted(() => ({ callbacks: null as null | { open(): void; message(data: Record<string, unknown>): void; close(): void }, send: vi.fn(), close: vi.fn() }))
 vi.mock('../socket.js', () => ({ connectPlaybackSocket: async (_ticket: string, callbacks: typeof socket.callbacks) => { socket.callbacks = callbacks; return { send: socket.send, close: socket.close } } }))
 const song = (id: number) => parseSong({ id, title: `Track ${id}`, duration: 200 })
-const state = (items: number[], index = 0, status = 'paused') => ({ song_id: items[index] ?? 0, position: 20, state: status, queue: { items, current: index, repeat: 'off', shuffle: false }, underruns: 0 })
+const state = (items: number[], index = 0, status = 'paused') => ({ song_id: items[index] ?? 0, position: 20, state: status, queue: { items, current: index, repeat: 'off', shuffle: false, started_indices: [] as number[] }, underruns: 0 })
 let outputs: Outputs
 let engine: UseBoundStore<StoreApi<PlayerState>>
 let player: UseBoundStore<StoreApi<PlayerState>>
@@ -131,6 +131,16 @@ test('remote focus projects its queue without pausing or replacing local playbac
   expect(player.getState().currentTime).toBe(7000)
 })
 
+test('remote projections expose zone playback history without overwriting local history', async () => {
+  engine.setState({ playedQueueIndices: [1] })
+  outputs.groups[1]!.status.queue.started_indices = [0, 1]
+  await focusZone('remote')
+  expect(player.getState().playedQueueIndices).toEqual([0, 1])
+  expect(engine.getState().playedQueueIndices).toEqual([1])
+  await focusZone('local')
+  expect(player.getState().playedQueueIndices).toEqual([1])
+})
+
 test('overlapping refreshes publish completed snapshots instead of starving auto advance', async () => {
   await focusZone('remote')
   const pending: Array<(value: Outputs) => void> = []
@@ -209,7 +219,7 @@ test('server load takes complete local queue even while UI controls a remote spe
   await focusZone('remote')
   socket.callbacks!.message({ cmd: 'load', song_id: 1, position_ms: 45000 })
   for (let i = 0; i < 20; i++) await Promise.resolve()
-  expect(engine.getState().loadZoneQueue).toHaveBeenCalledWith({ songs: [song(1), song(2)], index: 0, positionMs: 45000 })
+  expect(engine.getState().loadZoneQueue).toHaveBeenCalledWith({ songs: [song(1), song(2)], index: 0, positionMs: 45000, playedIndices: [] })
   expect(player.getState().currentSong?.id).toBe(3)
   expect(socket.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'register_player', id: 'web' }))
 })
@@ -418,7 +428,7 @@ test('background fill preserves the server cursor when playback advances during 
   socket.callbacks!.message({ cmd: 'load', song_id: 3, position_ms: 45000 })
   for (let i = 0; i < 50; i++) await Promise.resolve()
   expect(outputApi.getQueue).toHaveBeenLastCalledWith('remote')
-  expect(engine.getState().loadZoneQueue).toHaveBeenCalledWith({ songs: [song(3), song(4)], index: 0, positionMs: 45000 })
+  expect(engine.getState().loadZoneQueue).toHaveBeenCalledWith({ songs: [song(3), song(4)], index: 0, positionMs: 45000, playedIndices: [] })
  })
 
 test('local song sleep commands reach native counting and heartbeat preserves generation',async()=>{

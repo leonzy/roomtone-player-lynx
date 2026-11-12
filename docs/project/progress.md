@@ -1,5 +1,17 @@
 # 进展与交接（PROGRESS）
 
+## 2026-11-12 · 队列总数与实际播放记录
+
+基线 b2a760a3：队列标题改为“共 N 首 · 剩余 M 首”，剩余含当前条目；随机起点不代表之前的歌曲已播放。同一队列条目的重复播放不重复扣数，不同位置的相同歌曲独立记录。成功起播才记账，失败不计；删除/重排保留条目身份，模式切换保留记录，整体替换重置。Web 在已有播放断点存储中保存记录；服务端在队列快照中返回 started_indices，转移播放带入本机播放器。原有版本无法还原的历史不猜测。
+
+验证：Windows，TypeScript build mode；player-store/navigation/persistence/drawer/output 相关测试；按索引推算的破坏检查使三项回归失败。生产以服务端/HTTP bundle SHA 和无播放 API 读取核对。原生 SDK 构建、真实声音测试与持续浏览器界面验收 Not run；不启动本机服务、不安装 SDK。
+
+共享 JS 全量检查在 Windows 上的 Android CRLF 与样式路径规则有 7 项失败；从未修改的 b2a760a3 index 导出副本运行同样五个静态测试文件，复现相同 7 项失败（30 项通过）。本次队列相关测试另行通过；全量闸门不宣称全绿。
+
+English: Based on b2a760a3. The queue header displays total and remaining (including current) from successful occurrence history instead of cursor position. Replays do not consume another occurrence; duplicate song IDs remain distinct. Failures do not count. Edits remap history, mode switches retain it, and replacements reset it. Local history shares playback persistence; server started_indices and transfer adoption carry zone history. Missing legacy history is not inferred. Typechecking and targeted player/output regressions run on Windows; the index-based mutant fails three tests. Production verification compares binary/bundle SHAs and read-only APIs. Native SDKs, listening and sustained visual-browser checks remain Not run.
+
+The full Windows JS run exposes seven Android-CRLF/CSS-path assertions. An untouched b2a760a3 index export reproduces the same seven failures across five static-test files (30 pass); targeted queue regressions pass separately. The full gate is not reported as green.
+
 ## 2026-11-04 · 播放全部一次整体替换（取代上述操作的后台补齐）
 
 用户明确要求一次完整替换。歌单详情、曲库列表、集合菜单和插件 playPlaylistById 均先以至多 200 首的请求准备完整列表，然后只调用一次 playAll；准备期间不修改队列，失败/空页导致列表不完整时不替换，按钮显示加载状态。普通点选单曲的分页补齐不属于此次播放全部入口。新完整替换回归在隔离旧实现下失败，新实现的相关 83 项及类型检查通过。最终构建、CI 和部署版本以交付证据为准；不启动本机服务，不向音箱发起测试播放。

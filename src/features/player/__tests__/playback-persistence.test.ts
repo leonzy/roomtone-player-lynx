@@ -19,6 +19,13 @@ import { clearSavedPlaybackState, loadPlaybackState, savePlaybackState } from '.
 import { cacheIdentity, cacheNamespace } from '../domain/cache-identity.js'
 import { playlistContext } from '../domain/playback-context.js'
 
+test('actual queue playback indices survive reload without inferring from current position', async () => {
+  await savePlaybackState({ playlist: [SONG, { ...SONG, id: 2 }, { ...SONG, id: 3 }], currentIndex: 2, positionMs: 1000, playedIndices: [0, 2] })
+  expect((await loadPlaybackState())?.playedIndices).toEqual([0, 2])
+  await clearSavedPlaybackState()
+  expect(mockStorage.has('playback_played_indices')).toBe(false)
+})
+
 /** Parsed (camelCase) form of {@link SONG_JSON}, as the store holds it. */
 const SONG: Song = {
   id: 1,
