@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-11-14 · 首页预览
+
+首页使用 `/playlists?random=true` 一次取足布局预算，最多 200；`avoid_ids` 软避让上一批，`exclude_ids` 硬排除隐藏收藏。不得对随机结果按 offset 续页，亦不得为换批预取整库。编辑失效前缀仍为 playlist/list。
+
+English: Home uses one bounded random sample, soft previous-batch avoidance and hard favorite exclusion. Never offset-page random results or prefetch the full library to shuffle. Preserve playlist/list invalidation.
+
 ## 2026-11-12 · 队列计数
 
 标题固定显示总数与剩余，剩余含当前条目，来自成功起播的 occurrence 记录。不得退回 total-currentIndex 或按歌曲 ID 去重。旧历史未知时从零记录，完整实现与验证见 progress.md 同日条目。

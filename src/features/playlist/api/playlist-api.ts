@@ -13,6 +13,9 @@ import {
 } from '../../../models/song.js'
 
 export interface PlaylistsFilters {
+  random?: boolean
+  avoidIds?: number[]
+  excludeIds?: number[]
   type?: string
   /**
    * Filter by the source of the songs the playlist holds: `'remote'` (network
@@ -75,6 +78,9 @@ export function buildPlaylistsQuery(
     offset: page.offset ?? 0,
   }
   putStr(query, 'type', filters.type)
+  if (filters.random) query.random = 'true'
+  if (filters.avoidIds?.length) query.avoid_ids = filters.avoidIds.join(',')
+  if (filters.excludeIds?.length) query.exclude_ids = filters.excludeIds.join(',')
   putStr(query, 'song_source', filters.songSource)
   putStr(query, 'exclude_labels', filters.excludeLabels)
   putStr(query, 'keyword', filters.keyword)

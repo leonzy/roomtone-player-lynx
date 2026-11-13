@@ -190,6 +190,8 @@ export const en = {
     signingIn: 'Signing in…',
   },
   home: {
+    shuffleBatch: 'Shuffle picks',
+    shufflingBatch: 'Loading…',
     greetingNight: 'Good night',
     showFavorites: 'Show Favorites on home',
     showFavoritesDesc: 'Only controls the home card. Library access, songs and favorites stay available. Saved on this device for this server and account.',
@@ -1440,6 +1442,8 @@ export const zh: TranslationTree = {
     signingIn: '登录中…',
   },
   home: {
+    shuffleBatch: '换一批',
+    shufflingBatch: '换一批中…',
     greetingNight: '晚安',
     showFavorites: '在首页显示收藏',
     showFavoritesDesc: '仅控制首页卡片，曲库入口、歌曲和收藏功能照常可用。按服务器和账号保存在本机。',

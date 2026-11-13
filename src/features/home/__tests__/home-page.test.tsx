@@ -2,7 +2,7 @@ import '../../../shims/router-env.js'
 
 import '@testing-library/jest-dom'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { act, getQueriesForElement, render } from '@lynx-js/react/testing-library'
+import { act, fireEvent, getQueriesForElement, render } from '@lynx-js/react/testing-library'
 
 import { parseLibraryStats } from '../../../models/library-stats.js'
 import type { Playlist } from '../../../models/playlist.js'
@@ -43,7 +43,7 @@ vi.mock('../../jsplugin/widgets/PluginGrid.js', () => ({
 }))
 
 vi.mock('../data/home-query.js', () => ({
-  useHomePlaylists: (type: string) => (type === 'radio' ? radioHook() : normalHook()),
+  useHomePlaylists: (type: string, options: unknown) => (type === 'radio' ? radioHook(options) : normalHook(options)),
 }))
 
 vi.mock('../data/home-favorites.js', () => ({
@@ -137,28 +137,44 @@ test('home-only favorites switches filter built-ins and refill the visible card 
   expect(q.queryByText('Radio favorites')).toBeNull()
   expect(q.getByText('Playlist 3')).toBeTruthy()
   expect(q.getByText('Playlist 4')).toBeTruthy()
-  expect(fetchNextPage).toHaveBeenCalledTimes(1)
+  expect(fetchNextPage).not.toHaveBeenCalled()
+  expect(normalHook).toHaveBeenLastCalledWith(expect.objectContaining({ excludeIds: [1] }))
+  expect(radioHook).toHaveBeenLastCalledWith(expect.objectContaining({ excludeIds: [2] }))
   expect(favorites.labels).toEqual(['built_in'])
 })
 
-test('a layout larger than one API page fills its budget and stops after enough cards load', async () => {
+test('a layout requests its visible budget in one sample instead of chaining pages', async () => {
   await changeHomeConfig({ layout: 'carousel' })
   const fetchNextPage = vi.fn()
   const playlists = Array.from({ length: 40 }, (_, index) => makePlaylist(index + 1))
-  normalHook.mockReturnValue(result([{ playlists: playlists.slice(0, 20), total: 44 }], {
+  normalHook.mockReturnValue(result([{ playlists: playlists.slice(0, 30), total: 44 }], {
     hasNextPage: true, isFetchingNextPage: false, fetchNextPage,
   }))
   const view = render(<HomePage />)
   await act(async () => { await Promise.resolve() })
-  expect(fetchNextPage).toHaveBeenCalledTimes(1)
+  expect(fetchNextPage).not.toHaveBeenCalled()
+  expect(normalHook).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 30 }))
   normalHook.mockReturnValue(result([{ playlists, total: 44 }], {
     hasNextPage: true, isFetchingNextPage: false, fetchNextPage,
   }))
   await act(async () => { view.rerender(<HomePage />); await Promise.resolve() })
-  expect(fetchNextPage).toHaveBeenCalledTimes(1)
+  expect(fetchNextPage).not.toHaveBeenCalled()
   expect(view.container.querySelectorAll('.playlist-card')).toHaveLength(30)
   view.unmount()
   await changeHomeConfig({ layout: 'adaptive' })
+})
+
+test('shuffle requests another batch avoiding current picks and ignores taps while fetching', async () => {
+  normalHook.mockReturnValue(result([{ playlists: [makePlaylist(3), makePlaylist(4)], total: 100 }]))
+  const view = render(<HomePage />)
+  await act(async () => { await Promise.resolve() })
+  await act(async () => { fireEvent.tap(getQueriesForElement(elementTree.root!).getByTestId('home-shuffle-library')) })
+  expect(normalHook).toHaveBeenLastCalledWith(expect.objectContaining({ batch: 1, avoidIds: [3, 4] }))
+  normalHook.mockReturnValue(result([{ playlists: [makePlaylist(3), makePlaylist(4)], total: 100 }], { isFetching: true }))
+  await act(async () => { view.rerender(<HomePage />); await Promise.resolve() })
+  await act(async () => { fireEvent.tap(getQueriesForElement(elementTree.root!).getByTestId('home-shuffle-library')) })
+  expect(normalHook).toHaveBeenLastCalledWith(expect.objectContaining({ batch: 1 }))
+  expect(view.getByText('Playlist 3')).toBeTruthy()
 })
 
 test('renders greeting, both sections, cards and the stats strip', async () => {

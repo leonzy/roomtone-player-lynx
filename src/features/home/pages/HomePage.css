@@ -24,6 +24,14 @@
   min-height: 0;
 }
 
+.home-section__shuffle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-1);
+  margin-right: var(--space-2);
+}
+
 .home__topbar {
   display: flex;
   flex-direction: row;

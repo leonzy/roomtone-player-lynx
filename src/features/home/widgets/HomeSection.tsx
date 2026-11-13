@@ -33,6 +33,8 @@ export interface HomeSectionProps {
   loading?: boolean
   onViewAll: () => void
   onRetry?: () => void
+  onShuffle?: () => void
+  shuffling?: boolean
   onTapPlaylist: (playlist: Playlist) => void
   /** One-tap "play this playlist" from the cover's play disc. Mirrors the
    * PlaylistsView affordance; when omitted the disc does not render. */
@@ -61,6 +63,8 @@ export function HomeSection({
   loading,
   onViewAll,
   onRetry,
+  onShuffle,
+  shuffling,
   onTapPlaylist,
   onPlayAll,
   playingPlaylistId,
@@ -96,6 +100,10 @@ export function HomeSection({
         <text className='home-section__title'>{title}</text>
         <view className='home-section__spacer' />
         <HomeLayoutMenu />
+        {onShuffle && <view className='home-section__action home-section__shuffle' data-testid={`home-shuffle-${icon}`} accessibility-element={true} accessibility-traits='button' accessibility-label={t('home.shuffleBatch')} bindtap={() => { if (!shuffling) onShuffle() }}>
+          <Icon name='refresh' size={16} color={shuffling ? ICON_COLORS.content2 : ICON_COLORS.primary} />
+          <text className='home-section__action-text'>{t(shuffling ? 'home.shufflingBatch' : 'home.shuffleBatch')}</text>
+        </view>}
         <view className='home-section__action' bindtap={() => onViewAll()}>
           <text className='home-section__action-text'>{t('home.viewAll')}</text>
         </view>

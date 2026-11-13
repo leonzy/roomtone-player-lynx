@@ -1,5 +1,11 @@
 # Lynx 客户端开发经验
 
+## HOME-001：首页预览一次抽样，不能随机分页或扫描整库
+
+2026-11-14：首页复用按固定顺序排列的普通分页，并为补齐布局连续请求页面；后端每页先聚合全部歌单成员，leonFN 取 12 张卡片约需 1 秒。首页改为按布局预算一次随机抽样，最大 200，当前批 ID 仅作下一批的软避让；隐藏收藏走硬排除，候选不足仍返回现有歌单。查询保留旧卡片、请求中禁重复点击，不分页不加载整库；缓存位于 playlist/list 前缀以继续接受歌单编辑失效。回归覆盖按钮、预算、请求编码、缓存批次与保留数据；后端真实仓储/handler 验证抽样、计数与过滤。无播放测试。
+
+English: Home reused fixed-order pagination and chained pages to fill layouts, while each backend page aggregated every playlist membership (~1 second for 12 NAS cards). Home now requests one bounded random sample, avoids previous IDs when alternatives exist, excludes hidden favorites, keeps old cards while fetching and prevents duplicate taps. It never paginates random ordering or downloads the entire collection. Keep its cache under playlist/list so existing mutation invalidations apply. Tests cover the button, layout budget, wire parameters, cache batches and placeholder data; backend repository/handler tests cover sampling, counts and filters. No playback tests.
+
 ## QUEUE-006：随机队列的剩余数量不能用列表位置推算
 
 2026-11-12：生产 Web 队列实际有 431 首、游标为 326，旧标题仅显示“剩余 105 首”，使用户误以为没有加载全部。总数与剩余数必须同时显示；剩余与已播放标记使用成功起播的队列条目记录，包含当前条目，不以歌曲 ID 去重、不将失败或预加载算作播放。记录随删除/重排映射，切换模式保留，替换队列重置；刷新及区域转移需要传递真实记录。反向恢复按索引推算的实现时，随机计数和标题测试失败。

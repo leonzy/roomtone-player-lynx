@@ -1,5 +1,15 @@
 # 进展与交接（PROGRESS）
 
+## 2026-11-14 · 首页随机预览与换一批
+
+首页按当前布局预算一次请求随机歌单（上限 200），普通歌单与电台分别换批。按钮带刷新图标，刷新保留旧卡片并禁止重复提交；上一批软避让、隐藏收藏硬排除，候选不足不清空。移除首页串行补页，普通歌单页的分页及播放菜单保持原有语义。数据键继续位于 playlist/list 前缀，接收已有编辑/删除失效。
+
+English: Home loads one bounded random sample per section and layout, with a refresh-icon batch button, retained cards while loading, duplicate-tap protection, previous-batch avoidance and hidden-favorite exclusion. Remove chained home pagination; library pagination and playback actions retain their semantics. Cache keys remain under playlist/list for existing mutation invalidations. Native client SDKs and audible playback are not part of this change.
+
+验证：Windows TypeScript build mode 与 Lynx/Web 双 bundle 构建通过；全量 Vitest 3,829 通过、7 失败，未修改的 5eb67ff0 索引快照复现同样 7 项（Android CRLF 与 Windows 路径静态断言），无新增失败。Node release 检查 63 通过、25 失败、1 跳过；失败集合全部在同一旧快照复现，另有快照自身缺少构建上下文的失败。没有将这些平台检查记为通过。后端相关全套及 Linux 容器中的真实 SQLite/handler 预览回归通过。
+
+Validation: TypeScript build mode and both JS bundles pass. Full Windows Vitest: 3,829 passed, seven failed; the untouched 5eb67ff0 index snapshot reproduces all seven CRLF/path failures. Release-script checks: 63 passed, 25 failed, one skipped; every current failure also occurs in the old snapshot, which has one extra missing-build-context failure. These platform checks are not reported as passed. Related backend suites and Linux SQLite/handler preview regressions pass.
+
 ## 2026-11-12 · 队列总数与实际播放记录
 
 基线 b2a760a3：队列标题改为“共 N 首 · 剩余 M 首”，剩余含当前条目；随机起点不代表之前的歌曲已播放。同一队列条目的重复播放不重复扣数，不同位置的相同歌曲独立记录。成功起播才记账，失败不计；删除/重排保留条目身份，模式切换保留记录，整体替换重置。Web 在已有播放断点存储中保存记录；服务端在队列快照中返回 started_indices，转移播放带入本机播放器。原有版本无法还原的历史不猜测。

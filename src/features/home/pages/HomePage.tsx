@@ -10,6 +10,7 @@ import { useScrollNotifier } from '../../../shared/nav/scroll-visibility.js'
 
 import { EMPTY_LIBRARY_STATS } from '../../../models/library-stats.js'
 import type { Playlist } from '../../../models/playlist.js'
+import { favoritePlaylistId, radioFavoritePlaylistId } from '../../../core/config/constants.js'
 import { usePlayerStore } from '../../player/store/index.js'
 import { playlistContext } from '../../player/domain/playback-context.js'
 import { chooseCollectionPlayback } from '../../player/data/collection-playback.js'
@@ -48,8 +49,8 @@ export function HomePage() {
   const { t } = useTranslation()
   const homeConfig = useHomeConfig()
   const { config: favoritesVisibility } = useHomeFavoritesVisibility()
-  const normal = useHomePlaylists('normal')
-  const radio = useHomePlaylists('radio', homeConfig.showRadios)
+  const [normalBatch, setNormalBatch] = useState({ key: 0, avoidIds: [] as number[] })
+  const [radioBatch, setRadioBatch] = useState({ key: 0, avoidIds: [] as number[] })
   // Library totals come from `/songs/stats`, not from the two sections' `total`
   // fields — those only ever described playlist counts. Falls back to zeroes while
   // loading or if the read fails, so the panel degrades instead of disappearing.
@@ -67,20 +68,10 @@ export function HomePage() {
     ? (isBento ? 4 : 6) : (homeIsWide ? 3 : 2)
   const columns = homeGridColumns(sectionWidth, homeConfig.columns, autoColumns)
   const sectionLimit = homeItemLimit(homeConfig, columns, homeIsWide)
+  const normal = useHomePlaylists('normal', { limit: sectionLimit, batch: normalBatch.key, avoidIds: normalBatch.avoidIds, excludeIds: favoritesVisibility.showFavorites ? [] : [Number(favoritePlaylistId)] })
+  const radio = useHomePlaylists('radio', { enabled: homeConfig.showRadios, limit: sectionLimit, batch: radioBatch.key, avoidIds: radioBatch.avoidIds, excludeIds: favoritesVisibility.showRadioFavorites ? [] : [Number(radioFavoritePlaylistId)] })
   const normalItems = homeSectionItems(normal.data?.pages, sectionLimit, favoritesVisibility)
   const radioItems = homeSectionItems(radio.data?.pages, sectionLimit, favoritesVisibility)
-  const cursors = useRef<Record<string, number>>({})
-  useEffect(() => {
-    for (const [type, query] of [['normal', normal], ['radio', radio]] as const) {
-      if (type === 'radio' && !homeConfig.showRadios) continue
-      const count = homeSectionItems(query.data?.pages, 0).length
-      const visibleCount = homeSectionItems(query.data?.pages, 0, favoritesVisibility).length
-      if (!query.hasNextPage || query.isFetchingNextPage || query.isFetchNextPageError || visibleCount >= sectionLimit) continue
-      if (cursors.current[type] === count) continue
-      cursors.current[type] = count
-      void query.fetchNextPage()
-    }
-  }, [sectionLimit, homeConfig.showRadios, favoritesVisibility.showFavorites, favoritesVisibility.showRadioFavorites, normal.data, radio.data, normal.isFetchingNextPage, radio.isFetchingNextPage])
   const stats = statsQuery.data ?? EMPTY_LIBRARY_STATS
 
   const normalFailed = normal.isError
@@ -111,8 +102,7 @@ export function HomePage() {
     void navigate({ to: '/playlists/create' })
   }
   // One-tap "play this playlist" from the home cover disc — mirrors PlaylistsView's
-  // onPlayAll. Only the first page blocks the first note; the store's background
-  // loader appends the rest (Flutter `playPlaylistById` parity). Empty → toast;
+  // onPlayAll. The collection action prepares and replaces the full queue. Empty → toast;
   // failure → toast. The cover's catchtap already stops this from also navigating
   // into the detail page.
   const onPlayAll = async (playlist: Playlist, anchor?: AnchorMeasurement) => {
@@ -136,7 +126,6 @@ export function HomePage() {
   // is a worker with no `window`/`document` (see `isWebPlatform`).
   const isWeb = isWebPlatform()
   const onStartRefresh = () => {
-    cursors.current = {}
     void Promise.all([normal.refetch(), ...(homeConfig.showRadios ? [radio.refetch()] : []), statsQuery.refetch()]).finally(() => {
       refreshRef.current?.invoke({ method: 'finishRefresh' }).exec()
     })
@@ -162,6 +151,8 @@ export function HomePage() {
                     loading={normal.isLoading && !normal.data}
                     onViewAll={viewAllPlaylists}
                     onRetry={() => void normal.refetch()}
+                    onShuffle={(normal.data?.pages[0]?.total ?? 0) > normalItems.length ? () => { if (!normal.isFetching) setNormalBatch(previous => ({ key: previous.key + 1, avoidIds: normalItems.map(p => p.id) })) } : undefined}
+                    shuffling={normal.isFetching}
                     onTapPlaylist={openPlaylist}
                     onPlayAll={onPlayAll}
                     playingPlaylistId={playingPlaylistId}
@@ -180,6 +171,8 @@ export function HomePage() {
                     loading={radio.isLoading && !radio.data}
                     onViewAll={viewAllRadios}
                     onRetry={() => void radio.refetch()}
+                    onShuffle={(radio.data?.pages[0]?.total ?? 0) > radioItems.length ? () => { if (!radio.isFetching) setRadioBatch(previous => ({ key: previous.key + 1, avoidIds: radioItems.map(p => p.id) })) } : undefined}
+                    shuffling={radio.isFetching}
                     onTapPlaylist={openPlaylist}
                     onPlayAll={onPlayAll}
                     playingPlaylistId={playingPlaylistId}
