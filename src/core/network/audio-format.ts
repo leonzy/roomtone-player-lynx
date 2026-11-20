@@ -51,7 +51,12 @@ export function normalizeFormat(fmt: string): string | null {
       return 'aiff'
     case 'dts':
     case 'dtshd':
+    case 'dsf':
+    case 'dff':
+    case 'dsd':
       return fmt
+    case 'dsdiff':
+      return 'dff'
     case 'mka':
       return 'mka'
     case 'mpg':

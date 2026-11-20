@@ -1,5 +1,11 @@
 # Lynx 客户端开发经验
 
+## AUDIO-001：已入库的 DSD 容器必须参与自动转码判定
+
+2026-11-20：leonFN 服务、挂载、源文件和 FFmpeg 均正常，但 Web 请求 DSF 时没有 format 参数，拿到 application/octet-stream 和 DSD 原始头，浏览器不能解码。normalizeFormat 缺失 dsf/dff/dsd，使“不认识格式则直出”的旧分支漏掉已支持入库的音频。补上 DSF/DFF/DSD 与 DSDIFF 别名；Web/iOS/Android/Harmony 复用 MP3 转码，native 解码器仍直出。回归先证明格式决策与实际 URL 两处失败，再验证 original 质量下仍请求可解码容器；不修改未知格式或已有支持格式的行为。NAS 对原失败歌曲取得 206 audio/mpeg，首批 64 KiB 经 FFmpeg 解码成功；没有音箱 transport/play 测试。
+
+English: On 2026-11-20 the service, mounts, source files and FFmpeg were healthy, but Web requested DSF without a format parameter and received raw DSD bytes. The format normalizer omitted DSF/DFF/DSD and took the unknown-format passthrough branch. Recognize those containers and DSDIFF aliases so browser/mobile targets request MP3 while native decoders retain the source. Regression tests first fail at both the decision and URL boundaries, including original quality. A NAS request for the failing song returns 206 audio/mpeg and its first 64 KiB decodes successfully with FFmpeg. No speaker transport/play commands were used.
+
 ## HOME-001：首页预览一次抽样，不能随机分页或扫描整库
 
 2026-11-14：首页复用按固定顺序排列的普通分页，并为补齐布局连续请求页面；后端每页先聚合全部歌单成员，leonFN 取 12 张卡片约需 1 秒。首页改为按布局预算一次随机抽样，最大 200，当前批 ID 仅作下一批的软避让；隐藏收藏走硬排除，候选不足仍返回现有歌单。查询保留旧卡片、请求中禁重复点击，不分页不加载整库；缓存位于 playlist/list 前缀以继续接受歌单编辑失效。回归覆盖按钮、预算、请求编码、缓存批次与保留数据；后端真实仓储/handler 验证抽样、计数与过滤。无播放测试。

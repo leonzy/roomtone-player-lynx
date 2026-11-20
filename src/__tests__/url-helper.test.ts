@@ -44,6 +44,13 @@ describe('UrlHelper', () => {
     expect(url).toContain('format=mp3')
   })
 
+  test('DSF sources always request a browser-decodable stream, including original quality', () => {
+    const url = buildSongUrl('/api/v1/songs/67059/play', { songFormat: 'dsf', quality: 'original', platform: 'web' }, ctx)
+    expect(url).toContain('format=mp3')
+    expect(url).not.toContain('quality=')
+    expect(buildSongUrl('/api/v1/songs/67059/play', { songFormat: 'dsf', platform: 'native' }, ctx)).not.toContain('format=')
+  })
+
   test('buildSongUrl skips format for natively supported format', () => {
     expect(buildSongUrl('/api/v1/songs/1/play', { songFormat: 'mp3' }, ctx)).not.toContain(
       'format=',

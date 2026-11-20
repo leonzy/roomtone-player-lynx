@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { getTranscodeFormat } from '../core/network/audio-format.js'
+import { getTranscodeFormat, normalizeFormat } from '../core/network/audio-format.js'
 
 /**
  * `getTranscodeFormat` had no test of its own, and its `platform` parameter had no
@@ -95,4 +95,16 @@ describe("DTS audio", () => {
    expect(getTranscodeFormat(fmt, "native")).toBe(null)
   }
  })
+})
+
+describe('DSD audio', () => {
+  test('browser and mobile request decoded audio, while native decoders retain the source', () => {
+    for (const format of ['dsf', 'DSF', 'dff', 'DSDIFF', 'dsd']) {
+      for (const platform of ['web', 'ios', 'android', 'harmony'] as const) {
+        expect(getTranscodeFormat(format, platform), `${format}/${platform}`).toBe('mp3')
+      }
+      expect(getTranscodeFormat(format, 'native')).toBeNull()
+    }
+    expect(normalizeFormat('dsdiff')).toBe('dff')
+  })
 })

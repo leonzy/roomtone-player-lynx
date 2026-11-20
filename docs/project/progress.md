@@ -1,5 +1,11 @@
 # 进展与交接（PROGRESS）
 
+## 2026-11-20 · Web DSF 播放失败
+
+基线 0e63a714：服务正常、歌曲67059/67063文件可读，但浏览器 URL 未附带 format，返回原始 DSD 数据。补齐 DSF、DFF、DSD 和 DSDIFF 的格式识别；浏览器/系统播放器走现有 MP3 解码流，native 保留直出。新增格式/URL回归先失败后通过；相关 111 项测试、TypeScript build mode 和双 JS bundle 构建通过。NAS 已验证同一首 DSF 的 206/audio-mpeg 及前64KiB可解码，不向音箱起播。
+
+English: Baseline 0e63a714 served readable DSF sources directly to browser audio because DSD containers were missing from format normalization. Add DSF/DFF/DSD/DSDIFF recognition, retain native passthrough and use the existing MP3 stream for browser/mobile targets. Decision and URL regressions fail before the fix; 111 related tests, TypeScript build mode and both JS bundles pass. The original failing NAS song returns a decodable 206 audio/mpeg probe; no speaker playback.
+
 ## 2026-11-14 · 首页随机预览与换一批
 
 首页按当前布局预算一次请求随机歌单（上限 200），普通歌单与电台分别换批。按钮带刷新图标，刷新保留旧卡片并禁止重复提交；上一批软避让、隐藏收藏硬排除，候选不足不清空。移除首页串行补页，普通歌单页的分页及播放菜单保持原有语义。数据键继续位于 playlist/list 前缀，接收已有编辑/删除失效。

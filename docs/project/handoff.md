@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-11-20 · DSF
+
+DSF/DFF/DSD/DSDIFF 已参与自动转码；Web/系统播放器需要 format=mp3，native 仍可直出。不能把“容器未知不转码”用于这些已支持入库的格式。源 DSF 的200/206不代表浏览器可解码；验证实际输出容器。无音箱起播测试。
+
+English: DSD containers now participate in transcode decisions. Browser/system players request MP3; native decoders retain passthrough. A successful raw DSF HTTP response is not browser decoding evidence. Verify the output container; no speaker playback was performed.
+
 ## 2026-11-14 · 首页预览
 
 首页使用 `/playlists?random=true` 一次取足布局预算，最多 200；`avoid_ids` 软避让上一批，`exclude_ids` 硬排除隐藏收藏。不得对随机结果按 offset 续页，亦不得为换批预取整库。编辑失效前缀仍为 playlist/list。
