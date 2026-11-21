@@ -62,7 +62,7 @@ import { AddSongsPage, CategorySongsPage, FolderContentPage, LibraryLayout, Libr
 import { migrateLibrarySearch, type LibraryViewKey } from './features/library/domain/library-views.js'
 import { CreatePlaylistPage, EditPlaylistPage, PlaylistDetailPage } from './features/playlist/index.js'
 import { HomePage } from './features/home/index.js'
-import { AboutPage, AppearancePage, CacheManagePage, DataPage, DiagnosticsPage, LicensesPage, PlaybackPage, ProxySettingsPage, ServerEditPage, ServerListPage, SettingsPage, ThemeCatalogPage } from './features/settings/index.js'
+import { AboutPage, AppearancePage, CacheManagePage, DataPage, DiagnosticsPage, LicensesPage, MCPSettingsPage, PlaybackPage, ProxySettingsPage, ServerEditPage, ServerListPage, SettingsPage, ThemeCatalogPage } from './features/settings/index.js'
 import { DuplicateCheckPage, LibraryOpsPage } from './features/library-ops/index.js'
 import { PluginManagerPage, PluginRegistryPage, GithubDiscoveryPage, PluginWebViewPage } from './features/jsplugin/index.js'
 import { DemoFramePage } from './features/jsplugin/pages/DemoFramePage.js'
@@ -360,6 +360,12 @@ const proxySettingsRoute = createRoute({
   component: ProxySettingsPage,
 })
 
+const mcpSettingsRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: '/settings/mcp',
+  component: MCPSettingsPage,
+})
+
 const licensesRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/settings/licenses',
@@ -544,6 +550,7 @@ const routeTree = rootRoute.addChildren([
     cacheManageRoute,
     cacheTasksRoute,
     proxySettingsRoute,
+    mcpSettingsRoute,
     themeCatalogRoute,
     licensesRoute,
     duplicatesRoute,

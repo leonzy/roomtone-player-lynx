@@ -1,5 +1,11 @@
 # 工作交接（2026-10-14）
 
+## 2026-11-21 · MCP 设置页
+
+设置 → MCP Agent 已提供运行时开关、五类权限、Token 重建和 Agent JSON 配置复制。后端支持数据库持久化及免重启生效；环境变量管理实例只读。136 项相关测试、TypeScript 和 Lynx/Web 构建通过。实际界面与部署后验收以最终交付记录为准。
+
+English: Settings → MCP Agent now provides a runtime switch, five scopes, token regeneration, and copyable agent JSON. Backend settings persist in SQLite and apply without restart. Environment-managed instances are read-only. 136 related tests, TypeScript, and both bundle builds pass. Real UI and deployed verification are tracked in the final delivery record.
+
 ## 2026-11-20 · DSF
 
 DSF/DFF/DSD/DSDIFF 已参与自动转码；Web/系统播放器需要 format=mp3，native 仍可直出。不能把“容器未知不转码”用于这些已支持入库的格式。源 DSF 的200/206不代表浏览器可解码；验证实际输出容器。无音箱起播测试。

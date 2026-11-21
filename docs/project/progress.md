@@ -1,5 +1,11 @@
 # 进展与交接（PROGRESS）
 
+## 2026-11-21 · MCP 设置与 Agent 配置引导
+
+新增设置主列表 MCP 入口和独立页面，支持运行时开关、read/playback/speakers/metadata/automation 权限、Token 重建、实际端点及 JSON 配置复制；环境变量管理的实例显示只读提示。后端配置存数据库并立即生效，无需重启。136 项相关 Vitest、TypeScript build mode 与 Lynx/Web 双 bundle 构建通过。真实界面交互、原生客户端与部署后设置页验收以最终记录为准。
+
+English: Add the MCP settings entry and page with a runtime switch, five scopes, token regeneration, the actual endpoint, and copyable agent JSON. Environment-managed instances remain read-only. Backend settings persist in SQLite and apply without restart. 136 related Vitest tests, TypeScript build mode, and both Lynx/Web bundle builds pass. Real UI, native-client, and deployed settings verification are recorded separately.
+
 ## 2026-11-20 · Web DSF 播放失败
 
 基线 0e63a714：服务正常、歌曲67059/67063文件可读，但浏览器 URL 未附带 format，返回原始 DSD 数据。补齐 DSF、DFF、DSD 和 DSDIFF 的格式识别；浏览器/系统播放器走现有 MP3 解码流，native 保留直出。新增格式/URL回归先失败后通过；相关 111 项测试、TypeScript build mode 和双 JS bundle 构建通过。NAS 已验证同一首 DSF 的 206/audio-mpeg 及前64KiB可解码，不向音箱起播。

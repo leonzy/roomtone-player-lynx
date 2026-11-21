@@ -261,3 +261,39 @@ describe('SettingsApi.exportLogs', () => {
     await expect(api.exportLogs()).resolves.toBe('')
   })
 })
+
+test('MCP settings use the typed business endpoint and preserve scopes', async () => {
+  const requests: Array<{ method?: string; url: string; body?: string }> = []
+  const transport: Transport = async request => {
+    requests.push(request)
+    return {
+      status: 200,
+      headers: {},
+      body: JSON.stringify({
+        enabled: true,
+        token: 'rtmcp_test',
+        scopes: ['read', 'playback'],
+        managed_by_environment: false,
+        endpoint: '/mcp',
+      }),
+    }
+  }
+  const api = new SettingsApi(client(transport))
+  const settings = await api.getMCPSettings()
+  expect(settings).toEqual({
+    enabled: true,
+    token: 'rtmcp_test',
+    scopes: ['read', 'playback'],
+    managedByEnvironment: false,
+    endpoint: '/mcp',
+  })
+  await api.updateMCPSettings({ enabled: true, scopes: settings.scopes, regenerateToken: true })
+  const update = requests.at(-1)!
+  expect(update.method).toBe('PUT')
+  expect(update.url).toBe(`http://api.test${apiPrefix}/settings/mcp`)
+  expect(JSON.parse(update.body!)).toEqual({
+    enabled: true,
+    scopes: ['read', 'playback'],
+    regenerate_token: true,
+  })
+})

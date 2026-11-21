@@ -2,6 +2,20 @@ import { apiPrefix } from '../../../core/config/app-config.js'
 import type { HttpClient, RequestOptions } from '../../../core/network/http-client.js'
 import { coerceLogLevel, type LogLevel } from '../domain/log-level.js'
 import type { ProxySettings } from '../domain/proxy-model.js'
+
+export interface MCPSettings {
+  enabled: boolean
+  token: string
+  scopes: string[]
+  managedByEnvironment: boolean
+  endpoint: string
+}
+
+export interface MCPSettingsUpdate {
+  enabled?: boolean
+  scopes?: string[]
+  regenerateToken?: boolean
+}
 import { parseTabConfig, type TabConfig } from '../../jsplugin/data/tab-config.js'
 import {
   parseUpgradeCheck,
@@ -245,5 +259,33 @@ export class SettingsApi {
         allowlist: settings.allowlist,
       }),
     ])
+  }
+
+  async getMCPSettings(): Promise<MCPSettings> {
+    const res = await this.client.get<Record<string, unknown>>(`${apiPrefix}/settings/mcp`)
+    const data = res.data ?? {}
+    return {
+      enabled: data.enabled === true,
+      token: typeof data.token === 'string' ? data.token : '',
+      scopes: Array.isArray(data.scopes) ? data.scopes.map(String) : [],
+      managedByEnvironment: data.managed_by_environment === true,
+      endpoint: typeof data.endpoint === 'string' ? data.endpoint : '/mcp',
+    }
+  }
+
+  async updateMCPSettings(update: MCPSettingsUpdate): Promise<MCPSettings> {
+    const body: Record<string, unknown> = {}
+    if (update.enabled !== undefined) body.enabled = update.enabled
+    if (update.scopes !== undefined) body.scopes = update.scopes
+    if (update.regenerateToken !== undefined) body.regenerate_token = update.regenerateToken
+    const res = await this.client.put<Record<string, unknown>>(`${apiPrefix}/settings/mcp`, body)
+    const data = res.data ?? {}
+    return {
+      enabled: data.enabled === true,
+      token: typeof data.token === 'string' ? data.token : '',
+      scopes: Array.isArray(data.scopes) ? data.scopes.map(String) : [],
+      managedByEnvironment: data.managed_by_environment === true,
+      endpoint: typeof data.endpoint === 'string' ? data.endpoint : '/mcp',
+    }
   }
 }

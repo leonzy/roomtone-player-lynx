@@ -36,6 +36,7 @@ export type SettingsSubPage =
   | 'servers'
   | 'server-form'
   | 'proxy'
+  | 'mcp'
   | 'data'
   | 'diagnostics'
   | 'about'
@@ -74,6 +75,7 @@ export const SUB_PAGE_ROUTES: Record<SettingsSubPage, string> = {
   servers: '/settings/servers',
   'server-form': '/settings/servers/add',
   proxy: '/settings/proxy',
+  mcp: '/settings/mcp',
   data: '/settings/data',
   diagnostics: '/settings/diagnostics',
   about: '/settings/about',

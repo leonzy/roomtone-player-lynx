@@ -2,6 +2,7 @@ export { SettingsPage } from './pages/SettingsPage.js'
 export { LicensesPage } from './pages/LicensesPage.js'
 export { ThemeCatalogPage } from './pages/ThemeCatalogPage.js'
 export { ProxySettingsPage } from './pages/ProxySettingsPage.js'
+export { MCPSettingsPage } from './pages/MCPSettingsPage.js'
 
 // Sub-pages split out of the settings list. `SubPageShell` is deliberately NOT
 // re-exported: this barrel also exports `SettingsPage`, which imports every

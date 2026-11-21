@@ -42,6 +42,7 @@ import { DiagnosticsPage } from './DiagnosticsPage.js'
 import { LicensesPage } from './LicensesPage.js'
 import { PlaybackPage } from './PlaybackPage.js'
 import { ProxySettingsPage } from './ProxySettingsPage.js'
+import { MCPSettingsPage } from './MCPSettingsPage.js'
 import { ServerEditPage } from './ServerEditPage.js'
 import { ServerListPage } from './ServerListPage.js'
 import { ThemeCatalogPage } from './ThemeCatalogPage.js'
@@ -307,6 +308,15 @@ export function SettingsPage() {
                 onTap={() => goToSubPage('proxy')}
                 testId='settings-proxy'
               />
+              <SettingsRow
+                icon='settings'
+                title={t('settings.mcp')}
+                subtitle={t('settings.mcpSubtitle')}
+                trailingIcon='chevron-right'
+                selected={isActive('mcp')}
+                onTap={() => goToSubPage('mcp')}
+                testId='settings-mcp'
+              />
               {showData
                 ? (
                   <SettingsRow
@@ -488,6 +498,8 @@ function SettingsDetailPane({
       )
     case 'proxy':
       return <ProxySettingsPage />
+    case 'mcp':
+      return <MCPSettingsPage />
     case 'data':
       return <DataPage />
     case 'diagnostics':
