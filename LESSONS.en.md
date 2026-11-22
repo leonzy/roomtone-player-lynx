@@ -265,3 +265,7 @@ Include rule, scope, full owner/repo#number, failure/fix commit SHAs, actual val
 ### SCRAPE-001: Separate preview mode from the selected candidate
 
 2026-11-01: The manual UI hid conflicted fingerprints and offered no source choice. Track the response envelope separately from candidate selection; empty sources show reasons but cannot save or fall through to Edit. Tests cover conflicted 100% fingerprints, weak text matches, failed QQ lookup, selected-only saving and cross-song rejection. Prepare is read-only; saving remains explicit. Seen 1×.
+
+### OUTPUT-CHANNEL-001: Channel routing must bypass existing stereo caches
+
+2026-11-22: A grouped Web member receives its independent route in load commands. Source resolution must request the routed server representation ahead of existing stereo offline files. Cover reloading the same song from right to stereo and restoring cache use; group-editor tests must cover independent controls for master, DLNA, AirPlay and Web members. Seen 1×.

@@ -219,7 +219,7 @@ test('server load takes complete local queue even while UI controls a remote spe
   await focusZone('remote')
   socket.callbacks!.message({ cmd: 'load', song_id: 1, position_ms: 45000 })
   for (let i = 0; i < 20; i++) await Promise.resolve()
-  expect(engine.getState().loadZoneQueue).toHaveBeenCalledWith({ songs: [song(1), song(2)], index: 0, positionMs: 45000, playedIndices: [] })
+  expect(engine.getState().loadZoneQueue).toHaveBeenCalledWith({ songs: [song(1), song(2)], index: 0, positionMs: 45000, playedIndices: [], channelMode: 'stereo' })
   expect(player.getState().currentSong?.id).toBe(3)
   expect(socket.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'register_player', id: 'web' }))
 })
@@ -425,10 +425,10 @@ test('background fill preserves the server cursor when playback advances during 
   socket.callbacks!.open()
   outputs.groups = [outputs.groups[1]!]
   outputs.groups[0]!.members.push({ player_id: 'web', delay_ms: 0, volume_offset: 0, position: 1 })
-  socket.callbacks!.message({ cmd: 'load', song_id: 3, position_ms: 45000 })
+  socket.callbacks!.message({ cmd: 'load', song_id: 3, position_ms: 45000, channel_mode: 'right' })
   for (let i = 0; i < 50; i++) await Promise.resolve()
   expect(outputApi.getQueue).toHaveBeenLastCalledWith('remote')
-  expect(engine.getState().loadZoneQueue).toHaveBeenCalledWith({ songs: [song(3), song(4)], index: 0, positionMs: 45000, playedIndices: [] })
+  expect(engine.getState().loadZoneQueue).toHaveBeenCalledWith({ songs: [song(3), song(4)], index: 0, positionMs: 45000, playedIndices: [], channelMode: 'right' })
  })
 
 test('local song sleep commands reach native counting and heartbeat preserves generation',async()=>{

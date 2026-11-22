@@ -1314,3 +1314,15 @@ test('play all replaces the existing queue instead of appending its songs', asyn
   await flush()
   expect(usePlayerStore.getState().playlist.map(item => item.id)).toEqual([8, 9])
 })
+
+test('group channel routing bypasses stereo offline cache and resets when solo load arrives', async () => {
+ const { useLocalPlayerStore } = await import('../store/player-store.js')
+ const audio = getAudio() as MockSongloftAudio
+ songCache.cachedPath = 'file:///cached-stereo.wav'
+ await useLocalPlayerStore.getState().loadZoneQueue({ songs: [{ ...song(91, 200), url: 'http://example.test/api/v1/songs/91/play' }], index: 0, positionMs: 3000, channelMode: 'right' })
+ expect(audio.lastLoad?.url).toContain('channel_mode=right')
+ expect(audio.lastLoad?.url).toContain('format=mp3')
+ expect(audio.lastLoad?.opts).toEqual(expect.objectContaining({ initialPositionMs: 3000, autoplay: false }))
+ await useLocalPlayerStore.getState().loadZoneQueue({ songs: [{ ...song(91, 200), url: 'http://example.test/api/v1/songs/91/play' }], index: 0, positionMs: 3000, channelMode: 'stereo' })
+ expect(audio.lastLoad?.url).toBe('file:///cached-stereo.wav')
+})

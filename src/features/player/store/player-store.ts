@@ -66,7 +66,8 @@ import { useAppSessionStore } from '../../../store/app-session.js'
  * to the pure functions in `../domain/*` so it is unit-tested without a render.
  */
 export interface PlayerState extends PlayerData {
-  loadZoneQueue: (args: { songs: Song[]; index: number; positionMs: number; playedIndices?: number[] }) => Promise<void>
+  zoneChannelMode?: string
+  loadZoneQueue: (args: { songs: Song[]; index: number; positionMs: number; playedIndices?: number[]; channelMode?: string }) => Promise<void>
   cancelPendingPlayback: () => void
   // ── playback ──
   playSong: (song: Song, queue?: Song[]) => Promise<void>
@@ -344,13 +345,20 @@ export function songUrl(song: Song): string {
   const audioTrack = state.currentSong?.id === song.id && state.currentSong?.type === song.type
     ? state.audioTrackPending !== undefined ? state.audioTrackPending : state.audioTrack
     : null
-  return buildSongUrl(song.url, {
+  const url = buildSongUrl(song.url, {
     songFormat: song.format,
     quality: _audioQuality,
     normalize: _normalize,
     platform: getPlatformTarget(),
     audioTrack,
   })
+  if (state.zoneChannelMode && state.zoneChannelMode !== 'stereo') {
+    const routed = new URL(url)
+    routed.searchParams.set('channel_mode', state.zoneChannelMode)
+    routed.searchParams.set('format', 'mp3')
+    return routed.toString()
+  }
+  return url
 }
 
 /**
@@ -453,6 +461,8 @@ function playbackSourceFor(song: Song): PlaybackSource {
  * through one resolver is what keeps the two in agreement.
  */
 async function resolvePlaybackSource(song: Song): Promise<PlaybackSource> {
+  const route = useLocalPlayerStore.getState().zoneChannelMode
+  if (route && route !== 'stereo') return { url: songUrl(song), hls: false, cached: false }
   const local = cachedSongIdentity(song)
   if (local) {
     if (currentOfflineOwner()?.namespace !== local.namespace) throw new Error('cache_identity_unavailable')
@@ -933,15 +943,16 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
     },
 
     cancelPendingPlayback: () => { invalidateSourceLoad(); cancelRetry(); _queueLoader.invalidate(); _awaitingPlayback = null },
-    loadZoneQueue: async ({ songs, index, positionMs, playedIndices }) => {
+    loadZoneQueue: async ({ songs, index, positionMs, playedIndices, channelMode }) => {
       if (!songs[index]) return
       _queueLoader.invalidate()
       _navigation.reset(get().playMode)
       _navigation.restorePlayed(playedIndices ?? [])
-      set({ playlist: [...songs], currentIndex: index, currentSong: songs[index], playbackContext: undefined, sourcePlaylistId: undefined })
+      set({ playlist: [...songs], currentIndex: index, currentSong: songs[index], playbackContext: undefined, sourcePlaylistId: undefined, zoneChannelMode: channelMode || 'stereo' })
       await playAtIndex(index, { positionMs, serverOwned: true })
     },
     playPlaylist: async (songs, startIndex = 0, context) => {
+      set({ zoneChannelMode: 'stereo' })
       if (songs.length === 0) return
       // Re-base the background-load generation before any await: callers
       // snapshot it synchronously right after this call to start their own
@@ -1366,7 +1377,7 @@ export const useLocalPlayerStore = create<PlayerState>((set, get) => {
       _videoSourceSongId = null
       _loadedSongId = null
       _loadedSourceKind = null
-      set({ ...INITIAL, showAudioTrackSheet: false })
+      set({ ...INITIAL, zoneChannelMode: 'stereo', showAudioTrackSheet: false })
     },
 
     _onCompleted: onCompleted,

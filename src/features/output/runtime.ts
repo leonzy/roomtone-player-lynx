@@ -387,7 +387,7 @@ async function handleCommand(message: Record<string, unknown>) {
         const status = await outputApi.getQueue(g.id)
         const songs = await outputApi.songs(status.queue.items)
         if (generation !== commandGeneration || songs[status.queue.current]?.id !== message.song_id) return
-        await local!.getState().loadZoneQueue({ songs, index: status.queue.current, positionMs: Number(message.position_ms ?? 0), playedIndices: status.queue.started_indices })
+        await local!.getState().loadZoneQueue({ songs, index: status.queue.current, positionMs: Number(message.position_ms ?? 0), playedIndices: status.queue.started_indices, channelMode: typeof message.channel_mode === 'string' ? message.channel_mode : 'stereo' })
         lastLocalQueue = `${g.id}:${songs.map(s => s.id)}:${status.queue.current}:${status.queue.started_indices}`
       } finally { suppressQueue-- }
     })()

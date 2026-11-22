@@ -12,8 +12,8 @@ afterEach(() => vi.restoreAllMocks())
 const device = { ID: 'dlna:test', Name: '小爱', Kind: 'dlna', dlna_sync_delay_ms: 1000 } as OutputDevice
 
 test('DLNA delay validates bounded integers only', () => {
-  for (const v of ['', '-10', '1.5', '2001', 'NaN']) expect(parseDLNADelay(v)).toBeNull()
-  for (const v of ['0', '1000', '2000']) expect(parseDLNADelay(v)).toBe(Number(v))
+  for (const v of ['', '-2001', '1.5', '2001', 'NaN']) expect(parseDLNADelay(v)).toBeNull()
+  for (const v of ['-2000', '-500', '0', '1000', '+2000']) expect(parseDLNADelay(v)).toBe(Number(v))
 })
 test('device calibration reads saved value, keeps draft local and saves only this setting', async () => {
   const update = vi.spyOn(outputApi, 'updateDevice').mockResolvedValue({})
@@ -43,4 +43,15 @@ test('conflicting device changes and failed saves cannot claim success', async (
   await act(async () => { fireEvent.tap(query.getByText('保存')); await Promise.resolve() })
   expect(actions.error).toContain('disk full')
   expect(query.queryByText('已保存')).toBeNull()
+})
+
+test('negative calibration saves the faster DLNA offset without clamping to zero', async () => {
+  const faster = { ...device, dlna_sync_delay_ms: 0 }
+  const update = vi.spyOn(outputApi, 'updateDevice').mockResolvedValue({})
+  vi.spyOn(outputApi, 'outputs').mockResolvedValue({ players: [faster], groups: [] })
+  render(<DLNACalibration device={faster} />)
+  const query = getQueriesForElement(elementTree.root!)
+  await act(async () => { fireEvent.tap(query.getByTestId('calibration-step--50')) })
+  await act(async () => { fireEvent.tap(query.getByText('保存')); await Promise.resolve() })
+  expect(update.mock.calls).toEqual([['dlna:test', { dlna_sync_delay_ms: -50 }]])
 })

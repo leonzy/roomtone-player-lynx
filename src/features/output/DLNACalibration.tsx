@@ -7,9 +7,9 @@ import { outputAction, openOutputPanel, useZoneState } from './runtime.js'
 import { useOutputText } from './text.js'
 
 export function parseDLNADelay(raw: string): number | null {
-  if (!/^\d+$/.test(raw.trim())) return null
+  if (!/^[+-]?\d+$/.test(raw.trim())) return null
   const value = Number(raw)
-  return Number.isSafeInteger(value) && value >= 0 && value <= 2000 ? value : null
+  return Number.isSafeInteger(value) && value >= -2000 && value <= 2000 ? value : null
 }
 
 export function DLNACalibration({ device }: { device: OutputDevice }) {
@@ -18,7 +18,7 @@ export function DLNACalibration({ device }: { device: OutputDevice }) {
   const [baseline, setBaseline] = useState(device.dlna_sync_delay_ms)
   const value = parseDLNADelay(raw)
   const set = (next: string) => { if (!busy) { setRaw(next); setSaved(false) } }
-  const step = (by: number) => set(String(Math.max(0, Math.min(2000, (value ?? baseline) + by))))
+  const step = (by: number) => set(String(Math.max(-2000, Math.min(2000, (value ?? baseline) + by))))
   const save = () => void outputAction(async () => {
     if (value == null) return
     const current = (await outputApi.outputs()).players.find(p => p.ID === device.ID)
@@ -32,9 +32,9 @@ export function DLNACalibration({ device }: { device: OutputDevice }) {
     <view className='output-calibration-guide'><text>{out('dlnaCalibrationExample')}</text><text className='output-device-detail'>{out('dlnaCalibrationApply')}</text></view>
     <view className='output-calibration-card'>
       <text className='output-label'>{out('dlnaDelayLabel')}</text>
-      <view className='output-calibration-value'><Input className='output-input' type='number' value={raw} onInput={set} placeholder='0' /><text>ms</text><text className='output-device-detail'>{value == null ? out('dlnaDelayInvalid') : out('dlnaDelayUnit')}</text></view>
-      <SliderRoot className='output-slider' value={(value ?? baseline) / 2000} step={10 / 2000} disabled={busy} onValueChange={v => set(String(Math.round(v * 200) * 10))}><SliderTrack className='output-slider-track'><SliderIndicator className='output-slider-fill' /><SliderThumb className='output-slider-thumb-wrap'><view className='output-slider-thumb' /></SliderThumb></SliderTrack></SliderRoot>
-      <view className='output-calibration-scale'><text>0 ms</text><text>1000 ms</text><text>2000 ms</text></view>
+      <view className='output-calibration-value'><Input className='output-input' type='text' value={raw} onInput={set} placeholder='0' /><text>ms</text><text className='output-device-detail'>{value == null ? out('dlnaDelayInvalid') : out('dlnaDelayUnit')}</text></view>
+      <SliderRoot className='output-slider' value={((value ?? baseline) + 2000) / 4000} step={10 / 4000} disabled={busy} onValueChange={v => set(String(Math.round(v * 400) * 10 - 2000))}><SliderTrack className='output-slider-track'><SliderIndicator className='output-slider-fill' /><SliderThumb className='output-slider-thumb-wrap'><view className='output-slider-thumb' /></SliderThumb></SliderTrack></SliderRoot>
+      <view className='output-calibration-scale'><text>-2000 ms</text><text>0 ms</text><text>+2000 ms</text></view>
       <view className='output-calibration-steps'>{[-50, -10, 10, 50].map(by => <view key={by} data-testid={`calibration-step-${by}`} className={`output-button${busy ? ' output-disabled' : ''}`} bindtap={busy ? undefined : () => step(by)} accessibility-element={true} accessibility-traits='button' accessibility-label={`${by > 0 ? '+' : ''}${by} ms`}><text>{by > 0 ? '+' : ''}{by} ms</text></view>)}</view>
     </view>
     {saved && <text className='output-calibration-saved'>{out('calibrationSaved')}</text>}
